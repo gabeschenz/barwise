@@ -26,6 +26,31 @@ export {
 } from "./model/Constraint.js";
 export { type Definition } from "./model/Definition.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
+export {
+  OrmProject,
+  type OrmProjectConfig,
+} from "./model/OrmProject.js";
+export {
+  DomainModel,
+  type DomainModelConfig,
+} from "./model/DomainModel.js";
+export {
+  ContextMapping,
+  type ContextMappingConfig,
+  type MappingPattern,
+} from "./model/ContextMapping.js";
+export {
+  EntityMapping,
+  type EntityMappingConfig,
+} from "./model/EntityMapping.js";
+export {
+  SemanticConflict,
+  type SemanticConflictConfig,
+} from "./model/SemanticConflict.js";
+export {
+  ProductDependency,
+  type ProductConfig,
+} from "./model/ProductDependency.js";
 
 // Serialization
 export {
@@ -37,6 +62,14 @@ export {
   type ValidationResult,
   type SchemaError,
 } from "./serialization/SchemaValidator.js";
+export {
+  ProjectSerializer,
+  ProjectDeserializationError,
+} from "./serialization/ProjectSerializer.js";
+export {
+  MappingSerializer,
+  MappingDeserializationError,
+} from "./serialization/MappingSerializer.js";
 
 // Validation
 export {
@@ -48,6 +81,10 @@ export { ValidationEngine } from "./validation/ValidationEngine.js";
 export { structuralRules } from "./validation/rules/structural.js";
 export { constraintConsistencyRules } from "./validation/rules/constraintConsistency.js";
 export { completenessWarnings } from "./validation/rules/completenessWarnings.js";
+export {
+  projectRules,
+  type ProjectValidationRule,
+} from "./validation/rules/projectRules.js";
 
 // Verbalization
 export {

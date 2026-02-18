@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fregma.dev/schemas/context-mapping.schema.json",
+  "title": "Context Mapping",
+  "description": "Schema for .map.yaml files that define cross-domain context mappings.",
+  "type": "object",
+  "required": ["mapping"],
+  "additionalProperties": false,
+  "properties": {
+    "mapping": {
+      "type": "object",
+      "required": ["source_context", "target_context", "pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "source_context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The source domain context name."
+        },
+        "target_context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The target domain context name."
+        },
+        "pattern": {
+          "type": "string",
+          "enum": ["shared_kernel", "published_language", "anticorruption_layer"],
+          "description": "The DDD context mapping pattern."
+        },
+        "entity_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entity_mapping"
+          },
+          "description": "Entity-level correspondences."
+        },
+        "semantic_conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/semantic_conflict"
+          },
+          "description": "Documented semantic conflicts."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "entity_mapping": {
+      "type": "object",
+      "required": ["source_object_type", "target_object_type"],
+      "additionalProperties": false,
+      "properties": {
+        "source_object_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Object type name in the source domain."
+        },
+        "target_object_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Object type name in the target domain."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the mapping."
+        }
+      }
+    },
+    "semantic_conflict": {
+      "type": "object",
+      "required": ["term", "source_meaning", "target_meaning", "resolution"],
+      "additionalProperties": false,
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The conflicting term."
+        },
+        "source_meaning": {
+          "type": "string",
+          "description": "Meaning in the source domain."
+        },
+        "target_meaning": {
+          "type": "string",
+          "description": "Meaning in the target domain."
+        },
+        "resolution": {
+          "type": "string",
+          "minLength": 1,
+          "description": "How the warehouse resolves this conflict."
+        }
+      }
+    }
+  }
+}
