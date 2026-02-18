@@ -1,0 +1,77 @@
+/**
+ * Structured verbalization output.
+ *
+ * Each verbalization is composed of segments that can be rendered
+ * with formatting, hyperlinks, and contextual annotations by a UI layer.
+ */
+
+/**
+ * The kind of a verbalization segment, used for formatting.
+ */
+export type SegmentKind =
+  | "text"
+  | "object_type_ref"
+  | "keyword"
+  | "value_literal";
+
+/**
+ * A single segment in a verbalization.
+ */
+export interface VerbalizationSegment {
+  /** The display text. */
+  readonly text: string;
+  /** The semantic kind (for formatting/linking). */
+  readonly kind: SegmentKind;
+  /** The model element id this segment refers to (for hyperlinking). */
+  readonly elementId?: string;
+}
+
+/**
+ * A complete verbalization of a model element.
+ */
+export interface Verbalization {
+  /** The ordered segments that compose this verbalization. */
+  readonly segments: readonly VerbalizationSegment[];
+  /** The flattened plain-text representation. */
+  readonly text: string;
+  /** The id of the model element this verbalization describes. */
+  readonly sourceElementId: string;
+  /** What kind of element was verbalized. */
+  readonly category: "fact_type" | "constraint";
+}
+
+/**
+ * Helper to build a Verbalization from segments.
+ */
+export function buildVerbalization(
+  sourceElementId: string,
+  category: Verbalization["category"],
+  segments: readonly VerbalizationSegment[],
+): Verbalization {
+  return {
+    segments,
+    text: segments.map((s) => s.text).join(""),
+    sourceElementId,
+    category,
+  };
+}
+
+/** Shorthand segment constructors. */
+export function textSeg(text: string): VerbalizationSegment {
+  return { text, kind: "text" };
+}
+
+export function refSeg(
+  text: string,
+  elementId: string,
+): VerbalizationSegment {
+  return { text, kind: "object_type_ref", elementId };
+}
+
+export function kwSeg(text: string): VerbalizationSegment {
+  return { text, kind: "keyword" };
+}
+
+export function valSeg(text: string): VerbalizationSegment {
+  return { text, kind: "value_literal" };
+}
