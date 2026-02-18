@@ -1,0 +1,73 @@
+{
+  "name": "fregma-vscode",
+  "displayName": "Fregma ORM Modeler",
+  "description": "ORM 2 modeling tool for data engineers and architects",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "fregma",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml",
+    "workspaceContains:**/*.orm.yaml",
+    "workspaceContains:**/*.orm-project.yaml"
+  ],
+  "main": "./dist/client/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "orm.newProject",
+        "title": "ORM: New Project",
+        "category": "ORM"
+      },
+      {
+        "command": "orm.validateModel",
+        "title": "ORM: Validate Model",
+        "category": "ORM"
+      },
+      {
+        "command": "orm.verbalize",
+        "title": "ORM: Verbalize Model",
+        "category": "ORM"
+      }
+    ],
+    "languages": [
+      {
+        "id": "orm-yaml",
+        "aliases": [
+          "ORM YAML"
+        ],
+        "extensions": [
+          ".orm.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@fregma/core": "0.1.0",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "vscode-uri": "^3.0.8",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.27.3",
+    "typescript": "^5.7.0"
+  }
+}

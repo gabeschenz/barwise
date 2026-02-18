@@ -1,18 +1,9 @@
 import { stringify, parse } from "yaml";
-import { createRequire } from "node:module";
+import { Ajv, type ErrorObject } from "ajv";
+import projectSchema from "../../schemas/orm-project.schema.json" with { type: "json" };
 import { OrmProject, type OrmProjectConfig } from "../model/OrmProject.js";
 import type { DomainModelConfig } from "../model/DomainModel.js";
 import type { ProductConfig } from "../model/ProductDependency.js";
-
-import type { ErrorObject } from "ajv";
-
-const require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Ajv = require("ajv") as typeof import("ajv").default;
-const projectSchema = require("../../schemas/orm-project.schema.json") as Record<
-  string,
-  unknown
->;
 
 /**
  * The shape of a parsed .orm-project.yaml document.

@@ -1,10 +1,5 @@
-import { createRequire } from "node:module";
-import type { ErrorObject } from "ajv";
-
-const require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Ajv = require("ajv") as typeof import("ajv").default;
-const ormModelSchema = require("../../schemas/orm-model.schema.json") as Record<string, unknown>;
+import { Ajv, type ErrorObject } from "ajv";
+import ormModelSchema from "../../schemas/orm-model.schema.json" with { type: "json" };
 
 /**
  * Result of validating a parsed YAML document against the JSON Schema.
