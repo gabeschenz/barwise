@@ -37,3 +37,14 @@ export {
   type ValidationResult,
   type SchemaError,
 } from "./serialization/SchemaValidator.js";
+
+// Validation
+export {
+  type Diagnostic,
+  type DiagnosticSeverity,
+} from "./validation/Diagnostic.js";
+export { type ValidationRule } from "./validation/ValidationRule.js";
+export { ValidationEngine } from "./validation/ValidationEngine.js";
+export { structuralRules } from "./validation/rules/structural.js";
+export { constraintConsistencyRules } from "./validation/rules/constraintConsistency.js";
+export { completenessWarnings } from "./validation/rules/completenessWarnings.js";
