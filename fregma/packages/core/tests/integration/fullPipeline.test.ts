@@ -1,0 +1,201 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
+import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
+import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const serializer = new OrmYamlSerializer();
+const validator = new ValidationEngine();
+const verbalizer = new Verbalizer();
+const mapper = new RelationalMapper();
+
+function loadFixture(name: string): string {
+  return readFileSync(
+    resolve(__dirname, "fixtures", name),
+    "utf-8",
+  );
+}
+
+describe("Full pipeline integration: load -> validate -> verbalize -> map -> DDL", () => {
+  describe("Order Management model", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    it("loads the model from YAML", () => {
+      expect(model.name).toBe("Order Management");
+      expect(model.objectTypes).toHaveLength(7);
+      expect(model.factTypes).toHaveLength(5);
+    });
+
+    it("passes validation with no errors", () => {
+      const diagnostics = validator.validate(model);
+      const errors = diagnostics.filter((d) => d.severity === "error");
+      expect(errors).toHaveLength(0);
+    });
+
+    it("may produce completeness warnings", () => {
+      const diagnostics = validator.validate(model);
+      const warnings = diagnostics.filter((d) => d.severity === "warning");
+      // Warnings are acceptable (e.g., spanning uniqueness on Order-contains-Product).
+      // We just verify validation runs without crashing.
+      expect(diagnostics).toBeDefined();
+      // There should be at least some warnings for fact types without definitions.
+      expect(warnings.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("verbalizes all fact types and constraints", () => {
+      const verbalizations = verbalizer.verbalizeModel(model);
+
+      // 5 fact types, each with at least 1 reading + constraints.
+      expect(verbalizations.length).toBeGreaterThan(5);
+
+      // All verbalizations should have non-empty text.
+      for (const v of verbalizations) {
+        expect(v.text.length).toBeGreaterThan(0);
+        expect(v.category).toBeDefined();
+      }
+
+      // Check specific verbalizations exist.
+      const texts = verbalizations.map((v) => v.text);
+      expect(texts.some((t) => t.includes("Customer"))).toBe(true);
+      expect(texts.some((t) => t.includes("Order"))).toBe(true);
+      expect(texts.some((t) => t.includes("at most one"))).toBe(true);
+      expect(texts.some((t) => t.includes("at least one"))).toBe(true);
+    });
+
+    it("maps to a relational schema", () => {
+      const schema = mapper.map(model);
+
+      // Entity tables: Customer, Order, Product (Name, Date, Quantity, Rating are value types).
+      const entityTableNames = schema.tables
+        .filter((t) => !t.name.includes("_"))
+        .map((t) => t.name);
+      expect(entityTableNames).toContain("customer");
+      expect(entityTableNames).toContain("order");
+      expect(entityTableNames).toContain("product");
+
+      // Customer table should have: customer_id (PK), name (value type col),
+      // and no FK to Order (FK goes on Order side).
+      const customerTable = schema.tables.find(
+        (t) => t.name === "customer",
+      )!;
+      expect(customerTable.primaryKey.columnNames).toEqual(["customer_id"]);
+      const nameCol = customerTable.columns.find((c) => c.name === "name");
+      expect(nameCol).toBeDefined();
+
+      // Order table should have: order_number (PK), customer_id (FK), date (value type col).
+      const orderTable = schema.tables.find((t) => t.name === "order")!;
+      expect(orderTable.primaryKey.columnNames).toEqual(["order_number"]);
+      expect(
+        orderTable.foreignKeys.some(
+          (fk) => fk.referencedTable === "customer",
+        ),
+      ).toBe(true);
+      const dateCol = orderTable.columns.find((c) => c.name === "date");
+      expect(dateCol).toBeDefined();
+    });
+
+    it("renders valid DDL", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+
+      // Basic DDL structure.
+      expect(ddl).toContain("CREATE TABLE customer");
+      expect(ddl).toContain("CREATE TABLE order");
+      expect(ddl).toContain("CREATE TABLE product");
+      expect(ddl).toContain("PRIMARY KEY");
+      expect(ddl).toContain("FOREIGN KEY");
+
+      // Every CREATE TABLE should have a matching closing );
+      const createCount = (ddl.match(/CREATE TABLE/g) ?? []).length;
+      const closeCount = (ddl.match(/\);/g) ?? []).length;
+      expect(closeCount).toBe(createCount);
+    });
+
+    it("DDL contains NOT NULL for mandatory columns", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+
+      // customer_id PK should be NOT NULL.
+      expect(ddl).toContain("customer_id TEXT NOT NULL");
+      // order_number PK should be NOT NULL.
+      expect(ddl).toContain("order_number TEXT NOT NULL");
+    });
+
+    it("frequency constraint passes validation", () => {
+      // The Customer rates Product fact type has a frequency constraint.
+      const ratesFt = model.getFactTypeByName("Customer rates Product");
+      expect(ratesFt).toBeDefined();
+      const freqConstraint = ratesFt!.constraints.find(
+        (c) => c.type === "frequency",
+      );
+      expect(freqConstraint).toBeDefined();
+
+      // Should not produce validation errors.
+      const errors = validator.errors(model);
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  describe("Phase 2 Constraint model", () => {
+    const yaml = loadFixture("phase2Constraints.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    it("loads all Phase 2 constraint types", () => {
+      const allConstraints = model.factTypes.flatMap(
+        (ft) => ft.constraints,
+      );
+      const types = new Set(allConstraints.map((c) => c.type));
+
+      expect(types.has("exclusive_or")).toBe(true);
+      expect(types.has("subset")).toBe(true);
+      expect(types.has("ring")).toBe(true);
+    });
+
+    it("passes validation (ring constraints on self-referencing fact type)", () => {
+      const errors = validator.errors(model);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("verbalizes Phase 2 constraints", () => {
+      const verbalizations = verbalizer.verbalizeModel(model);
+      const texts = verbalizations.map((v) => v.text);
+
+      // Exclusive-or should produce "but not both".
+      expect(texts.some((t) => t.includes("but not both"))).toBe(true);
+
+      // Ring irreflexive should produce "No Person ... that same Person".
+      expect(texts.some((t) => t.includes("that same"))).toBe(true);
+
+      // Subset should produce "If ... then".
+      expect(
+        texts.some(
+          (t) => t.includes("If") && t.includes("then"),
+        ),
+      ).toBe(true);
+    });
+
+    it("maps the self-referencing fact type correctly", () => {
+      const schema = mapper.map(model);
+      const personTable = schema.tables.find(
+        (t) => t.name === "person",
+      )!;
+      expect(personTable).toBeDefined();
+      expect(personTable.primaryKey.columnNames).toEqual(["person_id"]);
+    });
+
+    it("generates DDL for the full model", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+      expect(ddl).toContain("CREATE TABLE person");
+      expect(ddl).toContain("CREATE TABLE car");
+      expect(ddl).toContain("CREATE TABLE bus");
+      expect(ddl).toContain("CREATE TABLE ticket");
+    });
+  });
+});

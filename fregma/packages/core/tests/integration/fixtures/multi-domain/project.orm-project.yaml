@@ -1,0 +1,18 @@
+project:
+  name: "Data Warehouse Semantic Model"
+
+  domains:
+    - path: "./domains/crm.orm.yaml"
+      context: "crm"
+    - path: "./domains/billing.orm.yaml"
+      context: "billing"
+
+  mappings:
+    - path: "./mappings/crm-billing.map.yaml"
+
+  products:
+    - path: "./products/clv.orm.yaml"
+      context: "clv"
+      depends_on:
+        domains: ["crm", "billing"]
+        mappings: ["crm-billing"]

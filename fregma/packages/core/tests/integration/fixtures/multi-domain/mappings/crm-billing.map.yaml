@@ -1,0 +1,15 @@
+mapping:
+  source_context: "crm"
+  target_context: "billing"
+  pattern: "anticorruption_layer"
+
+  entity_mappings:
+    - source_object_type: "Customer"
+      target_object_type: "Account"
+      description: "CRM Customer maps to Billing Account for active customers only."
+
+  semantic_conflicts:
+    - term: "Customer"
+      source_meaning: "Any person or org the sales team is tracking, including leads."
+      target_meaning: "An entity with an active or historical payment relationship."
+      resolution: "In the analytical model, Customer refers to the billing definition."

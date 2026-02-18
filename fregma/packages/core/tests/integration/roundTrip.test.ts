@@ -1,0 +1,166 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const serializer = new OrmYamlSerializer();
+
+function loadFixture(name: string): string {
+  return readFileSync(
+    resolve(__dirname, "fixtures", name),
+    "utf-8",
+  );
+}
+
+describe("Round-trip serialization integration", () => {
+  it("round-trips the Order Management model", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    // Verify the model was loaded correctly.
+    expect(model.name).toBe("Order Management");
+    expect(model.domainContext).toBe("ecommerce");
+    expect(model.objectTypes).toHaveLength(7);
+    expect(model.factTypes).toHaveLength(5);
+    expect(model.definitions).toHaveLength(2);
+
+    // Serialize back to YAML and deserialize again.
+    const reserialized = serializer.serialize(model);
+    const roundTripped = serializer.deserialize(reserialized);
+
+    // Verify structural equivalence.
+    expect(roundTripped.name).toBe(model.name);
+    expect(roundTripped.domainContext).toBe(model.domainContext);
+    expect(roundTripped.objectTypes).toHaveLength(model.objectTypes.length);
+    expect(roundTripped.factTypes).toHaveLength(model.factTypes.length);
+    expect(roundTripped.definitions).toHaveLength(model.definitions.length);
+  });
+
+  it("preserves object type details through round-trip", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    for (const origOt of original.objectTypes) {
+      const rtOt = roundTripped.getObjectType(origOt.id);
+      expect(rtOt).toBeDefined();
+      expect(rtOt!.name).toBe(origOt.name);
+      expect(rtOt!.kind).toBe(origOt.kind);
+      expect(rtOt!.referenceMode).toBe(origOt.referenceMode);
+      expect(rtOt!.definition).toBe(origOt.definition);
+      expect(rtOt!.sourceContext).toBe(origOt.sourceContext);
+    }
+  });
+
+  it("preserves fact type details through round-trip", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    for (const origFt of original.factTypes) {
+      const rtFt = roundTripped.getFactType(origFt.id);
+      expect(rtFt).toBeDefined();
+      expect(rtFt!.name).toBe(origFt.name);
+      expect(rtFt!.definition).toBe(origFt.definition);
+      expect(rtFt!.arity).toBe(origFt.arity);
+      expect(rtFt!.readings).toHaveLength(origFt.readings.length);
+      expect(rtFt!.constraints).toHaveLength(origFt.constraints.length);
+
+      // Verify each role.
+      for (let i = 0; i < origFt.roles.length; i++) {
+        const origRole = origFt.roles[i]!;
+        const rtRole = rtFt!.roles[i]!;
+        expect(rtRole.id).toBe(origRole.id);
+        expect(rtRole.name).toBe(origRole.name);
+        expect(rtRole.playerId).toBe(origRole.playerId);
+      }
+
+      // Verify constraint types match.
+      for (let i = 0; i < origFt.constraints.length; i++) {
+        expect(rtFt!.constraints[i]!.type).toBe(origFt.constraints[i]!.type);
+      }
+    }
+  });
+
+  it("preserves value constraints through round-trip", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    const origRating = original.getObjectTypeByName("Rating");
+    const rtRating = roundTripped.getObjectTypeByName("Rating");
+    expect(origRating).toBeDefined();
+    expect(rtRating).toBeDefined();
+    expect(rtRating!.valueConstraint).toEqual(origRating!.valueConstraint);
+  });
+
+  it("preserves definitions through round-trip", () => {
+    const yaml = loadFixture("orderManagement.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    for (let i = 0; i < original.definitions.length; i++) {
+      const origDef = original.definitions[i]!;
+      const rtDef = roundTripped.definitions[i]!;
+      expect(rtDef.term).toBe(origDef.term);
+      expect(rtDef.definition).toBe(origDef.definition);
+      expect(rtDef.context).toBe(origDef.context);
+    }
+  });
+
+  it("round-trips the Phase 2 constraints model", () => {
+    const yaml = loadFixture("phase2Constraints.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    expect(model.name).toBe("Phase 2 Constraint Showcase");
+    expect(model.objectTypes).toHaveLength(4);
+    expect(model.factTypes).toHaveLength(4);
+
+    // Verify specific Phase 2 constraints loaded correctly.
+    const drivesFt = model.getFactTypeByName("Person drives Car");
+    expect(drivesFt).toBeDefined();
+    const xorConstraint = drivesFt!.constraints.find(
+      (c) => c.type === "exclusive_or",
+    );
+    expect(xorConstraint).toBeDefined();
+
+    const purchaseFt = model.getFactTypeByName("Person purchases Ticket");
+    expect(purchaseFt).toBeDefined();
+    const subsetConstraint = purchaseFt!.constraints.find(
+      (c) => c.type === "subset",
+    );
+    expect(subsetConstraint).toBeDefined();
+
+    const parentFt = model.getFactTypeByName("Person is parent of Person");
+    expect(parentFt).toBeDefined();
+    const ringConstraints = parentFt!.constraints.filter(
+      (c) => c.type === "ring",
+    );
+    expect(ringConstraints).toHaveLength(2);
+
+    // Round-trip.
+    const reserialized = serializer.serialize(model);
+    const roundTripped = serializer.deserialize(reserialized);
+
+    expect(roundTripped.objectTypes).toHaveLength(model.objectTypes.length);
+    expect(roundTripped.factTypes).toHaveLength(model.factTypes.length);
+
+    // Verify the ring constraints survived.
+    const rtParent = roundTripped.getFactTypeByName(
+      "Person is parent of Person",
+    );
+    expect(rtParent).toBeDefined();
+    const rtRings = rtParent!.constraints.filter((c) => c.type === "ring");
+    expect(rtRings).toHaveLength(2);
+  });
+});

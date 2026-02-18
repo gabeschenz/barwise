@@ -1,0 +1,62 @@
+orm_version: "1.0"
+
+model:
+  name: "CRM Domain"
+  domain_context: "crm"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+      definition: "A person or organization tracked by the sales team."
+
+    - id: "ot-email"
+      name: "Email"
+      kind: "value"
+
+    - id: "ot-status"
+      name: "Status"
+      kind: "value"
+      value_constraint:
+        values: ["active", "churned", "lead", "prospect"]
+
+  fact_types:
+    - id: "ft-customer-has-email"
+      name: "Customer has Email"
+      roles:
+        - id: "r-cust-email"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-email-of"
+          player: "ot-email"
+          role_name: "belongs to"
+      readings:
+        - "{0} has {1}"
+        - "{1} belongs to {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-cust-email"]
+        - type: "mandatory"
+          role: "r-cust-email"
+
+    - id: "ft-customer-has-status"
+      name: "Customer has Status"
+      roles:
+        - id: "r-cust-status"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-status-of"
+          player: "ot-status"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-cust-status"]
+        - type: "mandatory"
+          role: "r-cust-status"
+        - type: "value_constraint"
+          role: "r-status-of"
+          values: ["active", "churned", "lead", "prospect"]

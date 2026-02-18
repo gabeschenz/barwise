@@ -1,0 +1,142 @@
+orm_version: "1.0"
+
+model:
+  name: "Order Management"
+  domain_context: "ecommerce"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+      definition: "A person or organization that has placed at least one order."
+      source_context: "crm"
+
+    - id: "ot-order"
+      name: "Order"
+      kind: "entity"
+      reference_mode: "order_number"
+      definition: "A confirmed request by a customer for one or more products."
+
+    - id: "ot-product"
+      name: "Product"
+      kind: "entity"
+      reference_mode: "product_code"
+      definition: "A distinct item available for purchase."
+
+    - id: "ot-name"
+      name: "Name"
+      kind: "value"
+
+    - id: "ot-date"
+      name: "Date"
+      kind: "value"
+
+    - id: "ot-quantity"
+      name: "Quantity"
+      kind: "value"
+
+    - id: "ot-rating"
+      name: "Rating"
+      kind: "value"
+      value_constraint:
+        values: ["A", "B", "C", "D", "F"]
+
+  fact_types:
+    - id: "ft-customer-places-order"
+      name: "Customer places Order"
+      definition: "Records the ordering relationship between customers and their orders."
+      roles:
+        - id: "r-cust-places"
+          player: "ot-customer"
+          role_name: "places"
+        - id: "r-order-placed-by"
+          player: "ot-order"
+          role_name: "is placed by"
+      readings:
+        - "{0} places {1}"
+        - "{1} is placed by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-placed-by"]
+        - type: "mandatory"
+          role: "r-order-placed-by"
+
+    - id: "ft-order-contains-product"
+      name: "Order contains Product"
+      roles:
+        - id: "r-order-contains"
+          player: "ot-order"
+          role_name: "contains"
+        - id: "r-product-in"
+          player: "ot-product"
+          role_name: "is contained in"
+      readings:
+        - "{0} contains {1}"
+        - "{1} is contained in {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-contains", "r-product-in"]
+
+    - id: "ft-customer-has-name"
+      name: "Customer has Name"
+      roles:
+        - id: "r-cust-has-name"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-name-of-cust"
+          player: "ot-name"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-cust-has-name"]
+        - type: "mandatory"
+          role: "r-cust-has-name"
+
+    - id: "ft-order-placed-on"
+      name: "Order placed on Date"
+      roles:
+        - id: "r-order-placed-on"
+          player: "ot-order"
+          role_name: "is placed on"
+        - id: "r-date-of-order"
+          player: "ot-date"
+          role_name: "is date of"
+      readings:
+        - "{0} is placed on {1}"
+        - "{1} is date of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-placed-on"]
+        - type: "mandatory"
+          role: "r-order-placed-on"
+
+    - id: "ft-customer-rates-product"
+      name: "Customer rates Product"
+      roles:
+        - id: "r-cust-rates"
+          player: "ot-customer"
+          role_name: "rates"
+        - id: "r-product-rated-by"
+          player: "ot-product"
+          role_name: "is rated by"
+      readings:
+        - "{0} rates {1}"
+        - "{1} is rated by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-cust-rates", "r-product-rated-by"]
+        - type: "frequency"
+          role: "r-cust-rates"
+          min: 1
+          max: 10
+
+  definitions:
+    - term: "Backorder"
+      definition: "An order that cannot be fulfilled from current inventory."
+      context: "fulfillment"
+    - term: "SKU"
+      definition: "Stock Keeping Unit -- a unique identifier for a product variant."
