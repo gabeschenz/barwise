@@ -26,3 +26,14 @@ export {
 } from "./model/Constraint.js";
 export { type Definition } from "./model/Definition.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
+
+// Serialization
+export {
+  OrmYamlSerializer,
+  DeserializationError,
+} from "./serialization/OrmYamlSerializer.js";
+export {
+  SchemaValidator,
+  type ValidationResult,
+  type SchemaError,
+} from "./serialization/SchemaValidator.js";

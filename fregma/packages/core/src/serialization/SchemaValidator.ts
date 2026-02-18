@@ -1,0 +1,59 @@
+import { createRequire } from "node:module";
+import type { ErrorObject } from "ajv";
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Ajv = require("ajv") as typeof import("ajv").default;
+const ormModelSchema = require("../../schemas/orm-model.schema.json") as Record<string, unknown>;
+
+/**
+ * Result of validating a parsed YAML document against the JSON Schema.
+ */
+export interface ValidationResult {
+  readonly valid: boolean;
+  readonly errors: readonly SchemaError[];
+}
+
+/**
+ * A single schema validation error with a human-readable message.
+ */
+export interface SchemaError {
+  readonly path: string;
+  readonly message: string;
+}
+
+/**
+ * Validates parsed .orm.yaml documents against the JSON Schema.
+ *
+ * Uses ajv internally. The schema is compiled once and reused across
+ * validation calls.
+ */
+export class SchemaValidator {
+  private readonly validate;
+
+  constructor() {
+    const ajv = new Ajv({ allErrors: true });
+    this.validate = ajv.compile(ormModelSchema);
+  }
+
+  /**
+   * Validate a parsed YAML document (plain object) against the
+   * orm-model.schema.json schema.
+   */
+  validateModel(data: unknown): ValidationResult {
+    const valid = this.validate(data);
+
+    if (valid) {
+      return { valid: true, errors: [] };
+    }
+
+    const errors: SchemaError[] = (this.validate.errors ?? []).map(
+      (err: ErrorObject) => ({
+        path: err.instancePath || "/",
+        message: err.message ?? "Unknown validation error",
+      }),
+    );
+
+    return { valid: false, errors };
+  }
+}

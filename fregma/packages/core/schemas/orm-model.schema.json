@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://orm-modeler.dev/schemas/v1/orm-model.schema.json",
+  "title": "ORM Domain Model",
+  "description": "Schema for .orm.yaml domain model files used by Fregma.",
+  "type": "object",
+  "required": ["orm_version", "model"],
+  "additionalProperties": false,
+  "properties": {
+    "orm_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Must be \"1.0\" for this schema revision."
+    },
+    "model": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name for this domain model."
+        },
+        "domain_context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The bounded context this model represents (e.g. \"ecommerce\")."
+        },
+        "object_types": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/object_type" },
+          "description": "The object types (entity and value types) in this model."
+        },
+        "fact_types": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/fact_type" },
+          "description": "The fact types (relationships) in this model."
+        },
+        "definitions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/definition" },
+          "description": "Ubiquitous language entries not directly attached to a model element."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "object_type": {
+      "type": "object",
+      "required": ["id", "name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier (UUID)."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["entity", "value"],
+          "description": "Whether this is an entity type or a value type."
+        },
+        "reference_mode": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The reference mode for entity types (e.g. \"customer_id\"). Required for entity types."
+        },
+        "definition": {
+          "type": "string",
+          "description": "Natural-language definition for the ubiquitous language."
+        },
+        "source_context": {
+          "type": "string",
+          "description": "The bounded context this object type originates from."
+        },
+        "value_constraint": {
+          "$ref": "#/definitions/value_constraint_def",
+          "description": "Value constraint for value types."
+        }
+      },
+      "if": {
+        "properties": { "kind": { "const": "entity" } }
+      },
+      "then": {
+        "required": ["reference_mode"]
+      }
+    },
+    "value_constraint_def": {
+      "type": "object",
+      "required": ["values"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Enumerated allowed values."
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": ["id", "player", "role_name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier for this role."
+        },
+        "player": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the ObjectType that plays this role."
+        },
+        "role_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The role name used in verbalization."
+        }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "required": ["type"],
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "internal_uniqueness" },
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Role ids within the same fact type."
+            }
+          },
+          "required": ["type", "roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "mandatory" },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The single role id that is mandatory."
+            }
+          },
+          "required": ["type", "role"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "external_uniqueness" },
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Role ids spanning multiple fact types."
+            }
+          },
+          "required": ["type", "roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "value_constraint" },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The role id this constraint applies to."
+            },
+            "values": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1,
+              "description": "Allowed values."
+            }
+          },
+          "required": ["type", "values"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "fact_type": {
+      "type": "object",
+      "required": ["id", "name", "roles", "readings"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name (typically the forward reading)."
+        },
+        "definition": {
+          "type": "string",
+          "description": "Natural-language definition."
+        },
+        "roles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/role" },
+          "minItems": 1,
+          "description": "Ordered roles in this fact type."
+        },
+        "readings": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "description": "Reading templates with positional placeholders."
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/constraint" },
+          "description": "Constraints on this fact type."
+        }
+      }
+    },
+    "definition": {
+      "type": "object",
+      "required": ["term", "definition"],
+      "additionalProperties": false,
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The term being defined."
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The natural-language definition."
+        },
+        "context": {
+          "type": "string",
+          "description": "The bounded context in which this term applies."
+        }
+      }
+    }
+  }
+}
