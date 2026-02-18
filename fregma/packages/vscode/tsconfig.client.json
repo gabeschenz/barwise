@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src/client",
+    "outDir": "./dist/client"
+  },
+  "include": ["src/client/**/*.ts", "src/commands/**/*.ts"]
+}
