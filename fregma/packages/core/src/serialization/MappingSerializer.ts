@@ -1,5 +1,6 @@
 import { stringify, parse } from "yaml";
-import { createRequire } from "node:module";
+import { Ajv, type ErrorObject } from "ajv";
+import mappingSchema from "../../schemas/context-mapping.schema.json" with { type: "json" };
 import {
   ContextMapping,
   type ContextMappingConfig,
@@ -7,16 +8,6 @@ import {
 } from "../model/ContextMapping.js";
 import type { EntityMappingConfig } from "../model/EntityMapping.js";
 import type { SemanticConflictConfig } from "../model/SemanticConflict.js";
-
-import type { ErrorObject } from "ajv";
-
-const require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Ajv = require("ajv") as typeof import("ajv").default;
-const mappingSchema = require("../../schemas/context-mapping.schema.json") as Record<
-  string,
-  unknown
->;
 
 /**
  * The shape of a parsed .map.yaml document.
