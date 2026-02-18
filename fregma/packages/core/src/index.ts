@@ -112,6 +112,18 @@ export {
 export { RelationalMapper } from "./mapping/RelationalMapper.js";
 export { renderDdl } from "./mapping/renderers/ddl.js";
 
+// Diff / Merge
+export {
+  diffModels,
+  type ModelDiffResult,
+  type ModelDelta,
+  type ObjectTypeDelta,
+  type FactTypeDelta,
+  type DefinitionDelta,
+  type DeltaKind,
+} from "./diff/ModelDiff.js";
+export { mergeModels } from "./diff/ModelMerge.js";
+
 // Verbalization
 export {
   type Verbalization,
