@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fregma.dev/schemas/orm-project.schema.json",
+  "title": "ORM Project Manifest",
+  "description": "Schema for .orm-project.yaml files that define multi-domain ORM projects.",
+  "type": "object",
+  "required": ["project"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The name of the project."
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/domain"
+          },
+          "description": "Domain model references."
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mapping_ref"
+          },
+          "description": "Context mapping file references."
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/product"
+          },
+          "description": "Data product references."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "domain": {
+      "type": "object",
+      "required": ["path", "context"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path relative to the project root."
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The bounded context name (unique within the project)."
+        }
+      }
+    },
+    "mapping_ref": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path to the .map.yaml file."
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "required": ["path", "context"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path relative to the project root."
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The bounded context name for this data product."
+        },
+        "depends_on": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domains": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Upstream domain contexts."
+            },
+            "mappings": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Upstream mapping names."
+            }
+          }
+        }
+      }
+    }
+  }
+}

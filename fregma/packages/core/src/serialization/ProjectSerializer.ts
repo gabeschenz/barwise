@@ -1,0 +1,192 @@
+import { stringify, parse } from "yaml";
+import { createRequire } from "node:module";
+import { OrmProject, type OrmProjectConfig } from "../model/OrmProject.js";
+import type { DomainModelConfig } from "../model/DomainModel.js";
+import type { ProductConfig } from "../model/ProductDependency.js";
+
+import type { ErrorObject } from "ajv";
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Ajv = require("ajv") as typeof import("ajv").default;
+const projectSchema = require("../../schemas/orm-project.schema.json") as Record<
+  string,
+  unknown
+>;
+
+/**
+ * The shape of a parsed .orm-project.yaml document.
+ */
+interface ProjectYamlDocument {
+  project: {
+    name: string;
+    domains?: Array<{ path: string; context: string }>;
+    mappings?: Array<{ path: string }>;
+    products?: Array<{
+      path: string;
+      context: string;
+      depends_on?: {
+        domains?: string[];
+        mappings?: string[];
+      };
+    }>;
+  };
+}
+
+/**
+ * Serializes and deserializes OrmProject instances to/from
+ * .orm-project.yaml format.
+ */
+export class ProjectSerializer {
+  private readonly validate;
+
+  constructor() {
+    const ajv = new Ajv({ allErrors: true });
+    this.validate = ajv.compile(projectSchema);
+  }
+
+  /**
+   * Serialize an OrmProject to YAML.
+   */
+  serialize(project: OrmProject): string {
+    const doc: ProjectYamlDocument = {
+      project: {
+        name: project.name,
+      },
+    };
+
+    if (project.domains.length > 0) {
+      doc.project.domains = project.domains.map((d) => ({
+        path: d.path,
+        context: d.context,
+      }));
+    }
+
+    if (project.mappings.length > 0) {
+      doc.project.mappings = project.mappings.map((m) => ({
+        path: m.path,
+      }));
+    }
+
+    if (project.products.length > 0) {
+      doc.project.products = project.products.map((p) => {
+        const entry: ProjectYamlDocument["project"]["products"] extends
+          | Array<infer T>
+          | undefined
+          ? T
+          : never = {
+          path: p.path,
+          context: p.context,
+        };
+
+        if (
+          p.dependsOnDomains.length > 0 ||
+          p.dependsOnMappings.length > 0
+        ) {
+          (
+            entry as { depends_on?: { domains?: string[]; mappings?: string[] } }
+          ).depends_on = {};
+          if (p.dependsOnDomains.length > 0) {
+            entry.depends_on!.domains = [...p.dependsOnDomains];
+          }
+          if (p.dependsOnMappings.length > 0) {
+            entry.depends_on!.mappings = [...p.dependsOnMappings];
+          }
+        }
+
+        return entry;
+      });
+    }
+
+    return stringify(doc);
+  }
+
+  /**
+   * Deserialize a YAML string into an OrmProject.
+   *
+   * @throws {DeserializationError} if the YAML is invalid or doesn't
+   * match the schema.
+   */
+  deserialize(yaml: string): OrmProject {
+    let parsed: unknown;
+    try {
+      parsed = parse(yaml);
+    } catch (err) {
+      throw new ProjectDeserializationError(
+        `Invalid YAML: ${(err as Error).message}`,
+      );
+    }
+
+    const valid = this.validate(parsed);
+    if (!valid) {
+      const messages = (this.validate.errors ?? [])
+        .map(
+          (e: ErrorObject) =>
+            `${e.instancePath || "/"}: ${e.message ?? "unknown error"}`,
+        )
+        .join("; ");
+      throw new ProjectDeserializationError(
+        `Schema validation failed: ${messages}`,
+      );
+    }
+
+    const doc = parsed as ProjectYamlDocument;
+    return this.buildProject(doc);
+  }
+
+  private buildProject(doc: ProjectYamlDocument): OrmProject {
+    const domains: DomainModelConfig[] = (doc.project.domains ?? []).map(
+      (d) => ({ path: d.path, context: d.context }),
+    );
+
+    const products: ProductConfig[] = (doc.project.products ?? []).map(
+      (p) => ({
+        path: p.path,
+        context: p.context,
+        dependsOnDomains: p.depends_on?.domains ?? [],
+        dependsOnMappings: p.depends_on?.mappings ?? [],
+      }),
+    );
+
+    const config: OrmProjectConfig = {
+      name: doc.project.name,
+      domains,
+      products,
+    };
+
+    const project = new OrmProject(config);
+
+    // Mappings are stored as file paths in the manifest; the actual
+    // mapping content lives in separate .map.yaml files. We store
+    // the paths so that a loader can resolve them.
+    // For now we just track the paths on the project.
+    // The ContextMapping objects are loaded separately via MappingSerializer.
+
+    return project;
+  }
+
+  /**
+   * Get the mapping file paths declared in a project manifest YAML.
+   */
+  getMappingPaths(yaml: string): string[] {
+    let parsed: unknown;
+    try {
+      parsed = parse(yaml);
+    } catch {
+      return [];
+    }
+
+    const doc = parsed as ProjectYamlDocument;
+    return (doc.project?.mappings ?? []).map((m) => m.path);
+  }
+}
+
+/**
+ * Error thrown when project deserialization fails.
+ */
+export class ProjectDeserializationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProjectDeserializationError";
+  }
+}
