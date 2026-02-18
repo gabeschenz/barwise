@@ -2,7 +2,8 @@ import * as vscode from "vscode";
 import * as path from "node:path";
 import { OrmYamlSerializer } from "@fregma/core";
 import { processTranscript, AnthropicLlmClient } from "@fregma/llm";
-import type { DraftModelResult } from "@fregma/llm";
+import type { LlmClient, DraftModelResult } from "@fregma/llm";
+import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
 
 const serializer = new OrmYamlSerializer();
 
@@ -29,10 +30,10 @@ export class ImportTranscriptCommand {
       return;
     }
 
-    // Step 2: Get API key from settings or environment.
+    // Step 2: Build the LLM client from settings.
     const config = vscode.workspace.getConfiguration("fregma");
-    const apiKey = config.get<string>("anthropicApiKey") || undefined;
-    const model = config.get<string>("llmModel") || undefined;
+    const provider = config.get<string>("llmProvider") ?? "copilot";
+    const client = buildLlmClient(provider, config);
 
     // Step 3: Ask for a model name.
     const baseName = path.basename(
@@ -58,7 +59,6 @@ export class ImportTranscriptCommand {
           cancellable: false,
         },
         async () => {
-          const client = new AnthropicLlmClient({ apiKey, model });
           return processTranscript(transcript, client, { modelName });
         },
       );
@@ -126,6 +126,21 @@ export class ImportTranscriptCommand {
       channel.show(true);
     }
   }
+}
+
+function buildLlmClient(
+  provider: string,
+  config: vscode.WorkspaceConfiguration,
+): LlmClient {
+  if (provider === "anthropic") {
+    const apiKey = config.get<string>("anthropicApiKey") || undefined;
+    const model = config.get<string>("anthropicModel") || undefined;
+    return new AnthropicLlmClient({ apiKey, model });
+  }
+
+  // Default: copilot
+  const family = config.get<string>("copilotModelFamily") || undefined;
+  return new CopilotLlmClient({ family });
 }
 
 function buildSummary(result: DraftModelResult): string {
