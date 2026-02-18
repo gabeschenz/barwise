@@ -1,0 +1,292 @@
+/**
+ * System prompt construction for ORM model extraction from transcripts.
+ *
+ * The prompt instructs the LLM to:
+ * 1. Identify entity types, value types, and their definitions
+ * 2. Identify fact types (relationships) with role names and readings
+ * 3. Infer constraints from conversational context
+ * 4. Track source references for every extracted element
+ * 5. Flag ambiguities and contradictions
+ */
+
+import type { ExtractionResponse } from "./ExtractionTypes.js";
+
+/**
+ * Build the system prompt for transcript extraction.
+ */
+export function buildSystemPrompt(): string {
+  return `You are an expert data modeler specializing in Object-Role Modeling (ORM 2). Your task is to analyze a business working session transcript and extract a structured ORM conceptual model.
+
+## ORM Concepts
+
+**Entity types** are concepts identified by a reference scheme (e.g., Customer identified by customer_id, Order identified by order_number). They represent the main business objects.
+
+**Value types** are self-identifying data values (e.g., Name, Date, Amount, Rating). They represent properties or measurements, not business objects.
+
+**Fact types** are relationships between object types, expressed as natural-language sentences. For example: "Customer places Order" is a binary fact type with two roles -- the Customer role ("places") and the Order role ("is placed by").
+
+**Roles** are positions within a fact type. Each role is played by an object type and has a role name used in verbalization.
+
+**Reading orders** are natural-language templates for the fact type. A binary fact type typically has a forward reading ("{0} places {1}") and an inverse reading ("{1} is placed by {0}"), where {0} and {1} are positional placeholders for the role players.
+
+**Constraints** encode business rules:
+- **Internal uniqueness**: "Each Order is placed by at most one Customer" -- the combination of values in certain roles is unique. Single-role uniqueness is most common.
+- **Mandatory**: "Every Order is placed by some Customer" -- every instance must participate.
+- **Value constraint**: "Rating must be one of: A, B, C, D, F" -- restricts allowed values.
+
+## Instructions
+
+Analyze the transcript carefully and extract:
+
+1. **Object types**: Identify the main business concepts (entity types) and their data properties (value types). For each:
+   - Provide a name (PascalCase for entity types, PascalCase for value types)
+   - Classify as "entity" or "value"
+   - Write a concise definition based on how the stakeholders describe it
+   - For entity types, propose a reference_mode (the identifier, e.g., "customer_id")
+   - For value types with a fixed set of allowed values, include a value_constraint
+   - Include source references (line numbers and verbatim excerpts)
+
+2. **Fact types**: Identify relationships between object types. For each:
+   - Provide a descriptive name (e.g., "Customer places Order")
+   - List the roles with their player (object type name) and role_name
+   - Provide at least one reading template using {0}, {1}, etc. as placeholders
+   - Include source references
+
+3. **Inferred constraints**: Identify business rules from context. For each:
+   - Specify the type (internal_uniqueness, mandatory, or value_constraint)
+   - Reference the fact type name and role player names
+   - Write a human-readable description
+   - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
+   - Include the source references that justify the inference
+
+4. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
+   - Describe the ambiguity
+   - Include the source references showing the conflicting or unclear statements
+
+## Critical Rules
+
+- Every extracted element MUST have source_references with line numbers and verbatim excerpts from the transcript.
+- Do NOT invent concepts not discussed in the transcript.
+- Do NOT assume constraints that are not at least implied by the conversation.
+- Prefer specific, descriptive fact type names over generic ones.
+- If stakeholders use different terms for what appears to be the same concept, flag it as an ambiguity.
+- Role names should be natural verbs or prepositions (e.g., "places", "is placed by", "has", "is of").
+- Reading templates must use {0}, {1}, etc. matching the role order.`;
+}
+
+/**
+ * Build the user message containing the transcript.
+ */
+export function buildUserMessage(transcript: string): string {
+  return `Extract an ORM conceptual model from the following business working session transcript. Number each line for source reference tracking.
+
+<transcript>
+${numberLines(transcript)}
+</transcript>
+
+Analyze this transcript and produce the structured extraction.`;
+}
+
+/**
+ * JSON Schema for the extraction response, used to constrain LLM output.
+ */
+export function buildResponseSchema(): Record<string, unknown> {
+  return {
+    type: "object",
+    properties: {
+      object_types: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            kind: { type: "string", enum: ["entity", "value"] },
+            definition: { type: "string" },
+            reference_mode: { type: "string" },
+            value_constraint: {
+              type: "object",
+              properties: {
+                values: { type: "array", items: { type: "string" } },
+              },
+              required: ["values"],
+            },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: ["name", "kind", "source_references"],
+        },
+      },
+      fact_types: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            roles: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  player: { type: "string" },
+                  role_name: { type: "string" },
+                },
+                required: ["player", "role_name"],
+              },
+            },
+            readings: { type: "array", items: { type: "string" } },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: ["name", "roles", "readings", "source_references"],
+        },
+      },
+      inferred_constraints: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type: {
+              type: "string",
+              enum: ["internal_uniqueness", "mandatory", "value_constraint"],
+            },
+            fact_type: { type: "string" },
+            roles: { type: "array", items: { type: "string" } },
+            description: { type: "string" },
+            confidence: {
+              type: "string",
+              enum: ["high", "medium", "low"],
+            },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: [
+            "type",
+            "fact_type",
+            "roles",
+            "description",
+            "confidence",
+            "source_references",
+          ],
+        },
+      },
+      ambiguities: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            description: { type: "string" },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: ["description", "source_references"],
+        },
+      },
+    },
+    required: [
+      "object_types",
+      "fact_types",
+      "inferred_constraints",
+      "ambiguities",
+    ],
+  };
+}
+
+/**
+ * Validate that a parsed JSON object conforms to the ExtractionResponse shape.
+ * Returns a typed result or throws with a descriptive message.
+ */
+export function parseExtractionResponse(json: unknown): ExtractionResponse {
+  if (typeof json !== "object" || json === null) {
+    throw new Error("Extraction response must be a JSON object.");
+  }
+
+  const obj = json as Record<string, unknown>;
+
+  const objectTypes = Array.isArray(obj["object_types"])
+    ? obj["object_types"]
+    : [];
+  const factTypes = Array.isArray(obj["fact_types"])
+    ? obj["fact_types"]
+    : [];
+  const inferredConstraints = Array.isArray(obj["inferred_constraints"])
+    ? obj["inferred_constraints"]
+    : [];
+  const ambiguities = Array.isArray(obj["ambiguities"])
+    ? obj["ambiguities"]
+    : [];
+
+  return {
+    object_types: objectTypes as ExtractionResponse["object_types"],
+    fact_types: factTypes as ExtractionResponse["fact_types"],
+    inferred_constraints:
+      inferredConstraints as ExtractionResponse["inferred_constraints"],
+    ambiguities: ambiguities as ExtractionResponse["ambiguities"],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function numberLines(text: string): string {
+  return text
+    .split("\n")
+    .map((line, i) => `${i + 1}: ${line}`)
+    .join("\n");
+}

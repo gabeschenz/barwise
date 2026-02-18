@@ -40,8 +40,28 @@
         "command": "orm.showDiagram",
         "title": "ORM: Show Diagram",
         "category": "ORM"
+      },
+      {
+        "command": "orm.importTranscript",
+        "title": "ORM: Import Transcript",
+        "category": "ORM"
       }
     ],
+    "configuration": {
+      "title": "Fregma ORM",
+      "properties": {
+        "fregma.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API key for transcript extraction. Leave empty to use the ANTHROPIC_API_KEY environment variable."
+        },
+        "fregma.llmModel": {
+          "type": "string",
+          "default": "claude-sonnet-4-5-20250929",
+          "description": "Claude model to use for transcript extraction."
+        }
+      }
+    },
     "languages": [
       {
         "id": "orm-yaml",
@@ -64,6 +84,7 @@
   "dependencies": {
     "@fregma/core": "0.1.0",
     "@fregma/diagram": "0.1.0",
+    "@fregma/llm": "0.1.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
