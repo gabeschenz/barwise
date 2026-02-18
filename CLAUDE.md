@@ -24,4 +24,7 @@ Tests are in `packages/core/tests/`.
 - Use Vitest for tests, co-located under tests/ mirrors of src/
 - ModelBuilder (tests/helpers/ModelBuilder.ts) for constructing test fixtures
 - No emoji in output or documentation
-- TypeScript strict mode, Node16 module resolution
+- TypeScript strict mode, NodeNext module resolution
+- No trivial dependencies: never add a package for something provided by
+  JavaScript or Node core (e.g. use node:crypto.randomUUID() not uuid).
+  High-quality libraries that solve real problems (yaml, ajv) are fine.
