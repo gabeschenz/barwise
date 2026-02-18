@@ -72,5 +72,7 @@ function mapSeverity(
       return DiagnosticSeverity.Warning;
     case "info":
       return DiagnosticSeverity.Information;
+    default:
+      return DiagnosticSeverity.Information;
   }
 }

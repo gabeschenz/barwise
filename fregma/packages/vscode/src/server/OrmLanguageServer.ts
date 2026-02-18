@@ -2,13 +2,12 @@ import {
   createConnection,
   TextDocuments,
   ProposedFeatures,
-  InitializeParams,
-  InitializeResult,
+  type InitializeParams,
+  type InitializeResult,
   TextDocumentSyncKind,
-  CompletionItem,
-  CompletionItemKind,
-  Hover,
-  TextDocumentPositionParams,
+  type CompletionItem,
+  type Hover,
+  type TextDocumentPositionParams,
 } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DiagnosticsProvider } from "./DiagnosticsProvider.js";
@@ -55,7 +54,7 @@ documents.onDidOpen((event) => {
 // Completion.
 connection.onCompletion(
   (params: TextDocumentPositionParams): CompletionItem[] => {
-    const doc = documents.get(params.textUri ?? params.textDocument.uri);
+    const doc = documents.get(params.textDocument.uri);
     if (!doc || !isOrmYaml(doc.uri)) return [];
     return completionProvider.provideCompletions(doc, params.position);
   },
@@ -64,7 +63,7 @@ connection.onCompletion(
 // Hover.
 connection.onHover(
   (params: TextDocumentPositionParams): Hover | null => {
-    const doc = documents.get(params.textUri ?? params.textDocument.uri);
+    const doc = documents.get(params.textDocument.uri);
     if (!doc || !isOrmYaml(doc.uri)) return null;
     return hoverProvider.provideHover(doc, params.position);
   },
