@@ -35,6 +35,11 @@
         "command": "orm.verbalize",
         "title": "ORM: Verbalize Model",
         "category": "ORM"
+      },
+      {
+        "command": "orm.showDiagram",
+        "title": "ORM: Show Diagram",
+        "category": "ORM"
       }
     ],
     "languages": [
@@ -58,6 +63,7 @@
   },
   "dependencies": {
     "@fregma/core": "0.1.0",
+    "@fregma/diagram": "0.1.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
