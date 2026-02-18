@@ -19,10 +19,25 @@ export {
   type MandatoryRoleConstraint,
   type ExternalUniquenessConstraint,
   type ValueConstraint,
+  type DisjunctiveMandatoryConstraint,
+  type ExclusionConstraint,
+  type ExclusiveOrConstraint,
+  type SubsetConstraint,
+  type EqualityConstraint,
+  type RingConstraint,
+  type FrequencyConstraint,
+  type RingType,
   isInternalUniqueness,
   isMandatoryRole,
   isExternalUniqueness,
   isValueConstraint,
+  isDisjunctiveMandatory,
+  isExclusion,
+  isExclusiveOr,
+  isSubset,
+  isEquality,
+  isRing,
+  isFrequency,
 } from "./model/Constraint.js";
 export { type Definition } from "./model/Definition.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
@@ -85,6 +100,17 @@ export {
   projectRules,
   type ProjectValidationRule,
 } from "./validation/rules/projectRules.js";
+
+// Mapping
+export {
+  type RelationalSchema,
+  type Table,
+  type Column,
+  type PrimaryKey,
+  type ForeignKey,
+} from "./mapping/RelationalSchema.js";
+export { RelationalMapper } from "./mapping/RelationalMapper.js";
+export { renderDdl } from "./mapping/renderers/ddl.js";
 
 // Verbalization
 export {

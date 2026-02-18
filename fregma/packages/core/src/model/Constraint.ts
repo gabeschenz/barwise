@@ -1,9 +1,10 @@
 /**
- * Phase 1 ORM constraint types.
- *
- * These cover the most common modeling patterns and are sufficient for
- * the majority of real-world data warehouse models.
+ * ORM constraint types (Phase 1 and Phase 2).
  */
+
+// ---------------------------------------------------------------------------
+// Phase 1 constraints
+// ---------------------------------------------------------------------------
 
 /**
  * Internal uniqueness constraint.
@@ -70,18 +71,155 @@ export interface ValueConstraint {
   readonly values: readonly string[];
 }
 
+// ---------------------------------------------------------------------------
+// Phase 2 constraints
+// ---------------------------------------------------------------------------
+
 /**
- * Union of all Phase 1 constraint types.
+ * Disjunctive mandatory constraint.
+ *
+ * Each instance of the common object type must play at least one of
+ * the specified roles. The roles may span multiple fact types.
+ *
+ * Example: "Each Person drives some Car or rides some Bus."
+ */
+export interface DisjunctiveMandatoryConstraint {
+  readonly type: "disjunctive_mandatory";
+  /** Two or more role ids (may span fact types). */
+  readonly roleIds: readonly string[];
+}
+
+/**
+ * Exclusion constraint.
+ *
+ * No instance of the common object type may play more than one of the
+ * specified roles simultaneously.
+ *
+ * Example: "No Person both drives some Car and rides some Bus."
+ */
+export interface ExclusionConstraint {
+  readonly type: "exclusion";
+  /** Two or more role ids (may span fact types). */
+  readonly roleIds: readonly string[];
+}
+
+/**
+ * Exclusive-or constraint.
+ *
+ * Combines disjunctive mandatory and exclusion: each instance of the
+ * common object type must play exactly one of the specified roles.
+ *
+ * Example: "Each Person either drives some Car or rides some Bus but not both."
+ */
+export interface ExclusiveOrConstraint {
+  readonly type: "exclusive_or";
+  /** Two or more role ids (may span fact types). */
+  readonly roleIds: readonly string[];
+}
+
+/**
+ * Subset constraint.
+ *
+ * The population of the subset role sequence must be a subset of
+ * the superset role sequence. Both sequences must have the same arity.
+ *
+ * Example: "If a Customer rates some Product then that Customer purchases some Product."
+ */
+export interface SubsetConstraint {
+  readonly type: "subset";
+  /** Role ids forming the subset side. */
+  readonly subsetRoleIds: readonly string[];
+  /** Role ids forming the superset side. */
+  readonly supersetRoleIds: readonly string[];
+}
+
+/**
+ * Equality constraint.
+ *
+ * The populations of both role sequences must be identical.
+ * Equivalent to a pair of subset constraints in both directions.
+ *
+ * Example: "A Customer rates some Product if and only if that Customer purchases some Product."
+ */
+export interface EqualityConstraint {
+  readonly type: "equality";
+  /** First role sequence. */
+  readonly roleIds1: readonly string[];
+  /** Second role sequence. */
+  readonly roleIds2: readonly string[];
+}
+
+/**
+ * The type of a ring constraint, specifying the reflexive relationship
+ * property being constrained.
+ */
+export type RingType =
+  | "irreflexive"
+  | "asymmetric"
+  | "antisymmetric"
+  | "intransitive"
+  | "acyclic"
+  | "symmetric"
+  | "transitive"
+  | "purely_reflexive";
+
+/**
+ * Ring constraint.
+ *
+ * Constrains a reflexive relationship: a pair of roles in a single
+ * fact type that are played by the same object type.
+ *
+ * Example (irreflexive): "No Person is a parent of that same Person."
+ * Example (asymmetric): "If Person1 is a parent of Person2 then
+ *   Person2 is not a parent of Person1."
+ */
+export interface RingConstraint {
+  readonly type: "ring";
+  /** First role id. */
+  readonly roleId1: string;
+  /** Second role id. */
+  readonly roleId2: string;
+  /** The ring property being constrained. */
+  readonly ringType: RingType;
+}
+
+/**
+ * Frequency constraint.
+ *
+ * Restricts how many times an object may play a given role.
+ *
+ * Example: "Each Customer places at least 2 and at most 5 Orders."
+ */
+export interface FrequencyConstraint {
+  readonly type: "frequency";
+  /** The role being frequency-constrained. */
+  readonly roleId: string;
+  /** Minimum number of times the object must play the role. */
+  readonly min: number;
+  /** Maximum times, or "unbounded" for no upper limit. */
+  readonly max: number | "unbounded";
+}
+
+/**
+ * Union of all constraint types.
  */
 export type Constraint =
   | InternalUniquenessConstraint
   | MandatoryRoleConstraint
   | ExternalUniquenessConstraint
-  | ValueConstraint;
+  | ValueConstraint
+  | DisjunctiveMandatoryConstraint
+  | ExclusionConstraint
+  | ExclusiveOrConstraint
+  | SubsetConstraint
+  | EqualityConstraint
+  | RingConstraint
+  | FrequencyConstraint;
 
-/**
- * Discriminated union type guard helpers.
- */
+// ---------------------------------------------------------------------------
+// Type guard helpers
+// ---------------------------------------------------------------------------
+
 export function isInternalUniqueness(
   c: Constraint,
 ): c is InternalUniquenessConstraint {
@@ -102,4 +240,34 @@ export function isExternalUniqueness(
 
 export function isValueConstraint(c: Constraint): c is ValueConstraint {
   return c.type === "value_constraint";
+}
+
+export function isDisjunctiveMandatory(
+  c: Constraint,
+): c is DisjunctiveMandatoryConstraint {
+  return c.type === "disjunctive_mandatory";
+}
+
+export function isExclusion(c: Constraint): c is ExclusionConstraint {
+  return c.type === "exclusion";
+}
+
+export function isExclusiveOr(c: Constraint): c is ExclusiveOrConstraint {
+  return c.type === "exclusive_or";
+}
+
+export function isSubset(c: Constraint): c is SubsetConstraint {
+  return c.type === "subset";
+}
+
+export function isEquality(c: Constraint): c is EqualityConstraint {
+  return c.type === "equality";
+}
+
+export function isRing(c: Constraint): c is RingConstraint {
+  return c.type === "ring";
+}
+
+export function isFrequency(c: Constraint): c is FrequencyConstraint {
+  return c.type === "frequency";
 }
