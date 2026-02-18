@@ -1,2 +1,133 @@
 # fregma
+
 Object-role modeling for VS Code. Transform business concepts into precise, fact-oriented schemas that everyone can understand.
+
+Fregma is an [ORM 2](https://en.wikipedia.org/wiki/Object-role_modeling) modeling tool built for data engineers and architects. It ships as a VS Code extension backed by a platform-independent core library, so all model logic is testable without launching an editor.
+
+## Prerequisites
+
+| Tool    | Version   |
+|---------|-----------|
+| Node.js | >= 20.0.0 |
+| npm     | >= 10     |
+| VS Code | >= 1.93   |
+
+## Installation (from source)
+
+### 1. Clone and install dependencies
+
+```sh
+git clone <repo-url> fregma
+cd fregma/fregma
+npm install
+```
+
+The repository is an npm workspace. `npm install` at the monorepo root handles all four packages (`core`, `llm`, `diagram`, `vscode`).
+
+### 2. Build everything
+
+```sh
+npm run build
+```
+
+This runs `turbo run build`, which compiles the packages in dependency order:
+
+1. `@fregma/core` -- metamodel, validation, verbalization, diff/merge
+2. `@fregma/llm` -- LLM-powered transcript extraction
+3. `@fregma/diagram` -- ORM diagram layout and SVG rendering
+4. `packages/vscode` -- VS Code extension (esbuild bundle)
+
+### 3. Run the tests
+
+```sh
+npm test
+```
+
+Or target a single package:
+
+```sh
+cd packages/core && npx vitest run
+```
+
+### 4. Launch the extension
+
+**Option A -- Extension Development Host (recommended for development):**
+
+1. Open the `fregma/fregma` folder in VS Code.
+2. Press `F5` (or **Run > Start Debugging**).
+3. VS Code opens a new window with the extension loaded.
+
+If there is no `launch.json` yet, create `.vscode/launch.json` with:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/vscode"],
+      "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
+      "preLaunchTask": "npm: build"
+    }
+  ]
+}
+```
+
+**Option B -- Install a VSIX package:**
+
+```sh
+cd packages/vscode
+npx @vscode/vsce package --no-dependencies
+```
+
+This produces a `fregma-vscode-0.1.0.vsix` file. Install it in VS Code:
+
+```sh
+code --install-extension fregma-vscode-0.1.0.vsix
+```
+
+## Configuration
+
+After installing, open **Settings** and search for `fregma`. The key settings are:
+
+| Setting                     | Default    | Description                                              |
+|-----------------------------|------------|----------------------------------------------------------|
+| `fregma.llmProvider`        | `copilot`  | `copilot` (uses your Copilot subscription) or `anthropic` |
+| `fregma.anthropicApiKey`    | (empty)    | Anthropic API key (falls back to `ANTHROPIC_API_KEY` env var) |
+| `fregma.anthropicModel`     | `claude-sonnet-4-5-20250929` | Model ID when using Anthropic directly                   |
+| `fregma.copilotModelFamily` | (empty)    | Preferred Copilot model family (e.g. `claude-sonnet`)     |
+
+## Quick start
+
+1. **Create a project:** run the command **ORM: New Project** from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+2. **Import a transcript:** run **ORM: Import Transcript**, pick a `.md` or `.txt` file containing a business conversation, and name the model. The LLM extracts object types, fact types, and constraints into a `.orm.yaml` file.
+3. **Review changes:** if the `.orm.yaml` already exists, the import shows a fact-by-fact review dialog. Each added, modified, or removed element gets its own checkbox -- additions and modifications are pre-selected, removals require explicit opt-in.
+4. **Validate:** run **ORM: Validate Model** to check structural rules and constraint consistency.
+5. **Visualize:** run **ORM: Show Diagram** to see the ORM diagram.
+6. **Verbalize:** run **ORM: Verbalize Model** to generate natural-language readings of all fact types and constraints.
+
+## Project structure
+
+```
+fregma/
+  packages/
+    core/       @fregma/core     -- metamodel, validation, verbalization, diff/merge
+    llm/        @fregma/llm      -- LLM transcript extraction
+    diagram/    @fregma/diagram  -- diagram layout and SVG rendering
+    vscode/     fregma-vscode    -- VS Code extension (language server + commands)
+  docs/
+    ARCHITECTURE.md              -- full system design and phasing plan
+  CLAUDE.md                      -- conventions and development commands
+```
+
+## Commands reference
+
+| Command                   | Description                                         |
+|---------------------------|-----------------------------------------------------|
+| `npm run build`           | Build all packages (via Turborepo)                  |
+| `npm test`                | Run all tests                                       |
+| `npm run clean`           | Remove all `dist/` directories                      |
+| `cd packages/core && npx vitest run`   | Run core tests only                    |
+| `cd packages/core && npx tsc --noEmit` | Type-check core only                   |

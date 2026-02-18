@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
-import { OrmYamlSerializer } from "@fregma/core";
+import {
+  OrmYamlSerializer,
+  diffModels,
+  mergeModels,
+} from "@fregma/core";
+import type { OrmModel, ModelDelta, DeltaKind } from "@fregma/core";
 import { processTranscript, AnthropicLlmClient } from "@fregma/llm";
 import type { LlmClient, DraftModelResult } from "@fregma/llm";
 import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
@@ -69,13 +74,19 @@ export class ImportTranscriptCommand {
       return;
     }
 
-    // Step 5: Serialize the draft model to YAML.
-    const yaml = serializer.serialize(result.model);
-
-    // Step 6: Write the .orm.yaml file next to the transcript.
+    // Step 5: Determine output path and check for existing model.
     const outputDir = path.dirname(transcriptUri.fsPath);
     const outputName = `${baseName}.orm.yaml`;
     const outputUri = vscode.Uri.file(path.join(outputDir, outputName));
+
+    const finalModel = await this.resolveWithExisting(
+      outputUri,
+      result.model,
+    );
+    if (!finalModel) return; // User cancelled during review.
+
+    // Step 6: Serialize and write.
+    const yaml = serializer.serialize(finalModel);
     await vscode.workspace.fs.writeFile(
       outputUri,
       Buffer.from(yaml, "utf-8"),
@@ -126,6 +137,121 @@ export class ImportTranscriptCommand {
       channel.show(true);
     }
   }
+
+  /**
+   * If an .orm.yaml already exists at outputUri, diff the existing model
+   * against the incoming one and present a fact-by-fact review. Returns
+   * the final merged model, or the incoming model directly if no existing
+   * file was found. Returns undefined if the user cancels.
+   */
+  private async resolveWithExisting(
+    outputUri: vscode.Uri,
+    incomingModel: OrmModel,
+  ): Promise<OrmModel | undefined> {
+    let existingModel: OrmModel;
+    try {
+      const bytes = await vscode.workspace.fs.readFile(outputUri);
+      const yaml = Buffer.from(bytes).toString("utf-8");
+      existingModel = serializer.deserialize(yaml);
+    } catch {
+      // File doesn't exist or isn't valid -- treat as fresh import.
+      return incomingModel;
+    }
+
+    const diff = diffModels(existingModel, incomingModel);
+    if (!diff.hasChanges) {
+      vscode.window.showInformationMessage(
+        "No changes detected -- existing model is up to date.",
+      );
+      return existingModel;
+    }
+
+    // Filter to only the deltas that represent actual changes.
+    const actionableDeltas = diff.deltas
+      .map((d, i) => ({ delta: d, index: i }))
+      .filter(({ delta }) => delta.kind !== "unchanged");
+
+    // Present the fact-by-fact review picker.
+    const accepted = await this.reviewDeltas(actionableDeltas);
+    if (accepted === undefined) return undefined; // Cancelled.
+
+    if (accepted.size === 0) {
+      vscode.window.showInformationMessage(
+        "All changes rejected -- keeping existing model.",
+      );
+      return existingModel;
+    }
+
+    return mergeModels(existingModel, incomingModel, diff.deltas, accepted);
+  }
+
+  /**
+   * Show a multi-select QuickPick where each item is one element-level
+   * change. Items are pre-selected for additions and modifications.
+   * Returns the set of accepted delta indices, or undefined if cancelled.
+   */
+  private async reviewDeltas(
+    items: { delta: ModelDelta; index: number }[],
+  ): Promise<Set<number> | undefined> {
+    interface DeltaQuickPickItem extends vscode.QuickPickItem {
+      deltaIndex: number;
+    }
+
+    const quickPickItems: DeltaQuickPickItem[] = items.map(({ delta, index }) => {
+      const icon = deltaIcon(delta.kind);
+      const label = deltaLabel(delta);
+      const detail = delta.changes.length > 0
+        ? delta.changes.join("; ")
+        : undefined;
+
+      return {
+        label: `${icon} ${label}`,
+        description: delta.kind,
+        detail,
+        deltaIndex: index,
+        // Pre-select additions and modifications; leave removals unchecked
+        // so the user has to actively confirm deletions.
+        picked: delta.kind === "added" || delta.kind === "modified",
+      };
+    });
+
+    const picked = await vscode.window.showQuickPick(quickPickItems, {
+      canPickMany: true,
+      title: "Review extracted changes (uncheck to reject)",
+      placeHolder: "Each item is one element from the new extraction. Confirm your selections.",
+    });
+
+    if (!picked) return undefined; // User pressed Escape.
+
+    return new Set(picked.map((item) => item.deltaIndex));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function deltaIcon(kind: DeltaKind): string {
+  switch (kind) {
+    case "added":
+      return "+";
+    case "removed":
+      return "-";
+    case "modified":
+      return "~";
+    case "unchanged":
+      return " ";
+  }
+}
+
+function deltaLabel(delta: ModelDelta): string {
+  if (delta.elementType === "definition") {
+    return `Definition: ${delta.term}`;
+  }
+  const typeLabel = delta.elementType === "object_type"
+    ? "Object type"
+    : "Fact type";
+  return `${typeLabel}: ${delta.name}`;
 }
 
 function buildLlmClient(

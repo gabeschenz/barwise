@@ -1,0 +1,259 @@
+import { describe, it, expect } from "vitest";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { diffModels } from "../../src/diff/ModelDiff.js";
+import { mergeModels } from "../../src/diff/ModelMerge.js";
+
+function baseModel() {
+  return new ModelBuilder("Test")
+    .withEntityType("Customer", { referenceMode: "customer_id" })
+    .withEntityType("Order", { referenceMode: "order_number" })
+    .withValueType("Name")
+    .withBinaryFactType("Customer places Order", {
+      role1: { player: "Customer", name: "places" },
+      role2: { player: "Order", name: "is placed by" },
+      uniqueness: "role2",
+      mandatory: "role2",
+    })
+    .withDefinition("Customer", "A person or organization that purchases goods.")
+    .build();
+}
+
+describe("mergeModels", () => {
+  it("returns existing model unchanged when no deltas are accepted", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withValueType("Name")
+      .withEntityType("Product", { referenceMode: "product_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const accepted = new Set<number>(); // Nothing accepted.
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    expect(merged.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Customer", "Name", "Order"],
+    );
+    expect(merged.factTypes.map((f) => f.name)).toEqual(
+      ["Customer places Order"],
+    );
+  });
+
+  it("adds new object type when its delta is accepted", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withValueType("Name")
+      .withEntityType("Product", { referenceMode: "product_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const addedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "added" && d.name === "Product",
+    );
+    expect(addedIdx).toBeGreaterThanOrEqual(0);
+
+    const accepted = new Set([addedIdx]);
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    expect(merged.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Customer", "Name", "Order", "Product"],
+    );
+  });
+
+  it("removes object type when removal delta is accepted", () => {
+    const existing = baseModel();
+    // Incoming does not have Name.
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const removedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "removed" && d.name === "Name",
+    );
+    expect(removedIdx).toBeGreaterThanOrEqual(0);
+
+    const accepted = new Set([removedIdx]);
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    expect(merged.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Customer", "Order"],
+    );
+  });
+
+  it("keeps existing object type when removal delta is rejected", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const accepted = new Set<number>(); // Reject everything.
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    expect(merged.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Customer", "Name", "Order"],
+    );
+  });
+
+  it("preserves existing UUIDs for modified object types", () => {
+    const existing = baseModel();
+    const existingCustomer = existing.getObjectTypeByName("Customer")!;
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        definition: "A buyer of goods",
+      })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withValueType("Name")
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const modifiedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "modified" && d.name === "Customer",
+    );
+    expect(modifiedIdx).toBeGreaterThanOrEqual(0);
+
+    const accepted = new Set([modifiedIdx]);
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    const mergedCustomer = merged.getObjectTypeByName("Customer")!;
+    // UUID should be preserved from existing.
+    expect(mergedCustomer.id).toBe(existingCustomer.id);
+    // Content should come from incoming.
+    expect(mergedCustomer.definition).toBe("A buyer of goods");
+  });
+
+  it("adds new fact type with correct role player references", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withValueType("Name")
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      .withBinaryFactType("Customer has Name", {
+        role1: { player: "Customer", name: "has" },
+        role2: { player: "Name", name: "is of" },
+        uniqueness: "role1",
+      })
+      .withDefinition("Customer", "A person or organization that purchases goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const addedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "added" && d.name === "Customer has Name",
+    );
+    const accepted = new Set([addedIdx]);
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    expect(merged.factTypes).toHaveLength(2);
+    const newFt = merged.getFactTypeByName("Customer has Name")!;
+    expect(newFt).toBeDefined();
+
+    // The role player ids should reference object types that exist in the merged model.
+    for (const role of newFt.roles) {
+      expect(merged.getObjectType(role.playerId)).toBeDefined();
+    }
+  });
+
+  it("handles definition additions and removals independently", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withValueType("Name")
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+        mandatory: "role2",
+      })
+      // Replace Customer definition with Order definition.
+      .withDefinition("Order", "A request to purchase goods.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+
+    // Accept the new definition but reject the removal.
+    const addedDefIdx = diff.deltas.findIndex(
+      (d) => d.kind === "added" && d.elementType === "definition",
+    );
+    const accepted = new Set([addedDefIdx]);
+    const merged = mergeModels(existing, incoming, diff.deltas, accepted);
+
+    // Both definitions should be present.
+    const terms = merged.definitions.map((d) => d.term).sort();
+    expect(terms).toEqual(["Customer", "Order"]);
+  });
+
+  it("accepts all deltas to fully replace the model", () => {
+    const existing = baseModel();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withValueType("Email")
+      .withBinaryFactType("Person has Email", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "Email", name: "belongs to" },
+        uniqueness: "role1",
+      })
+      .withDefinition("Person", "A human user.")
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    // Accept everything.
+    const allIndices = new Set(diff.deltas.map((_, i) => i));
+    const merged = mergeModels(existing, incoming, diff.deltas, allIndices);
+
+    expect(merged.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Email", "Person"],
+    );
+    expect(merged.factTypes.map((f) => f.name)).toEqual(["Person has Email"]);
+    expect(merged.definitions.map((d) => d.term)).toEqual(["Person"]);
+  });
+});
