@@ -185,6 +185,129 @@
           },
           "required": ["type", "values"],
           "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "disjunctive_mandatory" },
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 2,
+              "description": "Two or more role ids (may span fact types)."
+            }
+          },
+          "required": ["type", "roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "exclusion" },
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 2,
+              "description": "Two or more role ids (may span fact types)."
+            }
+          },
+          "required": ["type", "roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "exclusive_or" },
+            "roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 2,
+              "description": "Two or more role ids (may span fact types)."
+            }
+          },
+          "required": ["type", "roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "subset" },
+            "subset_roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Role ids forming the subset side."
+            },
+            "superset_roles": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Role ids forming the superset side."
+            }
+          },
+          "required": ["type", "subset_roles", "superset_roles"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "equality" },
+            "roles_1": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "First role sequence."
+            },
+            "roles_2": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "description": "Second role sequence."
+            }
+          },
+          "required": ["type", "roles_1", "roles_2"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "ring" },
+            "role_1": {
+              "type": "string",
+              "minLength": 1,
+              "description": "First role id."
+            },
+            "role_2": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Second role id."
+            },
+            "ring_type": {
+              "type": "string",
+              "enum": ["irreflexive", "asymmetric", "antisymmetric", "intransitive", "acyclic", "symmetric", "transitive", "purely_reflexive"],
+              "description": "The ring property being constrained."
+            }
+          },
+          "required": ["type", "role_1", "role_2", "ring_type"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "frequency" },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The role being frequency-constrained."
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Minimum occurrences."
+            },
+            "max": {
+              "oneOf": [
+                { "type": "integer", "minimum": 1 },
+                { "type": "string", "const": "unbounded" }
+              ],
+              "description": "Maximum occurrences, or \"unbounded\"."
+            }
+          },
+          "required": ["type", "role", "min", "max"],
+          "additionalProperties": false
         }
       ]
     },

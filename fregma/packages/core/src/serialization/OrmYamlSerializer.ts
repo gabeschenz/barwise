@@ -4,13 +4,7 @@ import type { ObjectType } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
-import type {
-  Constraint,
-  InternalUniquenessConstraint,
-  MandatoryRoleConstraint,
-  ExternalUniquenessConstraint,
-  ValueConstraint,
-} from "../model/Constraint.js";
+import type { Constraint, RingType } from "../model/Constraint.js";
 import {
   SchemaValidator,
   type ValidationResult,
@@ -61,7 +55,14 @@ type OrmYamlConstraint =
   | { type: "internal_uniqueness"; roles: string[] }
   | { type: "mandatory"; role: string }
   | { type: "external_uniqueness"; roles: string[] }
-  | { type: "value_constraint"; role?: string; values: string[] };
+  | { type: "value_constraint"; role?: string; values: string[] }
+  | { type: "disjunctive_mandatory"; roles: string[] }
+  | { type: "exclusion"; roles: string[] }
+  | { type: "exclusive_or"; roles: string[] }
+  | { type: "subset"; subset_roles: string[]; superset_roles: string[] }
+  | { type: "equality"; roles_1: string[]; roles_2: string[] }
+  | { type: "ring"; role_1: string; role_2: string; ring_type: RingType }
+  | { type: "frequency"; role: string; min: number; max: number | "unbounded" };
 
 interface OrmYamlDefinition {
   term: string;
@@ -238,6 +239,20 @@ export class OrmYamlSerializer {
         }
         return result;
       }
+      case "disjunctive_mandatory":
+        return { type: "disjunctive_mandatory", roles: [...c.roleIds] };
+      case "exclusion":
+        return { type: "exclusion", roles: [...c.roleIds] };
+      case "exclusive_or":
+        return { type: "exclusive_or", roles: [...c.roleIds] };
+      case "subset":
+        return { type: "subset", subset_roles: [...c.subsetRoleIds], superset_roles: [...c.supersetRoleIds] };
+      case "equality":
+        return { type: "equality", roles_1: [...c.roleIds1], roles_2: [...c.roleIds2] };
+      case "ring":
+        return { type: "ring", role_1: c.roleId1, role_2: c.roleId2, ring_type: c.ringType };
+      case "frequency":
+        return { type: "frequency", role: c.roleId, min: c.min, max: c.max };
     }
   }
 
@@ -310,26 +325,27 @@ export class OrmYamlSerializer {
   private deserializeConstraint(c: OrmYamlConstraint): Constraint {
     switch (c.type) {
       case "internal_uniqueness":
-        return {
-          type: "internal_uniqueness",
-          roleIds: c.roles,
-        } satisfies InternalUniquenessConstraint;
+        return { type: "internal_uniqueness", roleIds: c.roles };
       case "mandatory":
-        return {
-          type: "mandatory",
-          roleId: c.role,
-        } satisfies MandatoryRoleConstraint;
+        return { type: "mandatory", roleId: c.role };
       case "external_uniqueness":
-        return {
-          type: "external_uniqueness",
-          roleIds: c.roles,
-        } satisfies ExternalUniquenessConstraint;
+        return { type: "external_uniqueness", roleIds: c.roles };
       case "value_constraint":
-        return {
-          type: "value_constraint",
-          roleId: c.role,
-          values: c.values,
-        } satisfies ValueConstraint;
+        return { type: "value_constraint", roleId: c.role, values: c.values };
+      case "disjunctive_mandatory":
+        return { type: "disjunctive_mandatory", roleIds: c.roles };
+      case "exclusion":
+        return { type: "exclusion", roleIds: c.roles };
+      case "exclusive_or":
+        return { type: "exclusive_or", roleIds: c.roles };
+      case "subset":
+        return { type: "subset", subsetRoleIds: c.subset_roles, supersetRoleIds: c.superset_roles };
+      case "equality":
+        return { type: "equality", roleIds1: c.roles_1, roleIds2: c.roles_2 };
+      case "ring":
+        return { type: "ring", roleId1: c.role_1, roleId2: c.role_2, ringType: c.ring_type };
+      case "frequency":
+        return { type: "frequency", roleId: c.role, min: c.min, max: c.max };
     }
   }
 }

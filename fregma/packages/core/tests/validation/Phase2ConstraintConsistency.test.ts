@@ -1,0 +1,227 @@
+import { describe, it, expect } from "vitest";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
+import type { Constraint } from "../../src/model/Constraint.js";
+
+function buildModelWithConstraint(constraint: Constraint): OrmModel {
+  const model = new OrmModel({ name: "Test" });
+  const ot1 = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
+  const ot2 = model.addObjectType({ name: "Car", kind: "entity", referenceMode: "car_id" });
+  model.addFactType({
+    name: "Person drives Car",
+    roles: [
+      { id: "r1", name: "drives", playerId: ot1.id },
+      { id: "r2", name: "is driven by", playerId: ot2.id },
+    ],
+    readings: ["{0} drives {1}"],
+    constraints: [constraint],
+  });
+  return model;
+}
+
+function buildSelfRefModel(constraint: Constraint): OrmModel {
+  const model = new OrmModel({ name: "Test" });
+  const ot = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
+  model.addFactType({
+    name: "Person is parent of Person",
+    roles: [
+      { id: "r1", name: "is parent of", playerId: ot.id },
+      { id: "r2", name: "is child of", playerId: ot.id },
+    ],
+    readings: ["{0} is parent of {1}"],
+    constraints: [constraint],
+  });
+  return model;
+}
+
+describe("Phase 2 constraint consistency rules", () => {
+  // -- Disjunctive mandatory --
+
+  it("disjunctive mandatory with 2+ roles passes", () => {
+    const model = buildModelWithConstraint({
+      type: "disjunctive_mandatory",
+      roleIds: ["r1", "r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("disjunctive mandatory with <2 roles fails", () => {
+    const model = buildModelWithConstraint({
+      type: "disjunctive_mandatory",
+      roleIds: ["r1"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(1);
+    expect(diags[0]!.ruleId).toBe("constraint/disjunctive-mandatory-too-few-roles");
+  });
+
+  // -- Exclusion --
+
+  it("exclusion with 2+ roles passes", () => {
+    const model = buildModelWithConstraint({
+      type: "exclusion",
+      roleIds: ["r1", "r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("exclusion with <2 roles fails", () => {
+    const model = buildModelWithConstraint({
+      type: "exclusion",
+      roleIds: ["r1"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(1);
+    expect(diags[0]!.ruleId).toBe("constraint/exclusion-too-few-roles");
+  });
+
+  // -- Exclusive or --
+
+  it("exclusive-or with 2+ roles passes", () => {
+    const model = buildModelWithConstraint({
+      type: "exclusive_or",
+      roleIds: ["r1", "r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("exclusive-or with <2 roles fails", () => {
+    const model = buildModelWithConstraint({
+      type: "exclusive_or",
+      roleIds: ["r1"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(1);
+    expect(diags[0]!.ruleId).toBe("constraint/exclusive-or-too-few-roles");
+  });
+
+  // -- Subset --
+
+  it("subset with matched arity passes", () => {
+    const model = buildModelWithConstraint({
+      type: "subset",
+      subsetRoleIds: ["r1"],
+      supersetRoleIds: ["r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("subset with mismatched arity fails", () => {
+    const model = buildModelWithConstraint({
+      type: "subset",
+      subsetRoleIds: ["r1"],
+      supersetRoleIds: ["r1", "r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(1);
+    expect(diags[0]!.ruleId).toBe("constraint/subset-arity-mismatch");
+  });
+
+  // -- Equality --
+
+  it("equality with matched arity passes", () => {
+    const model = buildModelWithConstraint({
+      type: "equality",
+      roleIds1: ["r1"],
+      roleIds2: ["r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("equality with mismatched arity fails", () => {
+    const model = buildModelWithConstraint({
+      type: "equality",
+      roleIds1: ["r1"],
+      roleIds2: ["r1", "r2"],
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(1);
+    expect(diags[0]!.ruleId).toBe("constraint/equality-arity-mismatch");
+  });
+
+  // -- Ring --
+
+  it("ring with valid roles and same player passes", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "r1",
+      roleId2: "r2",
+      ringType: "irreflexive",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("ring with invalid role id fails", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "r1",
+      roleId2: "bogus",
+      ringType: "asymmetric",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/ring-invalid-role")).toBe(true);
+  });
+
+  it("ring with different players fails", () => {
+    const model = buildModelWithConstraint({
+      type: "ring",
+      roleId1: "r1",
+      roleId2: "r2",
+      ringType: "irreflexive",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/ring-different-players")).toBe(true);
+  });
+
+  // -- Frequency --
+
+  it("frequency with valid role and min <= max passes", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: 2,
+      max: 5,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("frequency with unbounded max passes", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: 1,
+      max: "unbounded",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags).toHaveLength(0);
+  });
+
+  it("frequency with invalid role fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "bogus",
+      min: 1,
+      max: 3,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-invalid-role")).toBe(true);
+  });
+
+  it("frequency with max < min fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: 5,
+      max: 2,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-max-less-than-min")).toBe(true);
+  });
+});
