@@ -9,6 +9,7 @@ import {
 import { NewProjectCommand } from "../commands/NewProjectCommand.js";
 import { ValidateModelCommand } from "../commands/ValidateModelCommand.js";
 import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
+import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
 
 let client: LanguageClient;
 
@@ -55,6 +56,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       "orm.verbalize",
       () => new VerbalizeCommand().execute(),
+    ),
+    vscode.commands.registerCommand(
+      "orm.showDiagram",
+      () => new ShowDiagramCommand(context.extensionUri).execute(),
     ),
   );
 }
