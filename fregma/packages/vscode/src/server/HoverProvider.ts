@@ -1,6 +1,5 @@
 import { Hover, type Position } from "vscode-languageserver/node.js";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { parse } from "yaml";
 import {
   OrmYamlSerializer,
   Verbalizer,

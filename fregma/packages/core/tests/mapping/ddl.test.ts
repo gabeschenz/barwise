@@ -54,7 +54,7 @@ describe("DDL renderer", () => {
 
     // The FK column on order table should be nullable (no NOT NULL).
     const lines = ddl.split("\n");
-    const fkLine = lines.find((l) => l.includes("customer_id") && !l.includes("PRIMARY KEY") && !l.includes("FOREIGN KEY") && l.includes("TEXT"));
+    const _fkLine = lines.find((l) => l.includes("customer_id") && !l.includes("PRIMARY KEY") && !l.includes("FOREIGN KEY") && l.includes("TEXT"));
     // For the customer table itself, the PK column has NOT NULL.
     // For the order table, the FK column should be nullable.
     // We verify the order table's FK column is nullable by checking

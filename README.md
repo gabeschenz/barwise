@@ -122,12 +122,36 @@ fregma/
   CLAUDE.md                      -- conventions and development commands
 ```
 
+## Static analysis and coverage
+
+**Linting** uses ESLint with the TypeScript plugin (flat config at the monorepo root). Run across all packages:
+
+```sh
+npm run lint
+```
+
+**Test coverage** is enforced via `@vitest/coverage-v8` with per-package thresholds. Run coverage for a single package:
+
+```sh
+cd packages/core && npx vitest run --coverage
+```
+
+Current coverage thresholds:
+
+| Package   | Statements | Branches | Functions | Lines |
+|-----------|------------|----------|-----------|-------|
+| core      | 90%        | 84%      | 90%       | 90%   |
+| llm       | 78%        | 82%      | 100%      | 78%   |
+| diagram   | 94%        | 80%      | 100%      | 94%   |
+
 ## Commands reference
 
 | Command                   | Description                                         |
 |---------------------------|-----------------------------------------------------|
 | `npm run build`           | Build all packages (via Turborepo)                  |
 | `npm test`                | Run all tests                                       |
+| `npm run lint`            | Lint all packages (ESLint)                          |
 | `npm run clean`           | Remove all `dist/` directories                      |
-| `cd packages/core && npx vitest run`   | Run core tests only                    |
-| `cd packages/core && npx tsc --noEmit` | Type-check core only                   |
+| `cd packages/core && npx vitest run`            | Run core tests only          |
+| `cd packages/core && npx vitest run --coverage`  | Run core tests with coverage |
+| `cd packages/core && npx tsc --noEmit`           | Type-check core only         |

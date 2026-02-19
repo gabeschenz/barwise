@@ -13,9 +13,7 @@
  */
 
 import { OrmModel } from "../model/OrmModel.js";
-import type { ObjectTypeConfig } from "../model/ObjectType.js";
 import type { FactTypeConfig } from "../model/FactType.js";
-import type { Definition } from "../model/Definition.js";
 import type { RoleConfig } from "../model/Role.js";
 import type {
   ModelDelta,
@@ -238,7 +236,7 @@ function resolvePlayerId(
   merged: OrmModel,
   playerId: string,
   incomingIdToMergedId: Map<string, string>,
-  sourceFt: import("../model/FactType.js").FactType,
+  _sourceFt: import("../model/FactType.js").FactType,
 ): string {
   // Direct hit in merged model.
   if (merged.getObjectType(playerId)) {

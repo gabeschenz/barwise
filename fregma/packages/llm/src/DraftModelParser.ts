@@ -243,7 +243,7 @@ function resolveRolesByPlayerName(
     } else {
       // Try matching by position hint: if the playerName matches
       // an object type name, find the role played by that OT.
-      const roleByPlayer = ft.roles.find((r) => {
+      const roleByPlayer = ft.roles.find((_r) => {
         // We don't have direct OT access here, so fall back to
         // checking all roles. The caller typically passes OT names.
         return true; // Accept first unmatched role as fallback.
