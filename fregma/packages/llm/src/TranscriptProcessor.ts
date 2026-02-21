@@ -57,6 +57,7 @@ export async function processTranscript(
   } catch (err) {
     throw new Error(
       `Failed to parse LLM extraction response: ${(err as Error).message}`,
+      { cause: err },
     );
   }
 

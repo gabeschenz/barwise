@@ -206,6 +206,168 @@ describe("diffModels", () => {
     expect(addedDef!.term).toBe("Order");
   });
 
+  it("detects modified object type source context", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        sourceContext: "CRM",
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        sourceContext: "Sales",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes).toContain('source context: "CRM" -> "Sales"');
+  });
+
+  it("detects modified value constraint", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Rating", { valueConstraint: { values: ["A", "B", "C"] } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Rating", { valueConstraint: { values: ["A", "B", "C", "D"] } })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Rating");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes).toContain("value constraint changed");
+  });
+
+  it("detects fact type definition change", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        definition: "A customer submits an order.",
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        definition: "A customer creates an order.",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta).toBeDefined();
+    expect(delta!.changes).toContain("definition changed");
+  });
+
+  it("detects fact type role player changes", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withEntityType("Agent", { referenceMode: "agent_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withEntityType("Agent", { referenceMode: "agent_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Agent", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta).toBeDefined();
+    expect(delta!.changes.some((c) => c.includes("player Customer -> Agent"))).toBe(true);
+  });
+
+  it("detects fact type role name changes", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "submits" },
+        role2: { player: "Order", name: "is submitted by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta).toBeDefined();
+    expect(delta!.changes.some((c) => c.includes('"places" -> "submits"'))).toBe(true);
+    expect(delta!.changes.some((c) => c.includes('"is placed by" -> "is submitted by"'))).toBe(true);
+  });
+
+  it("detects constraint additions and removals on fact types", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        mandatory: "role2",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta).toBeDefined();
+    expect(delta!.changes.some((c) => c.includes("constraints added"))).toBe(true);
+    expect(delta!.changes.some((c) => c.includes("constraints removed"))).toBe(true);
+  });
+
+  it("detects definition context change", () => {
+    const existing = new ModelBuilder("Test")
+      .withDefinition("Customer", "A buyer.", "CRM")
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withDefinition("Customer", "A buyer.", "Sales")
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "definition" && d.kind === "modified",
+    );
+    expect(delta).toBeDefined();
+    expect(delta!.changes).toContain('context: "CRM" -> "Sales"');
+  });
+
   it("detects modified definition text", () => {
     const existing = baseModel();
     const incoming = new ModelBuilder("Test")

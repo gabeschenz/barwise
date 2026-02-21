@@ -8,7 +8,7 @@ const sharedOptions = {
   format: "cjs",
   sourcemap: true,
   minify: false,
-  external: ["vscode"],
+  external: ["vscode", "web-worker"],
   loader: { ".json": "json" },
   // Suppress import.meta.url warnings -- esbuild bundles the JSON
   // files directly, so the createRequire calls in core are dead code

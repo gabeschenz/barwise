@@ -17,7 +17,9 @@ Tests are in `packages/core/tests/`.
 5. Verbalization engine (fact types and Phase 1 constraints)
 ## Commands
 - `cd packages/core && npx vitest run` -- run tests
+- `cd packages/core && npx vitest run --coverage` -- run tests with coverage
 - `cd packages/core && npx tsc --noEmit` -- type-check
+- `npm run lint` -- lint all packages (ESLint)
 ## Conventions
 - Core package has ZERO dependencies on VS Code
 - All model logic is testable without launching an editor
