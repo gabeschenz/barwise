@@ -102,7 +102,7 @@ After installing, open **Settings** and search for `fregma`. The key settings ar
 ## Quick start
 
 1. **Create a project:** run the command **ORM: New Project** from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
-2. **Import a transcript:** run **ORM: Import Transcript**, pick a `.md` or `.txt` file containing a business conversation, and name the model. The LLM extracts object types, fact types, and constraints into a `.orm.yaml` file.
+2. **Import a transcript:** run **ORM: Import Transcript**, pick a `.md` or `.txt` file containing a business conversation, and name the model. The LLM extracts object types, fact types, and constraints into a `.orm.yaml` file. Try one of the example transcripts in `examples/transcripts/` to get started.
 3. **Review changes:** if the `.orm.yaml` already exists, the import shows a fact-by-fact review dialog. Each added, modified, or removed element gets its own checkbox -- additions and modifications are pre-selected, removals require explicit opt-in.
 4. **Validate:** run **ORM: Validate Model** to check structural rules and constraint consistency.
 5. **Visualize:** run **ORM: Show Diagram** to see the ORM diagram.
@@ -112,6 +112,8 @@ After installing, open **Settings** and search for `fregma`. The key settings ar
 
 ```
 fregma/
+  examples/
+    transcripts/                 -- sample transcripts for ORM: Import Transcript
   packages/
     core/       @fregma/core     -- metamodel, validation, verbalization, diff/merge
     llm/        @fregma/llm      -- LLM transcript extraction
