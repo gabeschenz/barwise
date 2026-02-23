@@ -1,3 +1,13 @@
+/**
+ * Tests for the top-level Verbalizer facade.
+ *
+ * Verbalizer composes FactTypeVerbalizer and ConstraintVerbalizer to
+ * produce a complete set of natural-language verbalizations for a model.
+ * These tests verify:
+ *   - verbalizeModel returns readings + constraint sentences for all fact types
+ *   - verbalizeFactType returns sentences for a single fact type by ID
+ *   - Sub-verbalizer access (factTypes, constraints)
+ */
 import { describe, it, expect } from "vitest";
 import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

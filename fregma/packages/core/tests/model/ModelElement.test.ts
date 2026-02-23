@@ -1,3 +1,10 @@
+/**
+ * Tests for ModelElement, the abstract base class of all ORM model elements.
+ *
+ * Every model element (ObjectType, FactType, etc.) inherits a stable UUID
+ * and an immutable createdAt timestamp from ModelElement. These tests
+ * verify those identity guarantees using ObjectType as a concrete subclass.
+ */
 import { describe, it, expect } from "vitest";
 import { ModelElement } from "../../src/model/ModelElement.js";
 

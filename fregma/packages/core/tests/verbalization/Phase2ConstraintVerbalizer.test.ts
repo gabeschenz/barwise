@@ -1,3 +1,17 @@
+/**
+ * Tests for Phase 2 constraint verbalization.
+ *
+ * Phase 2 constraints produce more complex natural-language sentences:
+ *   - Disjunctive mandatory: "Each X ... or ..."
+ *   - Exclusion / exclusive-or: "... but not both"
+ *   - Subset / equality: "If ... then ..."
+ *   - Ring (irreflexive, asymmetric, etc.): "No X ... that same X"
+ *   - Frequency: "at least N and at most M times"
+ *
+ * The "fallback paths" section tests defensive code that fires when
+ * constraint role references cannot be resolved against the fact type --
+ * important because LLM-generated constraints may have mismatched IDs.
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
@@ -125,5 +139,103 @@ describe("Phase 2 constraint verbalization", () => {
     const c: Constraint = { type: "frequency", roleId: "r1", min: 3, max: 3 };
     const v = verbalizer.verbalize(c, ft, model);
     expect(v.text).toContain("exactly 3");
+  });
+
+  it("verbalizes frequency on a non-binary fact type", () => {
+    const model = new OrmModel({ name: "Test" });
+    const emp = model.addObjectType({ name: "Employee", kind: "entity", referenceMode: "emp_id" });
+    const proj = model.addObjectType({ name: "Project", kind: "entity", referenceMode: "proj_id" });
+    const dept = model.addObjectType({ name: "Department", kind: "entity", referenceMode: "dept_id" });
+    const ft = model.addFactType({
+      name: "Employee works on Project in Department",
+      roles: [
+        { id: "r1", name: "works on", playerId: emp.id },
+        { id: "r2", name: "has worker", playerId: proj.id },
+        { id: "r3", name: "in", playerId: dept.id },
+      ],
+      readings: ["{0} works on {1} in {2}"],
+    });
+
+    const c: Constraint = { type: "frequency", roleId: "r1", min: 2, max: 5 };
+    const v = verbalizer.verbalize(c, ft, model);
+    expect(v.text).toContain("at least 2 and at most 5 times");
+    expect(v.text).toContain("Employee");
+  });
+
+  it("verbalizes frequency unbounded on a non-binary fact type", () => {
+    const model = new OrmModel({ name: "Test" });
+    const a = model.addObjectType({ name: "A", kind: "entity", referenceMode: "a_id" });
+    const b = model.addObjectType({ name: "B", kind: "entity", referenceMode: "b_id" });
+    const c_ot = model.addObjectType({ name: "C", kind: "entity", referenceMode: "c_id" });
+    const ft = model.addFactType({
+      name: "A relates B and C",
+      roles: [
+        { id: "r1", name: "relates", playerId: a.id },
+        { id: "r2", name: "is related", playerId: b.id },
+        { id: "r3", name: "with", playerId: c_ot.id },
+      ],
+      readings: ["{0} relates {1} with {2}"],
+    });
+
+    const c: Constraint = { type: "frequency", roleId: "r1", min: 1, max: "unbounded" };
+    const v = verbalizer.verbalize(c, ft, model);
+    expect(v.text).toContain("at least 1 times");
+  });
+
+  it("verbalizes frequency exact on a non-binary fact type", () => {
+    const model = new OrmModel({ name: "Test" });
+    const a = model.addObjectType({ name: "A", kind: "entity", referenceMode: "a_id" });
+    const b = model.addObjectType({ name: "B", kind: "entity", referenceMode: "b_id" });
+    const c_ot = model.addObjectType({ name: "C", kind: "entity", referenceMode: "c_id" });
+    const ft = model.addFactType({
+      name: "A relates B and C",
+      roles: [
+        { id: "r1", name: "relates", playerId: a.id },
+        { id: "r2", name: "is related", playerId: b.id },
+        { id: "r3", name: "with", playerId: c_ot.id },
+      ],
+      readings: ["{0} relates {1} with {2}"],
+    });
+
+    const c: Constraint = { type: "frequency", roleId: "r1", min: 2, max: 2 };
+    const v = verbalizer.verbalize(c, ft, model);
+    expect(v.text).toContain("exactly 2 times");
+  });
+
+  describe("fallback paths", () => {
+    it("resolveCommonPlayer returns fallback for invalid role ids", () => {
+      const { model, ft } = buildBinaryModel();
+      // Disjunctive mandatory referencing nonexistent role ids.
+      const c: Constraint = { type: "disjunctive_mandatory", roleIds: ["bogus1", "bogus2"] };
+      const v = verbalizer.verbalize(c, ft, model);
+      // Should fall through to the default "Object" name.
+      expect(v.text).toContain("Object");
+    });
+
+    it("extractPredicate uses fallback when reading order does not match subject/object", () => {
+      // Build a fact type where the reading template has {1} before {0}.
+      const model = new OrmModel({ name: "Test" });
+      const a = model.addObjectType({ name: "Alpha", kind: "entity", referenceMode: "a_id" });
+      const b = model.addObjectType({ name: "Beta", kind: "entity", referenceMode: "b_id" });
+      const ft = model.addFactType({
+        name: "Alpha and Beta",
+        roles: [
+          { id: "r1", name: "role1", playerId: a.id },
+          { id: "r2", name: "role2", playerId: b.id },
+        ],
+        // Only an inverse reading (object before subject).
+        readings: ["{1} is linked from {0}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      // This triggers extractPredicate with subjectIdx=0 and objectIdx=1,
+      // but the reading has {1} before {0}, so the primary path fails.
+      // The fallback extracts the predicate between the two placeholders.
+      const v = verbalizer.verbalizeAll(ft, model);
+      expect(v).toHaveLength(1);
+      expect(v[0]!.text).toBeDefined();
+    });
   });
 });

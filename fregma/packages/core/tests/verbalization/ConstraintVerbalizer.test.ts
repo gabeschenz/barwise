@@ -1,3 +1,14 @@
+/**
+ * Tests for Phase 1 constraint verbalization.
+ *
+ * The ConstraintVerbalizer translates inline constraints (uniqueness,
+ * mandatory, value constraint) into natural-language sentences like
+ * "Each Order is placed by at most one Customer." These tests verify:
+ *   - Uniqueness verbalization for binary and non-binary fact types
+ *   - Mandatory constraint verbalization
+ *   - Value constraint verbalization (enumerated allowed values)
+ *   - Structured segments linking text spans to model elements
+ */
 import { describe, it, expect } from "vitest";
 import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

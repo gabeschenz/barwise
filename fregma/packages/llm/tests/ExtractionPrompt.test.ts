@@ -1,3 +1,14 @@
+/**
+ * Tests for the LLM extraction prompt builder.
+ *
+ * The extraction prompt instructs the LLM to extract ORM elements from
+ * a stakeholder transcript. These tests verify:
+ *   - buildSystemPrompt includes ORM concept explanations, source-reference
+ *     instructions, and confidence-level guidance
+ *   - buildUserMessage wraps the transcript with line numbers
+ *   - buildResponseSchema produces a valid JSON Schema with required fields
+ *   - parseExtractionResponse handles well-formed, sparse, and invalid input
+ */
 import { describe, it, expect } from "vitest";
 import {
   buildSystemPrompt,

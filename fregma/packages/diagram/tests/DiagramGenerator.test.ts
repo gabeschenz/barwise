@@ -1,3 +1,14 @@
+/**
+ * Tests for the end-to-end diagram generator.
+ *
+ * generateDiagram takes an OrmModel and produces an SVG string plus
+ * layout metadata, composing the ModelToGraph -> ElkLayoutEngine ->
+ * SvgRenderer pipeline. These tests verify:
+ *   - Valid SVG output for various model shapes
+ *   - Correct node counts (one per object type + one per fact type)
+ *   - Edge counts matching role counts
+ *   - Layout dimensions are positive and reasonable
+ */
 import { describe, it, expect } from "vitest";
 import { generateDiagram } from "../src/DiagramGenerator.js";
 import { ModelBuilder } from "../../core/tests/helpers/ModelBuilder.js";

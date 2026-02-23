@@ -1,3 +1,13 @@
+/**
+ * Tests for project-level validation rules.
+ *
+ * Project rules validate cross-domain consistency within an OrmProject:
+ *   - Mapping context references: source/target contexts must exist as domains
+ *   - Entity mapping references: mapped object type names must exist in
+ *     the corresponding domain's loaded model
+ *   - Product dependencies: a product's declared domain and mapping
+ *     dependencies must be resolvable within the project
+ */
 import { describe, it, expect } from "vitest";
 import { projectRules } from "../../src/validation/rules/projectRules.js";
 import { OrmProject } from "../../src/model/OrmProject.js";

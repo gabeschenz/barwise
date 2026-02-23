@@ -1,3 +1,12 @@
+/**
+ * Tests for reading template validation and expansion.
+ *
+ * ORM fact types use reading templates like "{0} places {1}" where each
+ * placeholder index corresponds to a role position. validateReadingTemplate
+ * ensures every placeholder is present and in range; expandReading
+ * substitutes player names for placeholders. These tests verify both
+ * forward and inverse readings for unary, binary, and ternary fact types.
+ */
 import { describe, it, expect } from "vitest";
 import {
   validateReadingTemplate,

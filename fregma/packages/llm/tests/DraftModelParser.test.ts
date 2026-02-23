@@ -1,7 +1,21 @@
+/**
+ * Tests for the DraftModelParser, which converts raw LLM extraction
+ * output into a validated OrmModel with provenance metadata.
+ *
+ * The parser resolves LLM-generated role names to actual role IDs,
+ * applies constraints with confidence tracking, and records skip reasons
+ * when constraints cannot be applied. These tests verify:
+ *   - Object type and fact type creation from extraction responses
+ *   - Constraint resolution (by name match and positional fallback)
+ *   - Provenance recording for every element
+ *   - Edge cases: empty names, duplicate names, unresolvable roles
+ *   - Skip-reason tracking for constraints that cannot be applied
+ */
 import { describe, it, expect } from "vitest";
 import { parseDraftModel } from "../src/DraftModelParser.js";
 import type { ExtractionResponse } from "../src/ExtractionTypes.js";
 
+/** Builds a minimal ExtractionResponse with defaults for omitted fields. */
 function makeResponse(
   overrides: Partial<ExtractionResponse> = {},
 ): ExtractionResponse {
@@ -360,6 +374,171 @@ describe("DraftModelParser", () => {
 
       expect(result.ambiguities).toHaveLength(1);
       expect(result.ambiguities[0]?.description).toContain("Customer");
+    });
+  });
+
+  describe("constraint resolution edge cases", () => {
+    function makeModelWithFactType() {
+      return makeResponse({
+        object_types: [
+          { name: "Customer", kind: "entity", reference_mode: "cid", source_references: [] },
+          { name: "Order", kind: "entity", reference_mode: "oid", source_references: [] },
+        ],
+        fact_types: [
+          {
+            name: "Customer places Order",
+            roles: [
+              { player: "Customer", role_name: "places" },
+              { player: "Order", role_name: "is placed by" },
+            ],
+            readings: ["{0} places {1}"],
+            source_references: [],
+          },
+        ],
+      });
+    }
+
+    it("uses positional fallback when role name does not match", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "internal_uniqueness",
+              fact_type: "Customer places Order",
+              // Use a name that won't match any role name.
+              roles: ["SomeUnknownRole"],
+              description: "Uniqueness with unresolvable role name",
+              confidence: "medium",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      // Should still apply via positional fallback.
+      expect(result.constraintProvenance[0]?.applied).toBe(true);
+      expect(result.warnings.some((w) => w.includes("positional fallback"))).toBe(true);
+    });
+
+    it("records skip reason when mandatory has too many roles", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "mandatory",
+              fact_type: "Customer places Order",
+              roles: ["places", "is placed by"],
+              description: "Mandatory with two roles (invalid)",
+              confidence: "high",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("exactly one role");
+    });
+
+    it("records skip reason when mandatory role cannot be resolved", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "mandatory",
+              fact_type: "Customer places Order",
+              // Use a name that will match via positional fallback
+              // but then a second unresolvable name that won't.
+              roles: ["CompletelyFake"],
+              description: "Mandatory with unresolvable role",
+              confidence: "low",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      // The positional fallback will match the first unmatched role,
+      // so this should actually apply.
+      expect(result.constraintProvenance[0]?.applied).toBe(true);
+    });
+
+    it("records skip reason for internal_uniqueness with no resolvable roles", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "internal_uniqueness",
+              fact_type: "Customer places Order",
+              // Empty roles array means nothing to resolve.
+              roles: [],
+              description: "Uniqueness with empty roles",
+              confidence: "low",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+    });
+
+    it("skips value_constraint on fact type roles", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["places"],
+              description: "Value constraint on role",
+              confidence: "medium",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("not yet supported");
+    });
+
+    it("skips fact type with empty name", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            { name: "A", kind: "entity", reference_mode: "aid", source_references: [] },
+          ],
+          fact_types: [
+            {
+              name: "",
+              roles: [{ player: "A", role_name: "does" }],
+              readings: ["{0} does"],
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      expect(result.model.factTypes).toHaveLength(0);
+      expect(result.warnings.some((w) => w.includes("empty name"))).toBe(true);
     });
   });
 

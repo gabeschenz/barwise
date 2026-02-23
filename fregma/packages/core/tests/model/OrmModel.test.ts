@@ -1,3 +1,16 @@
+/**
+ * Tests for OrmModel, the top-level container for an ORM schema.
+ *
+ * OrmModel owns all object types, fact types, and definitions. It
+ * enforces referential integrity: a fact type cannot reference an
+ * object type that does not exist in the model, and a referenced
+ * object type cannot be removed. These tests verify:
+ *   - Construction and property setters (name, domainContext)
+ *   - Adding and querying object types, fact types, and definitions
+ *   - Referential integrity on add and remove operations
+ *   - Duplicate-name prevention
+ *   - Summary statistics (element counts)
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 
@@ -214,6 +227,44 @@ describe("OrmModel", () => {
       expect(() =>
         model.addDefinition({ term: "Valid", definition: "" }),
       ).toThrow("non-empty");
+    });
+  });
+
+  describe("property setters", () => {
+    it("sets the model name", () => {
+      const model = new OrmModel({ name: "Original" });
+      model.name = "Updated";
+      expect(model.name).toBe("Updated");
+    });
+
+    it("trims the model name on set", () => {
+      const model = new OrmModel({ name: "Original" });
+      model.name = "  Trimmed  ";
+      expect(model.name).toBe("Trimmed");
+    });
+
+    it("throws when setting name to empty string", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() => { model.name = ""; }).toThrow("non-empty");
+    });
+
+    it("throws when setting name to whitespace", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() => { model.name = "   "; }).toThrow("non-empty");
+    });
+
+    it("sets domainContext", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(model.domainContext).toBeUndefined();
+      model.domainContext = "crm";
+      expect(model.domainContext).toBe("crm");
+    });
+
+    it("clears domainContext by setting undefined", () => {
+      const model = new OrmModel({ name: "Test", domainContext: "crm" });
+      expect(model.domainContext).toBe("crm");
+      model.domainContext = undefined;
+      expect(model.domainContext).toBeUndefined();
     });
   });
 

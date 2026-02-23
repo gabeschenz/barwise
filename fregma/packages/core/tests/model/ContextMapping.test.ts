@@ -1,3 +1,9 @@
+/**
+ * Tests for ContextMapping, which records how object types in one bounded
+ * context relate to object types in another (e.g. CRM "Customer" maps to
+ * Billing "Account"). These tests verify construction, entity-mapping
+ * storage, semantic-conflict documentation, and context-involvement queries.
+ */
 import { describe, it, expect } from "vitest";
 import { ContextMapping } from "../../src/model/ContextMapping.js";
 

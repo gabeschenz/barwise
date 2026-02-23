@@ -1,3 +1,15 @@
+/**
+ * Tests for the model diff engine.
+ *
+ * diffModels compares two OrmModels and produces a list of deltas
+ * (added, removed, modified, unchanged) for object types, fact types,
+ * and definitions. This is used by the LLM re-extraction workflow to
+ * show users what changed between the existing model and the new
+ * extraction. These tests verify detection of:
+ *   - Added, removed, and unchanged elements
+ *   - Modified properties (kind, referenceMode, definition, sourceContext,
+ *     valueConstraint, readings, role names, role players, constraints)
+ */
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { diffModels } from "../../src/diff/ModelDiff.js";

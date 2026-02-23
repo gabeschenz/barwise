@@ -1,3 +1,14 @@
+/**
+ * Tests for the ObjectType model class.
+ *
+ * ObjectType represents either an entity type (identified by a reference
+ * mode) or a value type (self-identifying). These tests verify:
+ *   - Construction of both entity and value types
+ *   - Setter behavior for mutable properties (name, definition, etc.)
+ *   - Validation of required fields (entity types must have a referenceMode)
+ *   - Value constraints on value types
+ *   - Source-context tracking for multi-domain models
+ */
 import { describe, it, expect } from "vitest";
 import { ObjectType } from "../../src/model/ObjectType.js";
 

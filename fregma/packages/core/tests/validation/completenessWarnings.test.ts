@@ -1,3 +1,14 @@
+/**
+ * Tests for completeness warning rules.
+ *
+ * Completeness warnings are non-blocking hints that help modelers
+ * identify areas needing attention. They flag:
+ *   - Object types with no natural-language definition (info)
+ *   - Fact types with no constraints at all (warning -- likely
+ *     indicates the modeler forgot to specify cardinality)
+ *   - Object types that do not participate in any fact type (info --
+ *     "orphan" types that serve no purpose in the model)
+ */
 import { describe, it, expect } from "vitest";
 import { completenessWarnings } from "../../src/validation/rules/completenessWarnings.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

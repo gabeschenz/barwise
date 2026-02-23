@@ -1,3 +1,15 @@
+/**
+ * Tests for the TranscriptProcessor, which orchestrates the LLM extraction
+ * pipeline: transcript -> prompt -> LLM call -> parsed OrmModel.
+ *
+ * These tests use a mock LlmClient that returns pre-recorded fixture
+ * responses, so they run without a real LLM. They verify:
+ *   - End-to-end extraction (object types, fact types, constraints, ambiguities)
+ *   - Provenance tracking (which transcript lines support each element)
+ *   - Constraint application with confidence filtering
+ *   - Error handling (empty transcript, malformed JSON response)
+ *   - parseExtractionFromJson for offline replay of saved responses
+ */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";

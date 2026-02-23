@@ -1,8 +1,24 @@
+/**
+ * Tests for Phase 2 constraint consistency rules.
+ *
+ * Phase 2 constraints (disjunctive mandatory, exclusion, exclusive-or,
+ * subset, equality, ring, frequency) have richer validation requirements
+ * than Phase 1 constraints. These tests verify:
+ *   - Role-id validity for multi-role constraints (ring, disjunctive mandatory)
+ *   - Frequency bounds (min >= 1, max >= min)
+ *   - Ring constraints requiring a self-referencing fact type
+ *   - Subset/equality role-set matching
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
 import type { Constraint } from "../../src/model/Constraint.js";
 
+/**
+ * Builds a binary "Person drives Car" model with one attached constraint.
+ * Roles are "r1" (Person) and "r2" (Car), so constraints can reference
+ * either by ID.
+ */
 function buildModelWithConstraint(constraint: Constraint): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const ot1 = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
@@ -19,6 +35,11 @@ function buildModelWithConstraint(constraint: Constraint): OrmModel {
   return model;
 }
 
+/**
+ * Builds a self-referencing "Person is parent of Person" model with one
+ * attached constraint. Both roles share the same player, which is required
+ * for ring constraints.
+ */
 function buildSelfRefModel(constraint: Constraint): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const ot = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
@@ -223,5 +244,52 @@ describe("Phase 2 constraint consistency rules", () => {
     });
     const diags = constraintConsistencyRules(model);
     expect(diags.some((d) => d.ruleId === "constraint/frequency-max-less-than-min")).toBe(true);
+  });
+
+  it("ring with invalid roleId1 fails", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "bogus",
+      roleId2: "r2",
+      ringType: "irreflexive",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/ring-invalid-role")).toBe(true);
+    expect(diags.some((d) => d.message.includes('"bogus"'))).toBe(true);
+  });
+
+  it("ring with both role ids invalid fails with two diagnostics", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "bogus1",
+      roleId2: "bogus2",
+      ringType: "asymmetric",
+    });
+    const diags = constraintConsistencyRules(model);
+    const ringDiags = diags.filter((d) => d.ruleId === "constraint/ring-invalid-role");
+    expect(ringDiags).toHaveLength(2);
+  });
+
+  it("frequency with min < 1 fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: 0,
+      max: 3,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-invalid-min")).toBe(true);
+    expect(diags.some((d) => d.message.includes("min 0"))).toBe(true);
+  });
+
+  it("frequency with negative min fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: -1,
+      max: 5,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-invalid-min")).toBe(true);
   });
 });

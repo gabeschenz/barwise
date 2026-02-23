@@ -1,3 +1,14 @@
+/**
+ * Tests for Phase 2 constraint type guards.
+ *
+ * Phase 2 constraints (disjunctive mandatory, exclusion, exclusive-or,
+ * subset, equality, ring, frequency) extend the Phase 1 set. Each
+ * constraint type has a corresponding type-guard function (e.g.
+ * isDisjunctiveMandatory) used for exhaustive narrowing. These tests
+ * verify that each guard correctly identifies its own type and rejects
+ * all others -- essential for the verbalization and validation engines
+ * which dispatch on constraint type.
+ */
 import { describe, it, expect } from "vitest";
 import {
   isDisjunctiveMandatory,
