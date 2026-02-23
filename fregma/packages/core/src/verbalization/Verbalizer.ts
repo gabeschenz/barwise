@@ -1,5 +1,11 @@
 import type { OrmModel } from "../model/OrmModel.js";
-import type { Verbalization } from "./Verbalization.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
+import {
+  type Verbalization,
+  buildVerbalization,
+  refSeg,
+  textSeg,
+} from "./Verbalization.js";
 import { FactTypeVerbalizer } from "./FactTypeVerbalizer.js";
 import { ConstraintVerbalizer } from "./ConstraintVerbalizer.js";
 
@@ -28,6 +34,11 @@ export class Verbalizer {
       results.push(
         ...this.constraintVerbalizer.verbalizeAll(ft, model),
       );
+    }
+
+    // Subtype fact verbalizations.
+    for (const sf of model.subtypeFacts) {
+      results.push(this.verbalizeSubtypeFact(sf, model));
     }
 
     return results;
@@ -62,5 +73,25 @@ export class Verbalizer {
   /** Access the underlying constraint verbalizer. */
   get constraints(): ConstraintVerbalizer {
     return this.constraintVerbalizer;
+  }
+
+  /**
+   * Verbalize a subtype fact: "{Subtype} is a subtype of {Supertype}."
+   */
+  verbalizeSubtypeFact(
+    sf: SubtypeFact,
+    model: OrmModel,
+  ): Verbalization {
+    const subtype = model.getObjectType(sf.subtypeId);
+    const supertype = model.getObjectType(sf.supertypeId);
+    const subtypeName = subtype?.name ?? sf.subtypeId;
+    const supertypeName = supertype?.name ?? sf.supertypeId;
+
+    return buildVerbalization(sf.id, "subtype", [
+      refSeg(subtypeName, sf.subtypeId),
+      textSeg(" is a subtype of "),
+      refSeg(supertypeName, sf.supertypeId),
+      textSeg("."),
+    ]);
   }
 }

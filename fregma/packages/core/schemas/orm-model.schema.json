@@ -37,6 +37,11 @@
           "items": { "$ref": "#/definitions/fact_type" },
           "description": "The fact types (relationships) in this model."
         },
+        "subtype_facts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/subtype_fact" },
+          "description": "Subtype relationships between entity types."
+        },
         "definitions": {
           "type": "array",
           "items": { "$ref": "#/definitions/definition" },
@@ -346,6 +351,33 @@
           "type": "array",
           "items": { "$ref": "#/definitions/constraint" },
           "description": "Constraints on this fact type."
+        }
+      }
+    },
+    "subtype_fact": {
+      "type": "object",
+      "required": ["id", "subtype", "supertype"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier."
+        },
+        "subtype": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the subtype (child) entity type."
+        },
+        "supertype": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the supertype (parent) entity type."
+        },
+        "provides_identification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the subtype uses the supertype's reference scheme for identification."
         }
       }
     },

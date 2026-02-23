@@ -2,6 +2,7 @@ import { stringify, parse } from "yaml";
 import { OrmModel } from "../model/OrmModel.js";
 import type { ObjectType } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
 import type { Constraint, RingType } from "../model/Constraint.js";
@@ -22,6 +23,7 @@ interface OrmYamlDocument {
     domain_context?: string;
     object_types?: OrmYamlObjectType[];
     fact_types?: OrmYamlFactType[];
+    subtype_facts?: OrmYamlSubtypeFact[];
     definitions?: OrmYamlDefinition[];
   };
 }
@@ -63,6 +65,13 @@ type OrmYamlConstraint =
   | { type: "equality"; roles_1: string[]; roles_2: string[] }
   | { type: "ring"; role_1: string; role_2: string; ring_type: RingType }
   | { type: "frequency"; role: string; min: number; max: number | "unbounded" };
+
+interface OrmYamlSubtypeFact {
+  id: string;
+  subtype: string;
+  supertype: string;
+  provides_identification?: boolean;
+}
 
 interface OrmYamlDefinition {
   term: string;
@@ -156,6 +165,13 @@ export class OrmYamlSerializer {
     if (factTypes.length > 0) {
       doc.model.fact_types = factTypes.map((ft) =>
         this.serializeFactType(ft),
+      );
+    }
+
+    const subtypeFacts = model.subtypeFacts;
+    if (subtypeFacts.length > 0) {
+      doc.model.subtype_facts = subtypeFacts.map((sf) =>
+        this.serializeSubtypeFact(sf),
       );
     }
 
@@ -256,6 +272,18 @@ export class OrmYamlSerializer {
     }
   }
 
+  private serializeSubtypeFact(sf: SubtypeFact): OrmYamlSubtypeFact {
+    const result: OrmYamlSubtypeFact = {
+      id: sf.id,
+      subtype: sf.subtypeId,
+      supertype: sf.supertypeId,
+    };
+    if (!sf.providesIdentification) {
+      result.provides_identification = false;
+    }
+    return result;
+  }
+
   private serializeDefinition(d: Definition): OrmYamlDefinition {
     const result: OrmYamlDefinition = {
       term: d.term,
@@ -307,6 +335,16 @@ export class OrmYamlSerializer {
         })),
         readings: ftDoc.readings,
         constraints,
+      });
+    }
+
+    // Add subtype facts (after object types and fact types).
+    for (const sfDoc of doc.model.subtype_facts ?? []) {
+      model.addSubtypeFact({
+        id: sfDoc.id,
+        subtypeId: sfDoc.subtype,
+        supertypeId: sfDoc.supertype,
+        providesIdentification: sfDoc.provides_identification ?? true,
       });
     }
 

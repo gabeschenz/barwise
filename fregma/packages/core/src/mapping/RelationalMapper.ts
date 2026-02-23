@@ -14,11 +14,14 @@
  * 5. Ternary+ fact types: associative table with composite PK.
  * 6. Value types used as reference modes become PK column types.
  * 7. Value types in non-identifying roles become column types.
+ * 8. Subtype facts with identification: subtype table's PK is a FK to the
+ *    supertype table (shared PK pattern).
  */
 
 import type { OrmModel } from "../model/OrmModel.js";
 import type { FactType } from "../model/FactType.js";
 import type { ObjectType } from "../model/ObjectType.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type {
   RelationalSchema,
   Table,
@@ -59,6 +62,11 @@ export class RelationalMapper {
       } else {
         this.mapNaryFactType(ft, model, entityTables, associativeTables);
       }
+    }
+
+    // Step 3: Process subtype facts.
+    for (const sf of model.subtypeFacts) {
+      this.mapSubtypeFact(sf, model, entityTables);
     }
 
     // Collect all tables: entity tables first, then associative tables.
@@ -313,6 +321,51 @@ export class RelationalMapper {
     };
 
     associativeTables.push(table);
+  }
+
+  /**
+   * Subtype fact mapping: add a FK from the subtype's PK to the
+   * supertype's PK. When providesIdentification is true, the subtype
+   * table's PK column is also a FK to the supertype table (shared PK).
+   */
+  private mapSubtypeFact(
+    sf: SubtypeFact,
+    _model: OrmModel,
+    entityTables: Map<string, MutableTable>,
+  ): void {
+    const subtypeTable = entityTables.get(sf.subtypeId);
+    const supertypeTable = entityTables.get(sf.supertypeId);
+    if (!subtypeTable || !supertypeTable) return;
+
+    const supertypePkCol = supertypeTable.primaryKey.columnNames[0]!;
+    const subtypePkCol = subtypeTable.primaryKey.columnNames[0]!;
+
+    if (sf.providesIdentification) {
+      // Shared PK pattern: the subtype's PK IS the FK to the supertype.
+      // The PK column already exists. Add a FK constraint on it.
+      subtypeTable.foreignKeys.push({
+        columnNames: [subtypePkCol],
+        referencedTable: supertypeTable.name,
+        referencedColumns: [supertypePkCol],
+      });
+    } else {
+      // Separate identification: add a nullable FK column to the supertype.
+      const existingNames = new Set(subtypeTable.columns.map((c) => c.name));
+      const fkColName = existingNames.has(supertypePkCol)
+        ? `fk_${supertypePkCol}`
+        : supertypePkCol;
+
+      subtypeTable.columns.push({
+        name: fkColName,
+        dataType: "TEXT",
+        nullable: false,
+      });
+      subtypeTable.foreignKeys.push({
+        columnNames: [fkColName],
+        referencedTable: supertypeTable.name,
+        referencedColumns: [supertypePkCol],
+      });
+    }
   }
 
   private analyzeUniqueness(ft: FactType): {

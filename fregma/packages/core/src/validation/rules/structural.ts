@@ -9,6 +9,8 @@ import type { Diagnostic } from "../Diagnostic.js";
  * - No duplicate object type names.
  * - No duplicate fact type names.
  * - Binary fact types have at least two readings (forward and inverse).
+ * - Subtype facts reference existing entity types.
+ * - Subtype hierarchy has no cycles.
  */
 export function structuralRules(model: OrmModel): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -17,6 +19,8 @@ export function structuralRules(model: OrmModel): Diagnostic[] {
   diagnostics.push(...checkDuplicateObjectTypeNames(model));
   diagnostics.push(...checkDuplicateFactTypeNames(model));
   diagnostics.push(...checkBinaryFactTypeReadings(model));
+  diagnostics.push(...checkSubtypeFactReferences(model));
+  diagnostics.push(...checkSubtypeCycles(model));
 
   return diagnostics;
 }
@@ -119,6 +123,113 @@ function checkBinaryFactTypeReadings(model: OrmModel): Diagnostic[] {
         elementId: ft.id,
         ruleId: "structural/binary-missing-inverse-reading",
       });
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Subtype facts must reference existing entity types for both the
+ * subtype and supertype sides.
+ */
+function checkSubtypeFactReferences(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const sf of model.subtypeFacts) {
+    const subtype = model.getObjectType(sf.subtypeId);
+    if (!subtype) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Subtype fact references subtype id "${sf.subtypeId}" ` +
+          `which does not exist in the model.`,
+        elementId: sf.id,
+        ruleId: "structural/subtype-dangling-subtype",
+      });
+    } else if (subtype.kind !== "entity") {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Subtype fact references "${subtype.name}" as subtype, ` +
+          `but it is a ${subtype.kind} type. Only entity types can participate in subtype relationships.`,
+        elementId: sf.id,
+        ruleId: "structural/subtype-not-entity",
+      });
+    }
+
+    const supertype = model.getObjectType(sf.supertypeId);
+    if (!supertype) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Subtype fact references supertype id "${sf.supertypeId}" ` +
+          `which does not exist in the model.`,
+        elementId: sf.id,
+        ruleId: "structural/subtype-dangling-supertype",
+      });
+    } else if (supertype.kind !== "entity") {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Subtype fact references "${supertype.name}" as supertype, ` +
+          `but it is a ${supertype.kind} type. Only entity types can participate in subtype relationships.`,
+        elementId: sf.id,
+        ruleId: "structural/subtype-not-entity",
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * The subtype hierarchy must not contain cycles.
+ * A cycle means A is a subtype of B, B is a subtype of C, and C is a
+ * subtype of A -- which is logically impossible.
+ */
+function checkSubtypeCycles(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  // Build adjacency list: subtypeId -> supertypeIds.
+  const edges = new Map<string, string[]>();
+  for (const sf of model.subtypeFacts) {
+    const existing = edges.get(sf.subtypeId);
+    if (existing) {
+      existing.push(sf.supertypeId);
+    } else {
+      edges.set(sf.subtypeId, [sf.supertypeId]);
+    }
+  }
+
+  // DFS cycle detection.
+  const visited = new Set<string>();
+  const inStack = new Set<string>();
+
+  function dfs(nodeId: string): boolean {
+    if (inStack.has(nodeId)) return true; // cycle
+    if (visited.has(nodeId)) return false;
+
+    visited.add(nodeId);
+    inStack.add(nodeId);
+
+    for (const supertypeId of edges.get(nodeId) ?? []) {
+      if (dfs(supertypeId)) return true;
+    }
+
+    inStack.delete(nodeId);
+    return false;
+  }
+
+  for (const nodeId of edges.keys()) {
+    if (!visited.has(nodeId) && dfs(nodeId)) {
+      diagnostics.push({
+        severity: "error",
+        message: "The subtype hierarchy contains a cycle.",
+        elementId: nodeId,
+        ruleId: "structural/subtype-cycle",
+      });
+      break; // Report once, not per node.
     }
   }
 
