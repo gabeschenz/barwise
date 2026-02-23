@@ -1,3 +1,16 @@
+/**
+ * Tests for OrmModel, the top-level container for an ORM schema.
+ *
+ * OrmModel owns all object types, fact types, and definitions. It
+ * enforces referential integrity: a fact type cannot reference an
+ * object type that does not exist in the model, and a referenced
+ * object type cannot be removed. These tests verify:
+ *   - Construction and property setters (name, domainContext)
+ *   - Adding and querying object types, fact types, and definitions
+ *   - Referential integrity on add and remove operations
+ *   - Duplicate-name prevention
+ *   - Summary statistics (element counts)
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 

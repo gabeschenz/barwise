@@ -1,3 +1,13 @@
+/**
+ * Round-trip serialization integration tests.
+ *
+ * These tests load realistic .orm.yaml fixture files (Order Management,
+ * Phase 2 Constraints), deserialize them into OrmModels, re-serialize
+ * to YAML, and deserialize again. Every model element (object types,
+ * fact types, roles, constraints, definitions, value constraints) is
+ * checked for structural equivalence after the round trip, ensuring the
+ * serializer is lossless.
+ */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";

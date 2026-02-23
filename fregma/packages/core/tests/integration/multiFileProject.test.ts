@@ -1,3 +1,16 @@
+/**
+ * Multi-file project integration tests.
+ *
+ * These tests exercise the multi-domain project workflow: loading a
+ * project manifest, multiple domain models, and a context mapping from
+ * fixture files, then validating, verbalizing, and mapping each domain
+ * independently. This proves the project-level plumbing works end-to-end:
+ *   - Project manifest round-trip
+ *   - Domain model loading and attachment
+ *   - Context mapping loading and round-trip
+ *   - Cross-domain qualified-reference resolution (e.g. "crm:Customer")
+ *   - Per-domain validation, verbalization, and DDL generation
+ */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";

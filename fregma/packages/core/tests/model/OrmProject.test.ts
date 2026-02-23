@@ -1,3 +1,14 @@
+/**
+ * Tests for OrmProject, the multi-file project container.
+ *
+ * An OrmProject aggregates multiple domain models (each with its own
+ * bounded context), context mappings between domains, and data-product
+ * models that depend on domains and mappings. These tests verify:
+ *   - Domain, mapping, and product registration
+ *   - Context lookups and qualified-reference resolution (e.g. "crm:Customer")
+ *   - Duplicate-context prevention
+ *   - Model attachment and retrieval for domains
+ */
 import { describe, it, expect } from "vitest";
 import { OrmProject } from "../../src/model/OrmProject.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

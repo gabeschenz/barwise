@@ -1,3 +1,12 @@
+/**
+ * Full pipeline integration tests: load -> validate -> verbalize -> map -> DDL.
+ *
+ * These tests exercise the complete Fregma core pipeline against realistic
+ * fixture models. Each model is deserialized from YAML, validated (no errors
+ * expected), verbalized into natural language, mapped to a relational schema,
+ * and rendered as DDL. This proves all subsystems compose correctly and that
+ * the output is structurally valid (correct table/column/FK generation).
+ */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";

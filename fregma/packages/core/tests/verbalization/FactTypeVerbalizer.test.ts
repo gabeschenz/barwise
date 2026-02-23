@@ -1,3 +1,15 @@
+/**
+ * Tests for the FactTypeVerbalizer.
+ *
+ * FactTypeVerbalizer expands reading templates into human-readable
+ * sentences (e.g. "{0} places {1}" -> "Customer places Order") and
+ * produces structured segments that link each text span back to the
+ * model element it represents. These tests verify:
+ *   - Forward and inverse reading expansion
+ *   - Structured segment generation (object_type_ref vs text spans)
+ *   - Segment element IDs linking back to the correct object types
+ *   - Unary and self-referencing fact types
+ */
 import { describe, it, expect } from "vitest";
 import { FactTypeVerbalizer } from "../../src/verbalization/FactTypeVerbalizer.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

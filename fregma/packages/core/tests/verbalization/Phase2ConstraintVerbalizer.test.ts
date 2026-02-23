@@ -1,3 +1,17 @@
+/**
+ * Tests for Phase 2 constraint verbalization.
+ *
+ * Phase 2 constraints produce more complex natural-language sentences:
+ *   - Disjunctive mandatory: "Each X ... or ..."
+ *   - Exclusion / exclusive-or: "... but not both"
+ *   - Subset / equality: "If ... then ..."
+ *   - Ring (irreflexive, asymmetric, etc.): "No X ... that same X"
+ *   - Frequency: "at least N and at most M times"
+ *
+ * The "fallback paths" section tests defensive code that fires when
+ * constraint role references cannot be resolved against the fact type --
+ * important because LLM-generated constraints may have mismatched IDs.
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";

@@ -1,3 +1,16 @@
+/**
+ * Tests for ModelToGraph, which converts an OrmModel into an OrmGraph
+ * (an intermediate representation suitable for layout engines).
+ *
+ * The graph has two node kinds (object_type and fact_type) connected
+ * by edges (one per role). Each fact_type node carries metadata about
+ * its roles (uniqueness, mandatory). These tests verify:
+ *   - Correct node and edge counts
+ *   - Entity vs value type annotation on object_type nodes
+ *   - Uniqueness and mandatory flags on role metadata
+ *   - Spanning uniqueness detection
+ *   - Empty models produce empty graphs
+ */
 import { describe, it, expect } from "vitest";
 import { modelToGraph } from "../src/graph/ModelToGraph.js";
 import { ModelBuilder } from "../../core/tests/helpers/ModelBuilder.js";

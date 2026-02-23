@@ -1,3 +1,16 @@
+/**
+ * Tests for the ORM-to-relational schema mapper.
+ *
+ * RelationalMapper translates an OrmModel into a relational schema
+ * following standard ORM-to-relational mapping rules:
+ *   - Entity types become tables; value types become columns
+ *   - Single-role uniqueness -> FK on the unique side (many-to-one)
+ *   - Both-roles unique + one mandatory -> FK absorbed into mandatory side (1:1)
+ *   - Both-roles unique + neither mandatory -> associative table (1:1 optional)
+ *   - No uniqueness -> associative table (many-to-many)
+ *   - Unary fact types -> boolean columns
+ *   - Mandatory constraints -> NOT NULL
+ */
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

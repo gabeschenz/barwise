@@ -1,3 +1,12 @@
+/**
+ * Tests for the ELK layout engine's fallback routing paths.
+ *
+ * In normal operation, ELK returns edge sections with bend points. But
+ * if ELK omits sections (e.g. due to degenerate graph geometry), the
+ * layout engine falls back to straight-line routing between node centers.
+ * These tests mock ELK to return edges without sections, verifying that
+ * the fallback produces valid point arrays rather than crashing.
+ */
 import { describe, it, expect, vi } from "vitest";
 import type { OrmGraph } from "../src/graph/GraphTypes.js";
 

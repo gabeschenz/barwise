@@ -1,3 +1,11 @@
+/**
+ * Tests for ProjectSerializer (.orm-project.yaml file format).
+ *
+ * The project manifest lists domains, mappings, and data products with
+ * their dependency relationships. These tests verify serialization,
+ * deserialization (including error cases), round-trip fidelity, and
+ * the getMappingPaths helper for extracting mapping file references.
+ */
 import { describe, it, expect } from "vitest";
 import {
   ProjectSerializer,

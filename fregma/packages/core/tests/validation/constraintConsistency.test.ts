@@ -1,7 +1,17 @@
+/**
+ * Tests for Phase 1 constraint consistency rules.
+ *
+ * These rules verify that constraint role references actually exist in
+ * the fact type they are attached to. A dangling constraint reference
+ * (e.g. uniqueness referencing role "r999" when only "r1" and "r2" exist)
+ * is an error, while spanning uniqueness across all roles of a multi-role
+ * fact type is a warning (it is typically unintended).
+ */
 import { describe, it, expect } from "vitest";
 import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
 
+/** Builds a binary fact type ("Widget has Color") with the given constraints. */
 function buildModelWithConstraints(
   constraints: Array<Record<string, unknown>>,
 ): OrmModel {

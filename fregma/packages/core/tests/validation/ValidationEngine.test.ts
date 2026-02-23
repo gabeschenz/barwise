@@ -1,3 +1,14 @@
+/**
+ * Tests for the ValidationEngine orchestrator.
+ *
+ * ValidationEngine aggregates all built-in rule sets (structural,
+ * constraint consistency, completeness) and runs them against a model.
+ * It sorts diagnostics by severity (errors first) and provides
+ * convenience methods (isValid, errors). These tests verify:
+ *   - Diagnostic aggregation and severity ordering
+ *   - isValid (true when no errors, even if warnings exist)
+ *   - Custom rule registration via addRule
+ */
 import { describe, it, expect } from "vitest";
 import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

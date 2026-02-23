@@ -1,3 +1,17 @@
+/**
+ * Tests for the structural validation rules.
+ *
+ * Structural rules are a safety net for models that may have been loaded
+ * from external sources (YAML files, LLM output) which can bypass the
+ * OrmModel constructor's referential-integrity checks. They detect:
+ *   - Dangling role references (a role whose playerId points to a
+ *     nonexistent object type)
+ *   - Duplicate object type or fact type names
+ *   - Binary fact types missing an inverse reading
+ *
+ * To trigger error paths, several tests inject invalid state directly
+ * into OrmModel's private maps, simulating a corrupted deserialization.
+ */
 import { describe, it, expect } from "vitest";
 import { structuralRules } from "../../src/validation/rules/structural.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

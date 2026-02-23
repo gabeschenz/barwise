@@ -1,7 +1,23 @@
+/**
+ * Tests for the SVG renderer.
+ *
+ * renderSvg takes a PositionedGraph (nodes with x/y coordinates, edges
+ * with point arrays) and produces an SVG document string. These tests
+ * verify correct rendering of:
+ *   - Entity types (rounded rectangles with reference modes)
+ *   - Value types (dashed ellipses)
+ *   - Role boxes within fact type nodes
+ *   - Uniqueness bars and mandatory dots on roles
+ *   - Spanning uniqueness bars across all roles
+ *   - Edge paths connecting nodes
+ *   - XML character escaping in names
+ *   - Empty graphs
+ */
 import { describe, it, expect } from "vitest";
 import { renderSvg } from "../src/render/SvgRenderer.js";
 import type { PositionedGraph } from "../src/layout/LayoutTypes.js";
 
+/** A positioned graph with one entity type, one value type, and one fact type. */
 function makeMinimalGraph(): PositionedGraph {
   return {
     width: 400,

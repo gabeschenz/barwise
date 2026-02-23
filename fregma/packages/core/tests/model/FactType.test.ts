@@ -1,3 +1,15 @@
+/**
+ * Tests for the FactType model class.
+ *
+ * A FactType records a relationship between object types via roles.
+ * It carries readings (natural-language templates), inline constraints,
+ * and an optional definition. These tests verify:
+ *   - Construction with varying arities (unary, binary, ternary)
+ *   - Role access and reading storage
+ *   - Constraint attachment (uniqueness, mandatory, value)
+ *   - Definition getter/setter
+ *   - Validation of required fields (at least one role, one reading)
+ */
 import { describe, it, expect } from "vitest";
 import { FactType } from "../../src/model/FactType.js";
 

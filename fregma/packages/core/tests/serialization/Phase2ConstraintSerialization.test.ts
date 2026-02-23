@@ -1,3 +1,12 @@
+/**
+ * Tests for Phase 2 constraint serialization round-trips.
+ *
+ * Each Phase 2 constraint type (disjunctive mandatory, exclusion,
+ * exclusive-or, subset, equality, ring, frequency) is built into a
+ * model, serialized to YAML, deserialized, and checked for structural
+ * equivalence. This ensures the YAML format faithfully preserves the
+ * richer constraint semantics added in Phase 2.
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";

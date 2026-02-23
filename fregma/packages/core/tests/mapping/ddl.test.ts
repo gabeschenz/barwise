@@ -1,3 +1,14 @@
+/**
+ * Tests for the DDL renderer.
+ *
+ * renderDdl converts a RelationalSchema into SQL DDL (CREATE TABLE
+ * statements). These tests verify correct generation of:
+ *   - Table definitions with primary keys
+ *   - Foreign key constraints (REFERENCES)
+ *   - NOT NULL annotations for mandatory columns
+ *   - Associative tables for many-to-many relationships
+ *   - Value-type columns (absorbed into the entity table)
+ */
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

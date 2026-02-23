@@ -1,3 +1,17 @@
+/**
+ * Tests for the selective model merge engine.
+ *
+ * mergeModels takes an existing model, an incoming model, a list of
+ * deltas (from diffModels), and a set of accepted delta indices. It
+ * produces a new OrmModel that applies only the accepted changes.
+ * This powers the "review and accept changes" UI for LLM re-extraction.
+ * These tests verify:
+ *   - No changes when nothing is accepted
+ *   - Adding/removing/modifying object types, fact types, and definitions
+ *   - UUID preservation (existing elements keep their IDs after merge)
+ *   - Player-ID remapping (new fact types reference existing OT IDs)
+ *   - Full replacement (accept all deltas)
+ */
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { diffModels } from "../../src/diff/ModelDiff.js";

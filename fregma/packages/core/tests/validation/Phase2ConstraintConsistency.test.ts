@@ -1,8 +1,24 @@
+/**
+ * Tests for Phase 2 constraint consistency rules.
+ *
+ * Phase 2 constraints (disjunctive mandatory, exclusion, exclusive-or,
+ * subset, equality, ring, frequency) have richer validation requirements
+ * than Phase 1 constraints. These tests verify:
+ *   - Role-id validity for multi-role constraints (ring, disjunctive mandatory)
+ *   - Frequency bounds (min >= 1, max >= min)
+ *   - Ring constraints requiring a self-referencing fact type
+ *   - Subset/equality role-set matching
+ */
 import { describe, it, expect } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
 import type { Constraint } from "../../src/model/Constraint.js";
 
+/**
+ * Builds a binary "Person drives Car" model with one attached constraint.
+ * Roles are "r1" (Person) and "r2" (Car), so constraints can reference
+ * either by ID.
+ */
 function buildModelWithConstraint(constraint: Constraint): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const ot1 = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
@@ -19,6 +35,11 @@ function buildModelWithConstraint(constraint: Constraint): OrmModel {
   return model;
 }
 
+/**
+ * Builds a self-referencing "Person is parent of Person" model with one
+ * attached constraint. Both roles share the same player, which is required
+ * for ring constraints.
+ */
 function buildSelfRefModel(constraint: Constraint): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const ot = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });

@@ -1,3 +1,13 @@
+/**
+ * Tests for the OrmYamlSerializer (.orm.yaml file format).
+ *
+ * The serializer converts between OrmModel and YAML text. These tests
+ * verify the three core operations:
+ *   - Serialization: OrmModel -> YAML string (correct structure, quoting)
+ *   - Deserialization: YAML string -> OrmModel (including error handling
+ *     for malformed YAML, schema violations, and missing fields)
+ *   - Round-trip: serialize then deserialize preserves all model elements
+ */
 import { describe, it, expect } from "vitest";
 import { OrmYamlSerializer, DeserializationError } from "../../src/serialization/OrmYamlSerializer.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

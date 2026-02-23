@@ -1,7 +1,21 @@
+/**
+ * Tests for the DraftModelParser, which converts raw LLM extraction
+ * output into a validated OrmModel with provenance metadata.
+ *
+ * The parser resolves LLM-generated role names to actual role IDs,
+ * applies constraints with confidence tracking, and records skip reasons
+ * when constraints cannot be applied. These tests verify:
+ *   - Object type and fact type creation from extraction responses
+ *   - Constraint resolution (by name match and positional fallback)
+ *   - Provenance recording for every element
+ *   - Edge cases: empty names, duplicate names, unresolvable roles
+ *   - Skip-reason tracking for constraints that cannot be applied
+ */
 import { describe, it, expect } from "vitest";
 import { parseDraftModel } from "../src/DraftModelParser.js";
 import type { ExtractionResponse } from "../src/ExtractionTypes.js";
 
+/** Builds a minimal ExtractionResponse with defaults for omitted fields. */
 function makeResponse(
   overrides: Partial<ExtractionResponse> = {},
 ): ExtractionResponse {

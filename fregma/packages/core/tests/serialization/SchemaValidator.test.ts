@@ -1,3 +1,14 @@
+/**
+ * Tests for the JSON Schema validator used during YAML deserialization.
+ *
+ * SchemaValidator uses AJV to validate parsed YAML documents against
+ * the .orm.yaml JSON Schema. These tests ensure the schema correctly:
+ *   - Accepts minimal, fully-populated, and constraint-bearing documents
+ *   - Rejects documents missing required fields (orm_version, model, name)
+ *   - Rejects structurally invalid documents (empty roles, wrong version)
+ *   - Rejects unexpected top-level properties (additionalProperties: false)
+ *   - Handles non-object and null inputs gracefully
+ */
 import { describe, it, expect } from "vitest";
 import { SchemaValidator } from "../../src/serialization/SchemaValidator.js";
 

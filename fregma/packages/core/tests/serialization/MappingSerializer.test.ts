@@ -1,3 +1,12 @@
+/**
+ * Tests for MappingSerializer (.map.yaml file format).
+ *
+ * Context mappings record how object types in one bounded context relate
+ * to object types in another. The serializer handles entity mappings,
+ * semantic conflicts, and integration-pattern metadata. These tests
+ * verify serialization, deserialization, round-trip fidelity, and
+ * error handling for invalid YAML and schema violations.
+ */
 import { describe, it, expect } from "vitest";
 import {
   MappingSerializer,

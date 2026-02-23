@@ -1,3 +1,13 @@
+/**
+ * Tests for the ModelBuilder test helper.
+ *
+ * ModelBuilder provides a fluent DSL for constructing ORM models in tests.
+ * It eliminates boilerplate by auto-generating role IDs, default readings,
+ * and constraint wiring. These tests verify that the builder produces
+ * structurally correct models -- they serve as regression tests for the
+ * builder itself, so that bugs in the helper do not silently corrupt
+ * downstream test fixtures.
+ */
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { expandReading } from "../../src/model/ReadingOrder.js";
