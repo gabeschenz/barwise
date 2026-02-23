@@ -40,6 +40,10 @@ export {
   isFrequency,
 } from "./model/Constraint.js";
 export { type Definition } from "./model/Definition.js";
+export {
+  SubtypeFact,
+  type SubtypeFactConfig,
+} from "./model/SubtypeFact.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
 export {
   OrmProject,

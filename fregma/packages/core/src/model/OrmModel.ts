@@ -1,5 +1,9 @@
 import { ObjectType, type ObjectTypeConfig } from "./ObjectType.js";
 import { FactType, type FactTypeConfig } from "./FactType.js";
+import {
+  SubtypeFact,
+  type SubtypeFactConfig,
+} from "./SubtypeFact.js";
 import type { Definition } from "./Definition.js";
 
 /**
@@ -24,6 +28,7 @@ export class OrmModel {
 
   private readonly _objectTypes: Map<string, ObjectType> = new Map();
   private readonly _factTypes: Map<string, FactType> = new Map();
+  private readonly _subtypeFacts: Map<string, SubtypeFact> = new Map();
   private readonly _definitions: Definition[] = [];
 
   constructor(config: OrmModelConfig) {
@@ -108,6 +113,15 @@ export class OrmModel {
       }
     }
 
+    // Check for references from subtype facts.
+    for (const sf of this._subtypeFacts.values()) {
+      if (sf.subtypeId === id || sf.supertypeId === id) {
+        throw new Error(
+          `Cannot remove object type "${ot.name}": it is referenced by a subtype fact.`,
+        );
+      }
+    }
+
     this._objectTypes.delete(id);
   }
 
@@ -165,6 +179,104 @@ export class OrmModel {
     this._factTypes.delete(id);
   }
 
+  // ---- Subtype Facts ----
+
+  /** All subtype facts in the model. */
+  get subtypeFacts(): readonly SubtypeFact[] {
+    return [...this._subtypeFacts.values()];
+  }
+
+  /** Look up a subtype fact by id. */
+  getSubtypeFact(id: string): SubtypeFact | undefined {
+    return this._subtypeFacts.get(id);
+  }
+
+  /**
+   * Add a subtype fact to the model.
+   * @throws If subtype or supertype entity types don't exist.
+   * @throws If either referenced object type is not an entity type.
+   * @throws If a duplicate subtype relationship already exists.
+   */
+  addSubtypeFact(config: SubtypeFactConfig): SubtypeFact {
+    const subtype = this._objectTypes.get(config.subtypeId);
+    if (!subtype) {
+      throw new Error(
+        `Subtype entity type id "${config.subtypeId}" does not exist in the model.`,
+      );
+    }
+    if (subtype.kind !== "entity") {
+      throw new Error(
+        `Subtype "${subtype.name}" must be an entity type, not a ${subtype.kind} type.`,
+      );
+    }
+
+    const supertype = this._objectTypes.get(config.supertypeId);
+    if (!supertype) {
+      throw new Error(
+        `Supertype entity type id "${config.supertypeId}" does not exist in the model.`,
+      );
+    }
+    if (supertype.kind !== "entity") {
+      throw new Error(
+        `Supertype "${supertype.name}" must be an entity type, not a ${supertype.kind} type.`,
+      );
+    }
+
+    // Check for duplicate subtype relationship.
+    for (const existing of this._subtypeFacts.values()) {
+      if (
+        existing.subtypeId === config.subtypeId &&
+        existing.supertypeId === config.supertypeId
+      ) {
+        throw new Error(
+          `Subtype relationship from "${subtype.name}" to "${supertype.name}" already exists.`,
+        );
+      }
+    }
+
+    const sf = new SubtypeFact(config);
+    this._subtypeFacts.set(sf.id, sf);
+    return sf;
+  }
+
+  /** Remove a subtype fact from the model. */
+  removeSubtypeFact(id: string): void {
+    if (!this._subtypeFacts.has(id)) {
+      throw new Error(`Subtype fact with id "${id}" not found.`);
+    }
+    this._subtypeFacts.delete(id);
+  }
+
+  /**
+   * Get all direct supertypes of an entity type.
+   * Returns the object types that the given entity is a subtype of.
+   */
+  supertypesOf(objectTypeId: string): readonly ObjectType[] {
+    const result: ObjectType[] = [];
+    for (const sf of this._subtypeFacts.values()) {
+      if (sf.subtypeId === objectTypeId) {
+        const supertype = this._objectTypes.get(sf.supertypeId);
+        if (supertype) result.push(supertype);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get all direct subtypes of an entity type.
+   * Returns the object types that are subtypes of the given entity.
+   */
+  subtypesOf(objectTypeId: string): readonly ObjectType[] {
+    const result: ObjectType[] = [];
+    for (const sf of this._subtypeFacts.values()) {
+      if (sf.supertypeId === objectTypeId) {
+        const subtype = this._objectTypes.get(sf.subtypeId);
+        if (subtype) result.push(subtype);
+      }
+    }
+    return result;
+  }
+
   // ---- Definitions ----
 
   /** All ubiquitous language definitions. */
@@ -197,6 +309,7 @@ export class OrmModel {
     return (
       this._objectTypes.size +
       this._factTypes.size +
+      this._subtypeFacts.size +
       this._definitions.length
     );
   }

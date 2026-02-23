@@ -67,6 +67,11 @@ export class ModelBuilder {
     name: string;
     options: BinaryFactTypeOptions;
   }> = [];
+  private readonly subtypeFactConfigs: Array<{
+    subtypeName: string;
+    supertypeName: string;
+    providesIdentification?: boolean;
+  }> = [];
   private readonly definitionConfigs: Array<{
     term: string;
     definition: string;
@@ -118,6 +123,24 @@ export class ModelBuilder {
    */
   withBinaryFactType(name: string, options: BinaryFactTypeOptions): this {
     this.factTypeConfigs.push({ name, options });
+    return this;
+  }
+
+  /**
+   * Add a subtype relationship between two entity types.
+   *
+   * Both entity types must have been declared before calling this method.
+   */
+  withSubtypeFact(
+    subtypeName: string,
+    supertypeName: string,
+    options: { providesIdentification?: boolean } = {},
+  ): this {
+    this.subtypeFactConfigs.push({
+      subtypeName,
+      supertypeName,
+      providesIdentification: options.providesIdentification,
+    });
     return this;
   }
 
@@ -244,6 +267,29 @@ export class ModelBuilder {
         readings,
         constraints,
         definition: options.definition,
+      });
+    }
+
+    // Add subtype facts (which reference object types by name).
+    for (const { subtypeName, supertypeName, providesIdentification } of this.subtypeFactConfigs) {
+      const subtype = model.getObjectTypeByName(subtypeName);
+      if (!subtype) {
+        throw new Error(
+          `ModelBuilder: object type "${subtypeName}" not found ` +
+            `when building subtype fact.`,
+        );
+      }
+      const supertype = model.getObjectTypeByName(supertypeName);
+      if (!supertype) {
+        throw new Error(
+          `ModelBuilder: object type "${supertypeName}" not found ` +
+            `when building subtype fact.`,
+        );
+      }
+      model.addSubtypeFact({
+        subtypeId: subtype.id,
+        supertypeId: supertype.id,
+        providesIdentification,
       });
     }
 
