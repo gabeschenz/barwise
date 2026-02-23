@@ -22,6 +22,7 @@ function makeResponse(
   return {
     object_types: overrides.object_types ?? [],
     fact_types: overrides.fact_types ?? [],
+    subtypes: overrides.subtypes ?? [],
     inferred_constraints: overrides.inferred_constraints ?? [],
     ambiguities: overrides.ambiguities ?? [],
   };
@@ -539,6 +540,225 @@ describe("DraftModelParser", () => {
 
       expect(result.model.factTypes).toHaveLength(0);
       expect(result.warnings.some((w) => w.includes("empty name"))).toBe(true);
+    });
+  });
+
+  describe("subtype extraction", () => {
+    function makeModelWithEntities() {
+      return makeResponse({
+        object_types: [
+          { name: "Person", kind: "entity", reference_mode: "person_id", source_references: [] },
+          { name: "Employee", kind: "entity", reference_mode: "employee_id", source_references: [] },
+          { name: "Manager", kind: "entity", reference_mode: "manager_id", source_references: [] },
+          { name: "Rating", kind: "value", source_references: [] },
+        ],
+      });
+    }
+
+    it("creates subtype facts from extracted subtypes", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "Person",
+              description: "Employee is a Person",
+              source_references: [{ lines: [5, 5], excerpt: "employee is a person" }],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(1);
+      const sf = result.model.subtypeFacts[0]!;
+      expect(sf.providesIdentification).toBe(true);
+
+      const subtypeOt = result.model.getObjectTypeByName("Employee");
+      const supertypeOt = result.model.getObjectTypeByName("Person");
+      expect(sf.subtypeId).toBe(subtypeOt!.id);
+      expect(sf.supertypeId).toBe(supertypeOt!.id);
+    });
+
+    it("respects provides_identification = false", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "Person",
+              provides_identification: false,
+              description: "Employee is a Person with separate ID",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(1);
+      expect(result.model.subtypeFacts[0]!.providesIdentification).toBe(false);
+    });
+
+    it("creates multi-level subtype hierarchy", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "Person",
+              description: "Employee is a Person",
+              source_references: [],
+            },
+            {
+              subtype: "Manager",
+              supertype: "Employee",
+              description: "Manager is an Employee",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(2);
+      expect(result.subtypeProvenance).toHaveLength(2);
+      expect(result.subtypeProvenance.every((sp) => sp.applied)).toBe(true);
+    });
+
+    it("records provenance for applied subtypes", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "Person",
+              description: "Employee is a Person",
+              source_references: [{ lines: [5, 6], excerpt: "employee is a person" }],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.subtypeProvenance).toHaveLength(1);
+      expect(result.subtypeProvenance[0]!.applied).toBe(true);
+      expect(result.subtypeProvenance[0]!.subtype).toBe("Employee");
+      expect(result.subtypeProvenance[0]!.supertype).toBe("Person");
+      expect(result.subtypeProvenance[0]!.sourceReferences).toHaveLength(1);
+    });
+
+    it("skips subtype when subtype entity is not found", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "NonExistent",
+              supertype: "Person",
+              description: "Missing subtype",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(0);
+      expect(result.subtypeProvenance[0]!.applied).toBe(false);
+      expect(result.subtypeProvenance[0]!.skipReason).toContain("NonExistent");
+      expect(result.subtypeProvenance[0]!.skipReason).toContain("not found");
+    });
+
+    it("skips subtype when supertype entity is not found", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "NonExistent",
+              description: "Missing supertype",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(0);
+      expect(result.subtypeProvenance[0]!.applied).toBe(false);
+      expect(result.subtypeProvenance[0]!.skipReason).toContain("NonExistent");
+    });
+
+    it("skips subtype when subtype is a value type", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Rating",
+              supertype: "Person",
+              description: "Value type as subtype",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(0);
+      expect(result.subtypeProvenance[0]!.applied).toBe(false);
+      expect(result.subtypeProvenance[0]!.skipReason).toContain("value type");
+    });
+
+    it("skips subtype when supertype is a value type", () => {
+      const resp = makeModelWithEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          subtypes: [
+            {
+              subtype: "Employee",
+              supertype: "Rating",
+              description: "Value type as supertype",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(0);
+      expect(result.subtypeProvenance[0]!.applied).toBe(false);
+      expect(result.subtypeProvenance[0]!.skipReason).toContain("value type");
+    });
+
+    it("handles missing subtypes array gracefully", () => {
+      const result = parseDraftModel(
+        {
+          object_types: [],
+          fact_types: [],
+          subtypes: [],
+          inferred_constraints: [],
+          ambiguities: [],
+        },
+        "Test",
+      );
+
+      expect(result.model.subtypeFacts).toHaveLength(0);
+      expect(result.subtypeProvenance).toHaveLength(0);
     });
   });
 

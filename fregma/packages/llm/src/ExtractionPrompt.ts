@@ -29,6 +29,8 @@ export function buildSystemPrompt(): string {
 
 **Reading orders** are natural-language templates for the fact type. A binary fact type typically has a forward reading ("{0} places {1}") and an inverse reading ("{1} is placed by {0}"), where {0} and {1} are positional placeholders for the role players.
 
+**Subtype relationships** express specialization: "Employee is a subtype of Person" means every Employee is also a Person. Subtypes must be entity types. By default, a subtype shares the identification scheme of its supertype (provides_identification = true). When a subtype has its own independent identifier, provides_identification should be false.
+
 **Constraints** encode business rules:
 - **Internal uniqueness**: "Each Order is placed by at most one Customer" -- the combination of values in certain roles is unique. Single-role uniqueness is most common.
 - **Mandatory**: "Every Order is placed by some Customer" -- every instance must participate.
@@ -52,14 +54,20 @@ Analyze the transcript carefully and extract:
    - Provide at least one reading template using {0}, {1}, etc. as placeholders
    - Include source references
 
-3. **Inferred constraints**: Identify business rules from context. For each:
+3. **Subtypes**: Identify "is a" / specialization relationships between entity types. For each:
+   - Specify the subtype and supertype entity names (both must appear in the object_types list)
+   - Set provides_identification to false only if the subtype has its own independent identifier
+   - Write a brief description explaining the specialization
+   - Include source references
+
+4. **Inferred constraints**: Identify business rules from context. For each:
    - Specify the type (internal_uniqueness, mandatory, or value_constraint)
    - Reference the fact type name and role player names
    - Write a human-readable description
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
-4. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
+5. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
    - Describe the ambiguity
    - Include the source references showing the conflicting or unclear statements
 
@@ -211,6 +219,35 @@ export function buildResponseSchema(): Record<string, unknown> {
           ],
         },
       },
+      subtypes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            subtype: { type: "string" },
+            supertype: { type: "string" },
+            provides_identification: { type: "boolean" },
+            description: { type: "string" },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: ["subtype", "supertype", "description", "source_references"],
+        },
+      },
       ambiguities: {
         type: "array",
         items: {
@@ -241,6 +278,7 @@ export function buildResponseSchema(): Record<string, unknown> {
     required: [
       "object_types",
       "fact_types",
+      "subtypes",
       "inferred_constraints",
       "ambiguities",
     ],
@@ -264,6 +302,9 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
   const factTypes = Array.isArray(obj["fact_types"])
     ? obj["fact_types"]
     : [];
+  const subtypes = Array.isArray(obj["subtypes"])
+    ? obj["subtypes"]
+    : [];
   const inferredConstraints = Array.isArray(obj["inferred_constraints"])
     ? obj["inferred_constraints"]
     : [];
@@ -274,6 +315,7 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
   return {
     object_types: objectTypes as ExtractionResponse["object_types"],
     fact_types: factTypes as ExtractionResponse["fact_types"],
+    subtypes: subtypes as ExtractionResponse["subtypes"],
     inferred_constraints:
       inferredConstraints as ExtractionResponse["inferred_constraints"],
     ambiguities: ambiguities as ExtractionResponse["ambiguities"],

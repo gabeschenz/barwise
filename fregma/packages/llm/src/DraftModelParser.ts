@@ -12,6 +12,7 @@ import type {
   DraftModelResult,
   ElementProvenance,
   ConstraintProvenance,
+  SubtypeProvenance,
 } from "./ExtractionTypes.js";
 
 /**
@@ -28,6 +29,7 @@ export function parseDraftModel(
   const warnings: string[] = [];
   const objectTypeProvenance: ElementProvenance[] = [];
   const factTypeProvenance: ElementProvenance[] = [];
+  const subtypeProvenance: SubtypeProvenance[] = [];
   const constraintProvenance: ConstraintProvenance[] = [];
 
   // Pass 1: Create object types.
@@ -208,10 +210,83 @@ export function parseDraftModel(
     }
   }
 
+  // Pass 4: Create subtype facts.
+  for (const ext of response.subtypes ?? []) {
+    const subtypeOt = model.getObjectTypeByName(ext.subtype);
+    if (!subtypeOt) {
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: false,
+        skipReason: `Subtype entity "${ext.subtype}" not found among extracted object types.`,
+      });
+      continue;
+    }
+
+    const supertypeOt = model.getObjectTypeByName(ext.supertype);
+    if (!supertypeOt) {
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: false,
+        skipReason: `Supertype entity "${ext.supertype}" not found among extracted object types.`,
+      });
+      continue;
+    }
+
+    if (subtypeOt.kind !== "entity") {
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: false,
+        skipReason: `Subtype "${ext.subtype}" is a ${subtypeOt.kind} type, not an entity type.`,
+      });
+      continue;
+    }
+
+    if (supertypeOt.kind !== "entity") {
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: false,
+        skipReason: `Supertype "${ext.supertype}" is a ${supertypeOt.kind} type, not an entity type.`,
+      });
+      continue;
+    }
+
+    try {
+      model.addSubtypeFact({
+        subtypeId: subtypeOt.id,
+        supertypeId: supertypeOt.id,
+        providesIdentification: ext.provides_identification ?? true,
+      });
+
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: true,
+      });
+    } catch (err) {
+      subtypeProvenance.push({
+        subtype: ext.subtype,
+        supertype: ext.supertype,
+        sourceReferences: ext.source_references ?? [],
+        applied: false,
+        skipReason: `Failed to create subtype fact: ${(err as Error).message}`,
+      });
+    }
+  }
+
   return {
     model,
     objectTypeProvenance,
     factTypeProvenance,
+    subtypeProvenance,
     constraintProvenance,
     ambiguities: response.ambiguities ?? [],
     warnings,

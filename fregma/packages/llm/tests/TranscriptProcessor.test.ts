@@ -150,6 +150,34 @@ describe("TranscriptProcessor", () => {
     });
   });
 
+  describe("subtype extraction from fixture", () => {
+    it("extracts subtypes from employee-hierarchy fixture", () => {
+      const response = loadFixture("responses/employee-hierarchy.json");
+      const result = parseExtractionFromJson(response, "Employee Hierarchy");
+
+      expect(result.model.objectTypes).toHaveLength(5);
+      expect(result.model.subtypeFacts).toHaveLength(2);
+      expect(result.subtypeProvenance).toHaveLength(2);
+      expect(result.subtypeProvenance.every((sp) => sp.applied)).toBe(true);
+
+      // Employee -> Person (provides_identification = false)
+      const empSubtype = result.model.subtypeFacts.find((sf) => {
+        const sub = result.model.getObjectType(sf.subtypeId);
+        return sub?.name === "Employee";
+      });
+      expect(empSubtype).toBeDefined();
+      expect(empSubtype!.providesIdentification).toBe(false);
+
+      // Manager -> Employee (provides_identification = true, default)
+      const mgrSubtype = result.model.subtypeFacts.find((sf) => {
+        const sub = result.model.getObjectType(sf.subtypeId);
+        return sub?.name === "Manager";
+      });
+      expect(mgrSubtype).toBeDefined();
+      expect(mgrSubtype!.providesIdentification).toBe(true);
+    });
+  });
+
   describe("constraint verification on fixture", () => {
     it("applies high-confidence constraints from the fixture", () => {
       const response = loadFixture("responses/order-management.json");

@@ -37,6 +37,7 @@ interface ExampleSpec {
   fixtureFile: string;
   expectedObjectTypes: number;
   expectedFactTypes: number;
+  expectedSubtypeFacts?: number;
 }
 
 const examples: ExampleSpec[] = [
@@ -58,6 +59,13 @@ const examples: ExampleSpec[] = [
     expectedObjectTypes: 10,
     expectedFactTypes: 9,
   },
+  {
+    name: "Employee Hierarchy",
+    fixtureFile: "responses/employee-hierarchy.json",
+    expectedObjectTypes: 5,
+    expectedFactTypes: 3,
+    expectedSubtypeFacts: 2,
+  },
 ];
 
 describe("Full pipeline integration", () => {
@@ -75,6 +83,12 @@ describe("Full pipeline integration", () => {
       it("extracts the expected number of fact types", () => {
         expect(model.factTypes).toHaveLength(example.expectedFactTypes);
       });
+
+      if (example.expectedSubtypeFacts !== undefined) {
+        it("extracts the expected number of subtype facts", () => {
+          expect(model.subtypeFacts).toHaveLength(example.expectedSubtypeFacts!);
+        });
+      }
 
       it("produces provenance for all elements", () => {
         expect(result.objectTypeProvenance.length).toBe(

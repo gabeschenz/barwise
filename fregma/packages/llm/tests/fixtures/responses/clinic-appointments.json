@@ -279,6 +279,7 @@
       ]
     }
   ],
+  "subtypes": [],
   "inferred_constraints": [
     {
       "type": "internal_uniqueness",

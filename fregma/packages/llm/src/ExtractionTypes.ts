@@ -72,6 +72,18 @@ export interface InferredConstraint {
   readonly source_references: readonly SourceReference[];
 }
 
+export interface ExtractedSubtype {
+  /** Name of the subtype entity (must match an extracted object type). */
+  readonly subtype: string;
+  /** Name of the supertype entity (must match an extracted object type). */
+  readonly supertype: string;
+  /** Whether the subtype uses the supertype's identification scheme. */
+  readonly provides_identification?: boolean;
+  /** Human-readable description of the subtype relationship. */
+  readonly description: string;
+  readonly source_references: readonly SourceReference[];
+}
+
 export interface Ambiguity {
   readonly description: string;
   readonly source_references: readonly SourceReference[];
@@ -84,6 +96,7 @@ export interface Ambiguity {
 export interface ExtractionResponse {
   readonly object_types: readonly ExtractedObjectType[];
   readonly fact_types: readonly ExtractedFactType[];
+  readonly subtypes: readonly ExtractedSubtype[];
   readonly inferred_constraints: readonly InferredConstraint[];
   readonly ambiguities: readonly Ambiguity[];
 }
@@ -113,6 +126,18 @@ export interface ConstraintProvenance {
 }
 
 /**
+ * Provenance for a subtype relationship extracted by the LLM.
+ */
+export interface SubtypeProvenance {
+  readonly subtype: string;
+  readonly supertype: string;
+  readonly sourceReferences: readonly SourceReference[];
+  readonly applied: boolean;
+  /** If not applied, the reason it was skipped. */
+  readonly skipReason?: string;
+}
+
+/**
  * The result of parsing an extraction response into an OrmModel.
  */
 export interface DraftModelResult {
@@ -122,6 +147,8 @@ export interface DraftModelResult {
   readonly objectTypeProvenance: readonly ElementProvenance[];
   /** Provenance for each extracted fact type. */
   readonly factTypeProvenance: readonly ElementProvenance[];
+  /** Status of each extracted subtype relationship. */
+  readonly subtypeProvenance: readonly SubtypeProvenance[];
   /** Status of each inferred constraint. */
   readonly constraintProvenance: readonly ConstraintProvenance[];
   /** Ambiguities identified by the LLM. */

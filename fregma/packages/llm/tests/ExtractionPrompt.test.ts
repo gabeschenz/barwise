@@ -45,6 +45,13 @@ describe("ExtractionPrompt", () => {
       expect(prompt).toContain("Ambiguities");
       expect(prompt).toContain("contradictions");
     });
+
+    it("includes subtype relationship explanation", () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain("Subtype");
+      expect(prompt).toContain("specialization");
+      expect(prompt).toContain("provides_identification");
+    });
   });
 
   describe("buildUserMessage", () => {
@@ -69,6 +76,7 @@ describe("ExtractionPrompt", () => {
       expect(schema.type).toBe("object");
       expect(schema.required).toContain("object_types");
       expect(schema.required).toContain("fact_types");
+      expect(schema.required).toContain("subtypes");
       expect(schema.required).toContain("inferred_constraints");
       expect(schema.required).toContain("ambiguities");
     });
@@ -77,6 +85,18 @@ describe("ExtractionPrompt", () => {
       const schema = buildResponseSchema();
       const props = schema.properties as Record<string, Record<string, unknown>>;
       expect(props["object_types"]?.type).toBe("array");
+    });
+
+    it("defines subtypes as an array with required fields", () => {
+      const schema = buildResponseSchema();
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      expect(props["subtypes"]?.type).toBe("array");
+      const items = props["subtypes"]?.items as Record<string, unknown>;
+      const itemRequired = items.required as string[];
+      expect(itemRequired).toContain("subtype");
+      expect(itemRequired).toContain("supertype");
+      expect(itemRequired).toContain("description");
+      expect(itemRequired).toContain("source_references");
     });
 
     it("defines constraint types enum", () => {
@@ -116,6 +136,7 @@ describe("ExtractionPrompt", () => {
       const result = parseExtractionResponse({});
       expect(result.object_types).toHaveLength(0);
       expect(result.fact_types).toHaveLength(0);
+      expect(result.subtypes).toHaveLength(0);
       expect(result.inferred_constraints).toHaveLength(0);
       expect(result.ambiguities).toHaveLength(0);
     });
