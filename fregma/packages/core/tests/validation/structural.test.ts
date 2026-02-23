@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { structuralRules } from "../../src/validation/rules/structural.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { FactType } from "../../src/model/FactType.js";
+import { ObjectType } from "../../src/model/ObjectType.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("structuralRules", () => {
@@ -27,25 +29,7 @@ describe("structuralRules", () => {
   });
 
   describe("dangling role references", () => {
-    it("detects a role referencing a nonexistent object type", () => {
-      // OrmModel.addFactType validates references at construction time,
-      // so we build a valid model first, then remove the referenced
-      // object type's entry from the model by adding a fact type that
-      // references an object type we then add and remove a different one.
-      //
-      // The simplest approach: build a model with two object types and
-      // a fact type, then remove one object type by directly manipulating
-      // the internal state. Since we can't do that, we test via the
-      // OrmYamlSerializer which doesn't validate cross-references.
-      //
-      // Actually, OrmModel.removeObjectType throws if referenced.
-      // The structural rule is a safety net for models constructed
-      // outside the normal API (e.g. future import paths). We verify
-      // the rule works by building a model where the reference is valid,
-      // confirming zero diagnostics (tested above).
-      //
-      // For a direct test, we construct a model with a self-referencing
-      // fact type, then check the rule passes.
+    it("reports no dangling references for a valid model", () => {
       const model = new ModelBuilder("Test")
         .withEntityType("Person", { referenceMode: "person_id" })
         .withBinaryFactType("Person mentors Person", {
@@ -59,6 +43,35 @@ describe("structuralRules", () => {
         (d) => d.ruleId === "structural/dangling-role-reference",
       );
       expect(dangling).toHaveLength(0);
+    });
+
+    it("detects a role referencing a nonexistent object type", () => {
+      // FactType does not validate playerIds -- it just stores them.
+      // We create a fact type with a bogus playerId and inject it
+      // into the model to trigger the structural rule.
+      const ot = new ObjectType({ name: "Customer", kind: "entity", referenceMode: "cid" });
+      const ft = new FactType({
+        name: "Customer places Order",
+        roles: [
+          { name: "places", playerId: ot.id },
+          { name: "is placed by", playerId: "nonexistent-ot-id" },
+        ],
+        readings: ["{0} places {1}"],
+      });
+
+      const model = new OrmModel({ name: "Test" });
+      model.addObjectType({ id: ot.id, name: "Customer", kind: "entity", referenceMode: "cid" });
+      // Bypass addFactType validation by injecting directly.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._factTypes.set(ft.id, ft);
+
+      const diagnostics = structuralRules(model);
+      const dangling = diagnostics.filter(
+        (d) => d.ruleId === "structural/dangling-role-reference",
+      );
+      expect(dangling).toHaveLength(1);
+      expect(dangling[0]!.message).toContain("nonexistent-ot-id");
+      expect(dangling[0]!.message).toContain("is placed by");
     });
   });
 
@@ -74,6 +87,54 @@ describe("structuralRules", () => {
         d.ruleId.includes("duplicate"),
       );
       expect(dupes).toHaveLength(0);
+    });
+
+    it("detects duplicate object type names", () => {
+      // OrmModel.addObjectType prevents duplicates, so we inject directly.
+      const ot1 = new ObjectType({ name: "Customer", kind: "entity", referenceMode: "cid1" });
+      const ot2 = new ObjectType({ name: "Customer", kind: "entity", referenceMode: "cid2" });
+
+      const model = new OrmModel({ name: "Test" });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._objectTypes.set(ot1.id, ot1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._objectTypes.set(ot2.id, ot2);
+
+      const diagnostics = structuralRules(model);
+      const dupes = diagnostics.filter(
+        (d) => d.ruleId === "structural/duplicate-object-type-name",
+      );
+      expect(dupes).toHaveLength(1);
+      expect(dupes[0]!.message).toContain("Customer");
+    });
+
+    it("detects duplicate fact type names", () => {
+      const ot = new ObjectType({ name: "Customer", kind: "entity", referenceMode: "cid" });
+      const ft1 = new FactType({
+        name: "Customer exists",
+        roles: [{ name: "exists", playerId: ot.id }],
+        readings: ["{0} exists"],
+      });
+      const ft2 = new FactType({
+        name: "Customer exists",
+        roles: [{ name: "exists", playerId: ot.id }],
+        readings: ["{0} exists"],
+      });
+
+      const model = new OrmModel({ name: "Test" });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._objectTypes.set(ot.id, ot);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._factTypes.set(ft1.id, ft1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (model as any)._factTypes.set(ft2.id, ft2);
+
+      const diagnostics = structuralRules(model);
+      const dupes = diagnostics.filter(
+        (d) => d.ruleId === "structural/duplicate-fact-type-name",
+      );
+      expect(dupes).toHaveLength(1);
+      expect(dupes[0]!.message).toContain("Customer exists");
     });
   });
 

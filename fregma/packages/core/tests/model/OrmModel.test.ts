@@ -217,6 +217,44 @@ describe("OrmModel", () => {
     });
   });
 
+  describe("property setters", () => {
+    it("sets the model name", () => {
+      const model = new OrmModel({ name: "Original" });
+      model.name = "Updated";
+      expect(model.name).toBe("Updated");
+    });
+
+    it("trims the model name on set", () => {
+      const model = new OrmModel({ name: "Original" });
+      model.name = "  Trimmed  ";
+      expect(model.name).toBe("Trimmed");
+    });
+
+    it("throws when setting name to empty string", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() => { model.name = ""; }).toThrow("non-empty");
+    });
+
+    it("throws when setting name to whitespace", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() => { model.name = "   "; }).toThrow("non-empty");
+    });
+
+    it("sets domainContext", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(model.domainContext).toBeUndefined();
+      model.domainContext = "crm";
+      expect(model.domainContext).toBe("crm");
+    });
+
+    it("clears domainContext by setting undefined", () => {
+      const model = new OrmModel({ name: "Test", domainContext: "crm" });
+      expect(model.domainContext).toBe("crm");
+      model.domainContext = undefined;
+      expect(model.domainContext).toBeUndefined();
+    });
+  });
+
   describe("queries", () => {
     it("finds fact types for an object type", () => {
       const model = new OrmModel({ name: "Test" });

@@ -159,4 +159,34 @@ describe("FactType", () => {
 
     expect(ft.definition).toBe("The act of a customer submitting an order.");
   });
+
+  it("allows setting the definition after construction", () => {
+    const ft = new FactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: player1Id },
+        { name: "is placed by", playerId: player2Id },
+      ],
+      readings: ["{0} places {1}"],
+    });
+
+    expect(ft.definition).toBeUndefined();
+    ft.definition = "Updated definition.";
+    expect(ft.definition).toBe("Updated definition.");
+  });
+
+  it("allows clearing the definition", () => {
+    const ft = new FactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: player1Id },
+        { name: "is placed by", playerId: player2Id },
+      ],
+      readings: ["{0} places {1}"],
+      definition: "Original definition.",
+    });
+
+    ft.definition = undefined;
+    expect(ft.definition).toBeUndefined();
+  });
 });

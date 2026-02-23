@@ -224,4 +224,51 @@ describe("Phase 2 constraint consistency rules", () => {
     const diags = constraintConsistencyRules(model);
     expect(diags.some((d) => d.ruleId === "constraint/frequency-max-less-than-min")).toBe(true);
   });
+
+  it("ring with invalid roleId1 fails", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "bogus",
+      roleId2: "r2",
+      ringType: "irreflexive",
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/ring-invalid-role")).toBe(true);
+    expect(diags.some((d) => d.message.includes('"bogus"'))).toBe(true);
+  });
+
+  it("ring with both role ids invalid fails with two diagnostics", () => {
+    const model = buildSelfRefModel({
+      type: "ring",
+      roleId1: "bogus1",
+      roleId2: "bogus2",
+      ringType: "asymmetric",
+    });
+    const diags = constraintConsistencyRules(model);
+    const ringDiags = diags.filter((d) => d.ruleId === "constraint/ring-invalid-role");
+    expect(ringDiags).toHaveLength(2);
+  });
+
+  it("frequency with min < 1 fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: 0,
+      max: 3,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-invalid-min")).toBe(true);
+    expect(diags.some((d) => d.message.includes("min 0"))).toBe(true);
+  });
+
+  it("frequency with negative min fails", () => {
+    const model = buildModelWithConstraint({
+      type: "frequency",
+      roleId: "r1",
+      min: -1,
+      max: 5,
+    });
+    const diags = constraintConsistencyRules(model);
+    expect(diags.some((d) => d.ruleId === "constraint/frequency-invalid-min")).toBe(true);
+  });
 });
