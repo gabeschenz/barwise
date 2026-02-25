@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git -C /Users/gschenz/repos/fregma show HEAD:fregma/CLAUDE.md)",
+      "Bash(npm run lint)",
+      "SlashCommand(/beads:init:*)",
+      "Bash(rm:*)",
+      "SlashCommand(/beads:create:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
