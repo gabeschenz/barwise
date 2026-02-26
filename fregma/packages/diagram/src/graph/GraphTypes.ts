@@ -23,6 +23,10 @@ export interface RoleBox {
   readonly hasUniqueness: boolean;
   /** Whether this role is mandatory. */
   readonly isMandatory: boolean;
+  /** Frequency constraint minimum (undefined = no frequency constraint). */
+  readonly frequencyMin?: number;
+  /** Frequency constraint maximum (undefined = no frequency constraint). */
+  readonly frequencyMax?: number | "unbounded";
 }
 
 /**
@@ -40,6 +44,19 @@ export interface ObjectTypeNode {
 /**
  * A node representing a fact type (the role box bar).
  */
+/**
+ * Abbreviated ring constraint type labels for diagram rendering.
+ */
+export type RingTypeLabel =
+  | "ir"   // irreflexive
+  | "as"   // asymmetric
+  | "ans"  // antisymmetric
+  | "it"   // intransitive
+  | "ac"   // acyclic
+  | "sym"  // symmetric
+  | "tr"   // transitive
+  | "pr";  // purely reflexive
+
 export interface FactTypeNode {
   readonly kind: "fact_type";
   readonly id: string;
@@ -47,7 +64,32 @@ export interface FactTypeNode {
   readonly roles: readonly RoleBox[];
   /** Whether a spanning uniqueness constraint covers all roles. */
   readonly hasSpanningUniqueness: boolean;
+  /** Ring constraint annotation (if present). */
+  readonly ringConstraint?: {
+    readonly label: RingTypeLabel;
+    readonly roleId1: string;
+    readonly roleId2: string;
+  };
 }
+
+/**
+ * The visual kind of a constraint node symbol.
+ *
+ * Each kind maps to a distinct SVG symbol drawn inside a small circle:
+ * - external_uniqueness: horizontal bar (single-line uniqueness mark)
+ * - exclusion: "X" (roles are mutually exclusive)
+ * - exclusive_or: "X" with mandatory dot (exactly one required)
+ * - disjunctive_mandatory: filled dot (at least one required)
+ * - subset: arrow (one population is a subset of another)
+ * - equality: "=" (populations are identical)
+ */
+export type ConstraintKind =
+  | "external_uniqueness"
+  | "exclusion"
+  | "exclusive_or"
+  | "disjunctive_mandatory"
+  | "subset"
+  | "equality";
 
 /**
  * A node representing an external constraint symbol.
@@ -61,9 +103,15 @@ export interface ConstraintNode {
   readonly kind: "constraint";
   readonly id: string;
   /** The type of constraint this node represents. */
-  readonly constraintKind: "external_uniqueness";
+  readonly constraintKind: ConstraintKind;
   /** The role ids this constraint covers. */
   readonly roleIds: readonly string[];
+  /**
+   * For subset constraints: the role ids on the superset side.
+   * The main roleIds are the subset side. Constraint edges are created
+   * for all roles (both sides); this field distinguishes direction.
+   */
+  readonly supersetRoleIds?: readonly string[];
 }
 
 export type GraphNode = ObjectTypeNode | FactTypeNode | ConstraintNode;

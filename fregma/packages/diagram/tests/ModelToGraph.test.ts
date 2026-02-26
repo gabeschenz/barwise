@@ -313,6 +313,288 @@ describe("ModelToGraph", () => {
     expect(graph.constraintEdges[0]!.roleId).toBe(realRoleId);
   });
 
+  it("creates exclusion constraint nodes and edges", () => {
+    const model = new ModelBuilder("Exclusion")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withValueType("DriverLicNr")
+      .withValueType("PassportNr")
+      .withBinaryFactType("Person has DriverLicNr", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "DriverLicNr", name: "is of" },
+      })
+      .withBinaryFactType("Person has PassportNr", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "PassportNr", name: "is of" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person has DriverLicNr")!;
+    const ft2 = model.getFactTypeByName("Person has PassportNr")!;
+    ft1.addConstraint({
+      type: "exclusion",
+      roleIds: [ft1.roles[1]!.id, ft2.roles[1]!.id],
+    });
+
+    const graph = modelToGraph(model);
+
+    const cNodes = graph.nodes.filter((n) => n.kind === "constraint");
+    expect(cNodes).toHaveLength(1);
+    if (cNodes[0]!.kind === "constraint") {
+      expect(cNodes[0]!.constraintKind).toBe("exclusion");
+      expect(cNodes[0]!.roleIds).toHaveLength(2);
+    }
+    expect(graph.constraintEdges).toHaveLength(2);
+  });
+
+  it("creates exclusive-or constraint nodes", () => {
+    const model = new ModelBuilder("ExclusiveOr")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withValueType("Male")
+      .withValueType("Female")
+      .withBinaryFactType("Person is Male", {
+        role1: { player: "Person", name: "is" },
+        role2: { player: "Male", name: "of" },
+      })
+      .withBinaryFactType("Person is Female", {
+        role1: { player: "Person", name: "is" },
+        role2: { player: "Female", name: "of" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person is Male")!;
+    const ft2 = model.getFactTypeByName("Person is Female")!;
+    ft1.addConstraint({
+      type: "exclusive_or",
+      roleIds: [ft1.roles[0]!.id, ft2.roles[0]!.id],
+    });
+
+    const graph = modelToGraph(model);
+    const cNodes = graph.nodes.filter((n) => n.kind === "constraint");
+    expect(cNodes).toHaveLength(1);
+    if (cNodes[0]!.kind === "constraint") {
+      expect(cNodes[0]!.constraintKind).toBe("exclusive_or");
+    }
+    expect(graph.constraintEdges).toHaveLength(2);
+  });
+
+  it("creates disjunctive mandatory constraint nodes", () => {
+    const model = new ModelBuilder("DisjMand")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withValueType("Phone")
+      .withValueType("Email")
+      .withBinaryFactType("Person has Phone", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "Phone", name: "is of" },
+      })
+      .withBinaryFactType("Person has Email", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "Email", name: "is of" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person has Phone")!;
+    const ft2 = model.getFactTypeByName("Person has Email")!;
+    ft1.addConstraint({
+      type: "disjunctive_mandatory",
+      roleIds: [ft1.roles[0]!.id, ft2.roles[0]!.id],
+    });
+
+    const graph = modelToGraph(model);
+    const cNodes = graph.nodes.filter((n) => n.kind === "constraint");
+    expect(cNodes).toHaveLength(1);
+    if (cNodes[0]!.kind === "constraint") {
+      expect(cNodes[0]!.constraintKind).toBe("disjunctive_mandatory");
+    }
+    expect(graph.constraintEdges).toHaveLength(2);
+  });
+
+  it("creates subset constraint nodes with superset role ids", () => {
+    const model = new ModelBuilder("Subset")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withEntityType("Team", { referenceMode: "tid" })
+      .withBinaryFactType("Person leads Team", {
+        role1: { player: "Person", name: "leads" },
+        role2: { player: "Team", name: "is led by" },
+      })
+      .withBinaryFactType("Person belongs to Team", {
+        role1: { player: "Person", name: "belongs to" },
+        role2: { player: "Team", name: "has member" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person leads Team")!;
+    const ft2 = model.getFactTypeByName("Person belongs to Team")!;
+    ft1.addConstraint({
+      type: "subset",
+      subsetRoleIds: [ft1.roles[0]!.id],
+      supersetRoleIds: [ft2.roles[0]!.id],
+    });
+
+    const graph = modelToGraph(model);
+    const cNodes = graph.nodes.filter((n) => n.kind === "constraint");
+    expect(cNodes).toHaveLength(1);
+    if (cNodes[0]!.kind === "constraint") {
+      expect(cNodes[0]!.constraintKind).toBe("subset");
+      expect(cNodes[0]!.roleIds).toEqual([ft1.roles[0]!.id]);
+      expect(cNodes[0]!.supersetRoleIds).toEqual([ft2.roles[0]!.id]);
+    }
+    // Edges for both subset and superset roles.
+    expect(graph.constraintEdges).toHaveLength(2);
+  });
+
+  it("creates equality constraint nodes with two role sets", () => {
+    const model = new ModelBuilder("Equality")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withEntityType("Spouse", { referenceMode: "sid" })
+      .withBinaryFactType("Person is married to Spouse", {
+        role1: { player: "Person", name: "is married to" },
+        role2: { player: "Spouse", name: "is married to" },
+      })
+      .withBinaryFactType("Spouse is married to Person", {
+        role1: { player: "Spouse", name: "is married to" },
+        role2: { player: "Person", name: "is married to" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person is married to Spouse")!;
+    const ft2 = model.getFactTypeByName("Spouse is married to Person")!;
+    ft1.addConstraint({
+      type: "equality",
+      roleIds1: [ft1.roles[0]!.id],
+      roleIds2: [ft2.roles[0]!.id],
+    });
+
+    const graph = modelToGraph(model);
+    const cNodes = graph.nodes.filter((n) => n.kind === "constraint");
+    expect(cNodes).toHaveLength(1);
+    if (cNodes[0]!.kind === "constraint") {
+      expect(cNodes[0]!.constraintKind).toBe("equality");
+    }
+    expect(graph.constraintEdges).toHaveLength(2);
+  });
+
+  it("extracts frequency constraints on role boxes", () => {
+    const model = new ModelBuilder("Frequency")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withEntityType("Car", { referenceMode: "vin" })
+      .withBinaryFactType("Person owns Car", {
+        role1: { player: "Person", name: "owns" },
+        role2: { player: "Car", name: "is owned by" },
+        uniqueness: "role2",
+      })
+      .build();
+
+    const ft = model.getFactTypeByName("Person owns Car")!;
+    ft.addConstraint({
+      type: "frequency",
+      roleId: ft.roles[0]!.id,
+      min: 1,
+      max: 3,
+    });
+
+    const graph = modelToGraph(model);
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    expect(ftNode).toBeDefined();
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.roles[0]!.frequencyMin).toBe(1);
+      expect(ftNode.roles[0]!.frequencyMax).toBe(3);
+      // Second role has no frequency constraint.
+      expect(ftNode.roles[1]!.frequencyMin).toBeUndefined();
+    }
+  });
+
+  it("extracts unbounded frequency constraints", () => {
+    const model = new ModelBuilder("FreqUnbounded")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withEntityType("Car", { referenceMode: "vin" })
+      .withBinaryFactType("Person owns Car", {
+        role1: { player: "Person", name: "owns" },
+        role2: { player: "Car", name: "is owned by" },
+        uniqueness: "role2",
+      })
+      .build();
+
+    const ft = model.getFactTypeByName("Person owns Car")!;
+    ft.addConstraint({
+      type: "frequency",
+      roleId: ft.roles[0]!.id,
+      min: 2,
+      max: "unbounded",
+    });
+
+    const graph = modelToGraph(model);
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.roles[0]!.frequencyMin).toBe(2);
+      expect(ftNode.roles[0]!.frequencyMax).toBe("unbounded");
+    }
+  });
+
+  it("extracts ring constraints on fact types", () => {
+    const model = new ModelBuilder("Ring")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withBinaryFactType("Person is parent of Person", {
+        role1: { player: "Person", name: "is parent of" },
+        role2: { player: "Person", name: "is child of" },
+      })
+      .build();
+
+    const ft = model.getFactTypeByName("Person is parent of Person")!;
+    ft.addConstraint({
+      type: "ring",
+      roleId1: ft.roles[0]!.id,
+      roleId2: ft.roles[1]!.id,
+      ringType: "irreflexive",
+    });
+
+    const graph = modelToGraph(model);
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    expect(ftNode).toBeDefined();
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.ringConstraint).toBeDefined();
+      expect(ftNode.ringConstraint!.label).toBe("ir");
+      expect(ftNode.ringConstraint!.roleId1).toBe(ft.roles[0]!.id);
+      expect(ftNode.ringConstraint!.roleId2).toBe(ft.roles[1]!.id);
+    }
+  });
+
+  it("maps all ring types to correct abbreviations", () => {
+    const ringTypes = [
+      { type: "irreflexive" as const, label: "ir" },
+      { type: "asymmetric" as const, label: "as" },
+      { type: "antisymmetric" as const, label: "ans" },
+      { type: "intransitive" as const, label: "it" },
+      { type: "acyclic" as const, label: "ac" },
+      { type: "symmetric" as const, label: "sym" },
+      { type: "transitive" as const, label: "tr" },
+      { type: "purely_reflexive" as const, label: "pr" },
+    ];
+
+    for (const { type, label } of ringTypes) {
+      const model = new ModelBuilder(`Ring-${type}`)
+        .withEntityType("A", { referenceMode: "aid" })
+        .withBinaryFactType("A relates A", {
+          role1: { player: "A", name: "relates" },
+          role2: { player: "A", name: "is related by" },
+        })
+        .build();
+
+      const ft = model.getFactTypeByName("A relates A")!;
+      ft.addConstraint({
+        type: "ring",
+        roleId1: ft.roles[0]!.id,
+        roleId2: ft.roles[1]!.id,
+        ringType: type,
+      });
+
+      const graph = modelToGraph(model);
+      const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+      if (ftNode?.kind === "fact_type") {
+        expect(ftNode.ringConstraint?.label).toBe(label);
+      }
+    }
+  });
+
   it("creates multiple subtype edges for a type hierarchy", () => {
     const model = new ModelBuilder("Hierarchy")
       .withEntityType("Person", { referenceMode: "person_id" })

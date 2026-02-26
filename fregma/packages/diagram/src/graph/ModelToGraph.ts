@@ -1,14 +1,28 @@
-import type { OrmModel } from "@fregma/core";
+import type { OrmModel, RingType } from "@fregma/core";
 import type {
   OrmGraph,
   ObjectTypeNode,
   FactTypeNode,
   ConstraintNode,
+  ConstraintKind,
   GraphEdge,
   ConstraintEdge,
   SubtypeEdge,
   RoleBox,
+  RingTypeLabel,
 } from "./GraphTypes.js";
+
+/** Map core RingType values to short diagram labels. */
+const RING_TYPE_LABELS: Record<RingType, RingTypeLabel> = {
+  irreflexive: "ir",
+  asymmetric: "as",
+  antisymmetric: "ans",
+  intransitive: "it",
+  acyclic: "ac",
+  symmetric: "sym",
+  transitive: "tr",
+  purely_reflexive: "pr",
+};
 
 /**
  * Convert an OrmModel into an OrmGraph suitable for layout and rendering.
@@ -59,9 +73,31 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       }
     }
 
+    // Collect frequency constraints per role.
+    const frequencyByRole = new Map<string, { min: number; max: number | "unbounded" }>();
+    for (const c of ft.constraints) {
+      if (c.type === "frequency") {
+        frequencyByRole.set(c.roleId, { min: c.min, max: c.max });
+      }
+    }
+
+    // Detect ring constraint (at most one per fact type).
+    let ringConstraint: FactTypeNode["ringConstraint"];
+    for (const c of ft.constraints) {
+      if (c.type === "ring") {
+        ringConstraint = {
+          label: RING_TYPE_LABELS[c.ringType],
+          roleId1: c.roleId1,
+          roleId2: c.roleId2,
+        };
+        break;
+      }
+    }
+
     // Build role boxes.
     const roleBoxes: RoleBox[] = ft.roles.map((role) => {
       const player = model.getObjectType(role.playerId);
+      const freq = frequencyByRole.get(role.id);
       return {
         roleId: role.id,
         roleName: role.name,
@@ -69,6 +105,8 @@ export function modelToGraph(model: OrmModel): OrmGraph {
         playerName: player?.name ?? "?",
         hasUniqueness: singleRoleUniqueIds.has(role.id),
         isMandatory: mandatoryRoleIds.has(role.id),
+        frequencyMin: freq?.min,
+        frequencyMax: freq?.max,
       };
     });
 
@@ -78,6 +116,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       name: ft.name,
       roles: roleBoxes,
       hasSpanningUniqueness: hasSpanning,
+      ringConstraint,
     });
 
     // Create edges from each role's player object type to the fact type.
@@ -98,28 +137,66 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     }
   }
 
-  // Extract external uniqueness constraints as nodes + edges.
+  // Extract constraints that are rendered as circled symbol nodes.
+  // This covers external uniqueness, exclusion, exclusive-or,
+  // disjunctive mandatory, subset, and equality constraints.
   let constraintIndex = 0;
+
+  /** Helper: create a constraint node and edges for a set of role ids. */
+  function addConstraintNode(
+    kind: ConstraintKind,
+    roleIds: readonly string[],
+    supersetRoleIds?: readonly string[],
+  ): void {
+    const constraintId = `constraint-${constraintIndex++}`;
+    const node: ConstraintNode = {
+      kind: "constraint",
+      id: constraintId,
+      constraintKind: kind,
+      roleIds: [...roleIds],
+      supersetRoleIds: supersetRoleIds ? [...supersetRoleIds] : undefined,
+    };
+    nodes.push(node);
+
+    // Create edges to all covered roles (both sides for subset/equality).
+    const allRoleIds = supersetRoleIds
+      ? [...roleIds, ...supersetRoleIds]
+      : roleIds;
+    for (const roleId of allRoleIds) {
+      const factTypeId = roleToFactType.get(roleId);
+      if (factTypeId) {
+        constraintEdges.push({
+          constraintNodeId: constraintId,
+          factTypeNodeId: factTypeId,
+          roleId,
+        });
+      }
+    }
+  }
+
   for (const ft of model.factTypes) {
     for (const c of ft.constraints) {
-      if (c.type === "external_uniqueness") {
-        const constraintId = `ext-uniq-${constraintIndex++}`;
-        nodes.push({
-          kind: "constraint",
-          id: constraintId,
-          constraintKind: "external_uniqueness",
-          roleIds: c.roleIds,
-        });
-        for (const roleId of c.roleIds) {
-          const factTypeId = roleToFactType.get(roleId);
-          if (factTypeId) {
-            constraintEdges.push({
-              constraintNodeId: constraintId,
-              factTypeNodeId: factTypeId,
-              roleId,
-            });
-          }
-        }
+      switch (c.type) {
+        case "external_uniqueness":
+          addConstraintNode("external_uniqueness", c.roleIds);
+          break;
+        case "exclusion":
+          addConstraintNode("exclusion", c.roleIds);
+          break;
+        case "exclusive_or":
+          addConstraintNode("exclusive_or", c.roleIds);
+          break;
+        case "disjunctive_mandatory":
+          addConstraintNode("disjunctive_mandatory", c.roleIds);
+          break;
+        case "subset":
+          addConstraintNode("subset", c.subsetRoleIds, c.supersetRoleIds);
+          break;
+        case "equality":
+          addConstraintNode("equality", c.roleIds1, c.roleIds2);
+          break;
+        // frequency and ring are handled inline on role boxes / fact type nodes.
+        // internal_uniqueness, mandatory, and value_constraint are Phase 1.
       }
     }
   }

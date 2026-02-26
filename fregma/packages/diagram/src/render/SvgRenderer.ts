@@ -152,6 +152,17 @@ function renderFactType(node: PositionedFactTypeNode): string {
     `${esc(node.name)}</text>`,
   );
 
+  // Ring constraint label (below the fact type name).
+  if (node.ringConstraint) {
+    const ringY = labelY + 14;
+    parts.push(
+      `<text x="${cx}" y="${ringY}" ` +
+      `text-anchor="middle" ` +
+      `font-size="${theme.FONT_SIZE_ANNOTATION}" ` +
+      `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+    );
+  }
+
   parts.push("</g>");
   return parts.join("\n");
 }
@@ -193,6 +204,21 @@ function renderRoleBox(
       `<circle cx="${dotX}" cy="${dotY}" ` +
       `r="${theme.MANDATORY_DOT_RADIUS}" ` +
       `fill="${theme.COLOR_MANDATORY}"/>`,
+    );
+  }
+
+  // Frequency label (below the role box, after mandatory dot if present).
+  if (role.frequencyMin !== undefined) {
+    const freqX = x + role.width / 2;
+    const freqY = y + role.height + (role.isMandatory ? 18 : 12);
+    const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
+    const label = role.frequencyMin === role.frequencyMax
+      ? String(role.frequencyMin)
+      : `${role.frequencyMin}..${maxStr}`;
+    parts.push(
+      `<text x="${freqX}" y="${freqY}" text-anchor="middle" ` +
+      `font-size="${theme.FONT_SIZE_ANNOTATION}" ` +
+      `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
     );
   }
 
@@ -253,35 +279,106 @@ function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
 }
 
 /**
- * Render an external constraint node as a circled uniqueness bar.
+ * Render a constraint node as a circled symbol.
  *
- * In ORM 2 notation, external uniqueness is drawn as a small circle
- * containing a horizontal bar (similar to the uniqueness symbol).
+ * Each constraintKind maps to a distinct symbol inside the circle:
+ * - external_uniqueness: horizontal bar
+ * - exclusion: "X"
+ * - exclusive_or: "X" with mandatory dot
+ * - disjunctive_mandatory: filled dot
+ * - subset: arrow
+ * - equality: "="
  */
 function renderConstraintNode(node: PositionedConstraintNode): string {
   const cx = node.x + node.width / 2;
   const cy = node.y + node.height / 2;
   const r = theme.CONSTRAINT_RADIUS;
+  const stroke = theme.COLOR_CONSTRAINT_STROKE;
+  const sw = theme.CONSTRAINT_STROKE_WIDTH;
 
   const parts: string[] = [];
-  parts.push(`<g data-id="${esc(node.id)}" data-kind="constraint">`);
+  parts.push(
+    `<g data-id="${esc(node.id)}" data-kind="constraint" ` +
+    `data-constraint-kind="${node.constraintKind}">`,
+  );
 
   // Outer circle.
   parts.push(
     `<circle cx="${cx}" cy="${cy}" r="${r}" ` +
     `fill="${theme.COLOR_CONSTRAINT_FILL}" ` +
-    `stroke="${theme.COLOR_CONSTRAINT_STROKE}" ` +
-    `stroke-width="${theme.CONSTRAINT_STROKE_WIDTH}"/>`,
+    `stroke="${stroke}" stroke-width="${sw}"/>`,
   );
 
-  // Uniqueness bar inside the circle.
-  const barWidth = r * 1.2;
-  const barHeight = 2;
-  parts.push(
-    `<rect x="${cx - barWidth / 2}" y="${cy - barHeight / 2}" ` +
-    `width="${barWidth}" height="${barHeight}" ` +
-    `fill="${theme.COLOR_CONSTRAINT_STROKE}"/>`,
-  );
+  // Inner symbol varies by constraint kind.
+  const h = r * 0.55; // half-size for inner symbols
+  switch (node.constraintKind) {
+    case "external_uniqueness": {
+      // Horizontal bar.
+      const barW = r * 1.2;
+      const barH = 2;
+      parts.push(
+        `<rect x="${cx - barW / 2}" y="${cy - barH / 2}" ` +
+        `width="${barW}" height="${barH}" fill="${stroke}"/>`,
+      );
+      break;
+    }
+    case "exclusion": {
+      // "X" shape.
+      parts.push(
+        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>` +
+        `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>`,
+      );
+      break;
+    }
+    case "exclusive_or": {
+      // "X" shape plus mandatory dot below circle.
+      parts.push(
+        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>` +
+        `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>`,
+      );
+      // Mandatory dot below.
+      parts.push(
+        `<circle cx="${cx}" cy="${cy + r + 5}" r="3" fill="${stroke}"/>`,
+      );
+      break;
+    }
+    case "disjunctive_mandatory": {
+      // Filled dot inside circle.
+      parts.push(
+        `<circle cx="${cx}" cy="${cy}" r="${h}" fill="${stroke}"/>`,
+      );
+      break;
+    }
+    case "subset": {
+      // Subset arrow (right-pointing).
+      parts.push(
+        `<path d="M ${cx - h} ${cy} L ${cx + h} ${cy}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>` +
+        `<path d="M ${cx + h * 0.3} ${cy - h * 0.6} L ${cx + h} ${cy} ` +
+        `L ${cx + h * 0.3} ${cy + h * 0.6}" ` +
+        `stroke="${stroke}" stroke-width="${sw}" fill="none"/>`,
+      );
+      break;
+    }
+    case "equality": {
+      // "=" sign (two horizontal lines).
+      const gap = h * 0.4;
+      const lineW = r * 1.0;
+      parts.push(
+        `<line x1="${cx - lineW / 2}" y1="${cy - gap}" ` +
+        `x2="${cx + lineW / 2}" y2="${cy - gap}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>` +
+        `<line x1="${cx - lineW / 2}" y1="${cy + gap}" ` +
+        `x2="${cx + lineW / 2}" y2="${cy + gap}" ` +
+        `stroke="${stroke}" stroke-width="${sw}"/>`,
+      );
+      break;
+    }
+  }
 
   parts.push("</g>");
   return parts.join("\n");

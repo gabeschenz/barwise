@@ -227,6 +227,69 @@ describe("DiagramGenerator (end-to-end)", () => {
     expect(result.svg).toContain('stroke-dasharray="4,3"');
   });
 
+  it("generates a diagram with exclusion constraints", async () => {
+    const model = new ModelBuilder("Exclusion")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withValueType("DriverLic")
+      .withValueType("Passport")
+      .withBinaryFactType("Person has DriverLic", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "DriverLic", name: "is of" },
+      })
+      .withBinaryFactType("Person has Passport", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "Passport", name: "is of" },
+      })
+      .build();
+
+    const ft1 = model.getFactTypeByName("Person has DriverLic")!;
+    const ft2 = model.getFactTypeByName("Person has Passport")!;
+    ft1.addConstraint({
+      type: "exclusion",
+      roleIds: [ft1.roles[1]!.id, ft2.roles[1]!.id],
+    });
+
+    const result = await generateDiagram(model);
+
+    // Graph: 3 OTs + 2 FTs + 1 constraint = 6 nodes.
+    expect(result.graph.nodes).toHaveLength(6);
+    expect(result.graph.constraintEdges).toHaveLength(2);
+
+    // SVG should contain constraint rendering.
+    expect(result.svg).toContain('data-constraint-kind="exclusion"');
+    expect(result.svg).toContain('stroke-dasharray="4,3"');
+  });
+
+  it("generates a diagram with frequency and ring constraints", async () => {
+    const model = new ModelBuilder("FreqRing")
+      .withEntityType("Person", { referenceMode: "pid" })
+      .withBinaryFactType("Person is parent of Person", {
+        role1: { player: "Person", name: "is parent of" },
+        role2: { player: "Person", name: "is child of" },
+      })
+      .build();
+
+    const ft = model.getFactTypeByName("Person is parent of Person")!;
+    ft.addConstraint({
+      type: "frequency",
+      roleId: ft.roles[0]!.id,
+      min: 0,
+      max: 2,
+    });
+    ft.addConstraint({
+      type: "ring",
+      roleId1: ft.roles[0]!.id,
+      roleId2: ft.roles[1]!.id,
+      ringType: "irreflexive",
+    });
+
+    const result = await generateDiagram(model);
+
+    // SVG should contain frequency label and ring label.
+    expect(result.svg).toContain("0..2");
+    expect(result.svg).toContain("ir");
+  });
+
   it("includes constraint markers in the SVG", async () => {
     const model = new ModelBuilder("Constraints")
       .withEntityType("Customer", { referenceMode: "cid" })

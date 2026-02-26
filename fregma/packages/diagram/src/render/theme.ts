@@ -49,3 +49,7 @@ export const COLOR_CONSTRAINT_FILL = "#ffffff";
 export const COLOR_CONSTRAINT_STROKE = "#8a3ac8";
 export const CONSTRAINT_STROKE_WIDTH = 1.5;
 export const CONSTRAINT_EDGE_DASH = "4,3";
+
+// -- Frequency and ring labels --
+export const FONT_SIZE_ANNOTATION = 9;
+export const COLOR_ANNOTATION = "#8a3ac8";

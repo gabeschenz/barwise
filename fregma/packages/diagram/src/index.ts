@@ -4,11 +4,13 @@ export type {
   GraphNode,
   GraphEdge,
   ConstraintNode,
+  ConstraintKind,
   ConstraintEdge,
   SubtypeEdge,
   ObjectTypeNode,
   FactTypeNode,
   RoleBox,
+  RingTypeLabel,
 } from "./graph/GraphTypes.js";
 export { modelToGraph } from "./graph/ModelToGraph.js";
 

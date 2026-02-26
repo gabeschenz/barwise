@@ -374,6 +374,328 @@ describe("SvgRenderer", () => {
     expect(svg).not.toContain('data-kind="constraint-edge"');
   });
 
+  it("renders exclusion constraint as X symbol", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "c-0",
+          constraintKind: "exclusion",
+          roleIds: ["r-1", "r-2"],
+          x: 50,
+          y: 50,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain('data-constraint-kind="exclusion"');
+    // X is drawn with two <line> elements.
+    expect(svg).toContain("<line");
+  });
+
+  it("renders exclusive-or constraint as X with mandatory dot", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "c-0",
+          constraintKind: "exclusive_or",
+          roleIds: ["r-1", "r-2"],
+          x: 50,
+          y: 50,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain('data-constraint-kind="exclusive_or"');
+    // X lines + mandatory dot circle (besides the outer circle).
+    const circles = svg.match(/<circle/g) ?? [];
+    expect(circles.length).toBeGreaterThanOrEqual(2);
+    expect(svg).toContain("<line");
+  });
+
+  it("renders disjunctive mandatory constraint as filled dot", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "c-0",
+          constraintKind: "disjunctive_mandatory",
+          roleIds: ["r-1", "r-2"],
+          x: 50,
+          y: 50,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain('data-constraint-kind="disjunctive_mandatory"');
+    // Outer circle + inner filled circle.
+    const circles = svg.match(/<circle/g) ?? [];
+    expect(circles.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders subset constraint as arrow symbol", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "c-0",
+          constraintKind: "subset",
+          roleIds: ["r-1"],
+          supersetRoleIds: ["r-2"],
+          x: 50,
+          y: 50,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain('data-constraint-kind="subset"');
+    // Arrow is drawn with paths.
+    expect(svg).toContain("<path");
+  });
+
+  it("renders equality constraint as equals sign", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "c-0",
+          constraintKind: "equality",
+          roleIds: ["r-1"],
+          supersetRoleIds: ["r-2"],
+          x: 50,
+          y: 50,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain('data-constraint-kind="equality"');
+    // Two horizontal lines.
+    const lines = svg.match(/<line/g) ?? [];
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders frequency labels on role boxes", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Test",
+          hasSpanningUniqueness: false,
+          x: 100,
+          y: 100,
+          width: 72,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "has",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+              frequencyMin: 1,
+              frequencyMax: 3,
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+            {
+              roleId: "r-2",
+              roleName: "is of",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 36,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // Should contain the frequency label "1..3".
+    expect(svg).toContain("1..3");
+  });
+
+  it("renders unbounded frequency as range with asterisk", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Test",
+          hasSpanningUniqueness: false,
+          x: 100,
+          y: 100,
+          width: 36,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "has",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+              frequencyMin: 2,
+              frequencyMax: "unbounded",
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain("2..*");
+  });
+
+  it("renders equal frequency as single number", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Test",
+          hasSpanningUniqueness: false,
+          x: 100,
+          y: 100,
+          width: 36,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "has",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+              frequencyMin: 5,
+              frequencyMax: 5,
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // When min === max, just show the number.
+    expect(svg).toContain(">5</text>");
+  });
+
+  it("renders ring constraint label below fact type", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Parent of",
+          hasSpanningUniqueness: false,
+          ringConstraint: {
+            label: "ir",
+            roleId1: "r-1",
+            roleId2: "r-2",
+          },
+          x: 100,
+          y: 100,
+          width: 72,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "is parent of",
+              playerName: "Person",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+            {
+              roleId: "r-2",
+              roleName: "is child of",
+              playerName: "Person",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 36,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // Ring label should appear in the SVG.
+    expect(svg).toContain("ir");
+    // Should use annotation color.
+    expect(svg).toContain("#8a3ac8");
+  });
+
   it("handles empty graphs", () => {
     const graph: PositionedGraph = {
       width: 0,
