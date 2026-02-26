@@ -5,4 +5,5 @@ dist/
 coverage/
 *.vsix
 .DS_Store
+.vscode-test/
 examples/output/

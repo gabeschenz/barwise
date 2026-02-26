@@ -70,8 +70,27 @@ bundle time.
 
 ## Testing
 
-No automated tests yet. VS Code integration tests would use
-`@vscode/test-electron`.
+Two test tiers, each with its own runner:
+
+**Unit tests** (`tests/unit/`) -- Vitest, no VS Code runtime needed.
+Test the LSP server providers (DiagnosticsProvider, CompletionProvider,
+HoverProvider) using `vscode-languageserver-textdocument` objects and
+mock connections. Fast, run as part of `npm run test` via turbo.
+
+```sh
+npx vitest run              # run unit tests
+```
+
+**Integration tests** (`tests/integration/`) -- @vscode/test-cli +
+Mocha inside a real VS Code instance. Test extension activation,
+command execution, diagnostics rendering, and completions end-to-end.
+Compiled with `tsconfig.test.json` to `dist/tests/`.
+
+```sh
+npm run test:integration    # compiles + launches VS Code + runs tests
+```
+
+Test fixtures live in `tests/fixtures/` (`.orm.yaml` files).
 
 ## Dependencies
 
