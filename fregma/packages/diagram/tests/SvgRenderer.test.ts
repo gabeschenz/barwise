@@ -709,4 +709,67 @@ describe("SvgRenderer", () => {
     expect(svg).toContain("<svg");
     expect(svg).toContain("</svg>");
   });
+
+  it("renders objectified fact type with rounded enclosing box", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Person marries Person",
+          hasSpanningUniqueness: false,
+          isObjectified: true,
+          objectifiedEntityName: "Marriage",
+          x: 100,
+          y: 100,
+          width: 72,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "marries",
+              playerName: "Person",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+            {
+              roleId: "r-2",
+              roleName: "is married to",
+              playerName: "Person",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 36,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    // Should have an objectification enclosing rectangle.
+    expect(svg).toContain('data-kind="objectification"');
+    // Should use entity stroke color for the box.
+    expect(svg).toContain('stroke="#3a86c8"');
+    // Should have rounded corners.
+    expect(svg).toContain('rx="8"');
+    // Should show the entity name label.
+    expect(svg).toContain("Marriage");
+  });
+
+  it("does not render objectification box for non-objectified fact types", () => {
+    const svg = renderSvg(makeMinimalGraph());
+    expect(svg).not.toContain('data-kind="objectification"');
+  });
 });

@@ -42,6 +42,11 @@
           "items": { "$ref": "#/definitions/subtype_fact" },
           "description": "Subtype relationships between entity types."
         },
+        "objectified_fact_types": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/objectified_fact_type" },
+          "description": "Fact types that are simultaneously entity types (objectification/nesting)."
+        },
         "definitions": {
           "type": "array",
           "items": { "$ref": "#/definitions/definition" },
@@ -378,6 +383,28 @@
           "type": "boolean",
           "default": true,
           "description": "Whether the subtype uses the supertype's reference scheme for identification."
+        }
+      }
+    },
+    "objectified_fact_type": {
+      "type": "object",
+      "required": ["id", "fact_type", "object_type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier."
+        },
+        "fact_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the fact type being objectified."
+        },
+        "object_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the entity type created by objectification."
         }
       }
     },

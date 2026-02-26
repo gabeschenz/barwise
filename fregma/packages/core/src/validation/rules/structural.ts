@@ -11,6 +11,8 @@ import type { Diagnostic } from "../Diagnostic.js";
  * - Binary fact types have at least two readings (forward and inverse).
  * - Subtype facts reference existing entity types.
  * - Subtype hierarchy has no cycles.
+ * - Objectified fact types reference existing fact types and entity types.
+ * - No duplicate objectification of the same fact type.
  */
 export function structuralRules(model: OrmModel): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -21,6 +23,7 @@ export function structuralRules(model: OrmModel): Diagnostic[] {
   diagnostics.push(...checkBinaryFactTypeReadings(model));
   diagnostics.push(...checkSubtypeFactReferences(model));
   diagnostics.push(...checkSubtypeCycles(model));
+  diagnostics.push(...checkObjectifiedFactTypeReferences(model));
 
   return diagnostics;
 }
@@ -231,6 +234,80 @@ function checkSubtypeCycles(model: OrmModel): Diagnostic[] {
       });
       break; // Report once, not per node.
     }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Objectified fact types must reference existing fact types and entity types.
+ * Also checks for duplicate objectification (one fact type can only be
+ * objectified once, and one entity type can only serve as one objectification).
+ */
+function checkObjectifiedFactTypeReferences(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+  const seenFactTypes = new Set<string>();
+  const seenObjectTypes = new Set<string>();
+
+  for (const oft of model.objectifiedFactTypes) {
+    // Check that the fact type exists.
+    const factType = model.getFactType(oft.factTypeId);
+    if (!factType) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Objectified fact type references fact type id "${oft.factTypeId}" ` +
+          `which does not exist in the model.`,
+        elementId: oft.id,
+        ruleId: "structural/objectified-dangling-fact-type",
+      });
+    }
+
+    // Check that the object type exists and is an entity type.
+    const objectType = model.getObjectType(oft.objectTypeId);
+    if (!objectType) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Objectified fact type references object type id "${oft.objectTypeId}" ` +
+          `which does not exist in the model.`,
+        elementId: oft.id,
+        ruleId: "structural/objectified-dangling-object-type",
+      });
+    } else if (objectType.kind !== "entity") {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Objectified fact type references "${objectType.name}" as the entity type, ` +
+          `but it is a ${objectType.kind} type. Only entity types can be objectifications.`,
+        elementId: oft.id,
+        ruleId: "structural/objectified-not-entity",
+      });
+    }
+
+    // Check for duplicate objectification of the same fact type.
+    if (seenFactTypes.has(oft.factTypeId)) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Fact type id "${oft.factTypeId}" is objectified more than once.`,
+        elementId: oft.id,
+        ruleId: "structural/duplicate-objectification",
+      });
+    }
+    seenFactTypes.add(oft.factTypeId);
+
+    // Check for duplicate use of the same object type as objectification.
+    if (seenObjectTypes.has(oft.objectTypeId)) {
+      diagnostics.push({
+        severity: "error",
+        message:
+          `Object type id "${oft.objectTypeId}" is used as an objectification target more than once.`,
+        elementId: oft.id,
+        ruleId: "structural/duplicate-objectification-target",
+      });
+    }
+    seenObjectTypes.add(oft.objectTypeId);
   }
 
   return diagnostics;

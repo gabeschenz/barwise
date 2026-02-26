@@ -123,6 +123,21 @@ function renderFactType(node: PositionedFactTypeNode): string {
   const parts: string[] = [];
   parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type">`);
 
+  // Objectification box: rounded rectangle enclosing the role boxes.
+  if (node.isObjectified) {
+    const pad = theme.OBJECTIFICATION_PADDING;
+    parts.push(
+      `<rect data-kind="objectification" ` +
+      `x="${node.x - pad}" y="${node.y - pad}" ` +
+      `width="${node.width + pad * 2}" height="${node.height + pad * 2}" ` +
+      `rx="${theme.OBJECTIFICATION_CORNER_RADIUS}" ` +
+      `ry="${theme.OBJECTIFICATION_CORNER_RADIUS}" ` +
+      `fill="${theme.COLOR_OBJECTIFICATION_FILL}" ` +
+      `stroke="${theme.COLOR_OBJECTIFICATION_STROKE}" ` +
+      `stroke-width="${theme.OBJECTIFICATION_STROKE_WIDTH}"/>`,
+    );
+  }
+
   // Render each role box.
   for (const role of node.roles) {
     parts.push(renderRoleBox(node.x, node.y, role));
@@ -160,6 +175,17 @@ function renderFactType(node: PositionedFactTypeNode): string {
       `text-anchor="middle" ` +
       `font-size="${theme.FONT_SIZE_ANNOTATION}" ` +
       `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+    );
+  }
+
+  // Objectified entity name label (below all other labels).
+  if (node.isObjectified && node.objectifiedEntityName) {
+    const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
+    parts.push(
+      `<text x="${cx}" y="${objLabelY}" ` +
+      `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" ` +
+      `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">` +
+      `${esc(node.objectifiedEntityName)}</text>`,
     );
   }
 

@@ -44,6 +44,10 @@ export {
   SubtypeFact,
   type SubtypeFactConfig,
 } from "./model/SubtypeFact.js";
+export {
+  ObjectifiedFactType,
+  type ObjectifiedFactTypeConfig,
+} from "./model/ObjectifiedFactType.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
 export {
   OrmProject,

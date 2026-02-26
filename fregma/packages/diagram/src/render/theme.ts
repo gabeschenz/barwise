@@ -50,6 +50,13 @@ export const COLOR_CONSTRAINT_STROKE = "#8a3ac8";
 export const CONSTRAINT_STROKE_WIDTH = 1.5;
 export const CONSTRAINT_EDGE_DASH = "4,3";
 
+// -- Objectified fact types --
+export const OBJECTIFICATION_PADDING = 6;
+export const OBJECTIFICATION_CORNER_RADIUS = 8;
+export const COLOR_OBJECTIFICATION_FILL = "#e8f4fd";
+export const COLOR_OBJECTIFICATION_STROKE = "#3a86c8";
+export const OBJECTIFICATION_STROKE_WIDTH = 1.5;
+
 // -- Frequency and ring labels --
 export const FONT_SIZE_ANNOTATION = 9;
 export const COLOR_ANNOTATION = "#8a3ac8";

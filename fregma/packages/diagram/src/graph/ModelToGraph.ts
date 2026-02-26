@@ -49,6 +49,15 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     });
   }
 
+  // Build a lookup from fact type id to objectified entity name.
+  const objectifiedMap = new Map<string, string>();
+  for (const oft of model.objectifiedFactTypes) {
+    const entityType = model.getObjectType(oft.objectTypeId);
+    if (entityType) {
+      objectifiedMap.set(oft.factTypeId, entityType.name);
+    }
+  }
+
   // Create fact type nodes and edges.
   for (const ft of model.factTypes) {
     // Determine which roles have single-role internal uniqueness.
@@ -110,6 +119,8 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       };
     });
 
+    const objectifiedEntityName = objectifiedMap.get(ft.id);
+
     nodes.push({
       kind: "fact_type",
       id: ft.id,
@@ -117,6 +128,8 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       roles: roleBoxes,
       hasSpanningUniqueness: hasSpanning,
       ringConstraint,
+      isObjectified: objectifiedEntityName !== undefined,
+      objectifiedEntityName,
     });
 
     // Create edges from each role's player object type to the fact type.

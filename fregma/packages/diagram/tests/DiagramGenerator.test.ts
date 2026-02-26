@@ -312,4 +312,102 @@ describe("DiagramGenerator (end-to-end)", () => {
     const mandatoryDots = (result.svg.match(/<circle/g) ?? []).length;
     expect(mandatoryDots).toBeGreaterThanOrEqual(2);
   });
+
+  it("generates a diagram with objectified fact types", async () => {
+    const model = new ModelBuilder("Enrollment")
+      .withEntityType("Student", { referenceMode: "student_id" })
+      .withEntityType("Course", { referenceMode: "course_code" })
+      .withEntityType("Enrollment", { referenceMode: "enrollment_id" })
+      .withBinaryFactType("Student enrolls in Course", {
+        role1: { player: "Student", name: "enrolls in" },
+        role2: { player: "Course", name: "is enrolled in by" },
+      })
+      .withObjectifiedFactType("Student enrolls in Course", "Enrollment")
+      .build();
+
+    const result = await generateDiagram(model);
+
+    // SVG should be a valid document.
+    expect(result.svg).toContain("<svg");
+    expect(result.svg).toContain("</svg>");
+
+    // Should contain all entity type names.
+    expect(result.svg).toContain("Student");
+    expect(result.svg).toContain("Course");
+    expect(result.svg).toContain("Enrollment");
+
+    // Should contain the fact type name.
+    expect(result.svg).toContain("Student enrolls in Course");
+
+    // Should render the objectification box.
+    expect(result.svg).toContain('data-kind="objectification"');
+
+    // The objectification box should use the entity stroke color.
+    expect(result.svg).toContain('stroke="#3a86c8"');
+
+    // Graph should mark the fact type as objectified.
+    const ftNode = result.graph.nodes.find((n) => n.kind === "fact_type");
+    expect(ftNode).toBeDefined();
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.isObjectified).toBe(true);
+      expect(ftNode.objectifiedEntityName).toBe("Enrollment");
+    }
+
+    // Layout should have positioned all nodes (3 OTs + 1 FT = 4).
+    expect(result.layout.nodes).toHaveLength(4);
+    expect(result.layout.edges).toHaveLength(2);
+    expect(result.layout.width).toBeGreaterThan(0);
+    expect(result.layout.height).toBeGreaterThan(0);
+  });
+
+  it("generates a diagram with objectified and non-objectified fact types together", async () => {
+    const model = new ModelBuilder("Mixed")
+      .withEntityType("Student", { referenceMode: "student_id" })
+      .withEntityType("Course", { referenceMode: "course_code" })
+      .withEntityType("Enrollment", { referenceMode: "enrollment_id" })
+      .withEntityType("Instructor", { referenceMode: "instructor_id" })
+      .withBinaryFactType("Student enrolls in Course", {
+        role1: { player: "Student", name: "enrolls in" },
+        role2: { player: "Course", name: "is enrolled in by" },
+      })
+      .withObjectifiedFactType("Student enrolls in Course", "Enrollment")
+      .withBinaryFactType("Instructor teaches Course", {
+        role1: { player: "Instructor", name: "teaches" },
+        role2: { player: "Course", name: "is taught by" },
+        uniqueness: "role2",
+      })
+      .build();
+
+    const result = await generateDiagram(model);
+
+    // 4 OTs + 2 FTs = 6 graph nodes.
+    expect(result.graph.nodes).toHaveLength(6);
+    // 2 roles per FT = 4 edges.
+    expect(result.graph.edges).toHaveLength(4);
+
+    // Only the objectified fact type should have the objectification box.
+    const ftNodes = result.graph.nodes.filter((n) => n.kind === "fact_type");
+    expect(ftNodes).toHaveLength(2);
+
+    const objectifiedFt = ftNodes.find(
+      (n) => n.kind === "fact_type" && n.isObjectified,
+    );
+    expect(objectifiedFt).toBeDefined();
+    if (objectifiedFt?.kind === "fact_type") {
+      expect(objectifiedFt.name).toBe("Student enrolls in Course");
+    }
+
+    const normalFt = ftNodes.find(
+      (n) => n.kind === "fact_type" && !n.isObjectified,
+    );
+    expect(normalFt).toBeDefined();
+    if (normalFt?.kind === "fact_type") {
+      expect(normalFt.name).toBe("Instructor teaches Course");
+    }
+
+    // SVG should contain both fact type names and the objectification indicator.
+    expect(result.svg).toContain("Student enrolls in Course");
+    expect(result.svg).toContain("Instructor teaches Course");
+    expect(result.svg).toContain('data-kind="objectification"');
+  });
 });

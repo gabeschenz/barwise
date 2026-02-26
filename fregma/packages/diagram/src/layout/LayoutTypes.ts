@@ -55,6 +55,10 @@ export interface PositionedFactTypeNode {
     readonly roleId1: string;
     readonly roleId2: string;
   };
+  /** Whether this fact type is objectified as an entity type. */
+  readonly isObjectified?: boolean;
+  /** The name of the entity type created by objectification. */
+  readonly objectifiedEntityName?: string;
   readonly x: number;
   readonly y: number;
   readonly width: number;

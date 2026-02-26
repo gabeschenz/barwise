@@ -72,6 +72,10 @@ export class ModelBuilder {
     supertypeName: string;
     providesIdentification?: boolean;
   }> = [];
+  private readonly objectifiedFactTypeConfigs: Array<{
+    factTypeName: string;
+    objectTypeName: string;
+  }> = [];
   private readonly definitionConfigs: Array<{
     term: string;
     definition: string;
@@ -141,6 +145,20 @@ export class ModelBuilder {
       supertypeName,
       providesIdentification: options.providesIdentification,
     });
+    return this;
+  }
+
+  /**
+   * Objectify a fact type as an entity type.
+   *
+   * Both the fact type and entity type must have been declared before
+   * calling this method.
+   */
+  withObjectifiedFactType(
+    factTypeName: string,
+    objectTypeName: string,
+  ): this {
+    this.objectifiedFactTypeConfigs.push({ factTypeName, objectTypeName });
     return this;
   }
 
@@ -290,6 +308,28 @@ export class ModelBuilder {
         subtypeId: subtype.id,
         supertypeId: supertype.id,
         providesIdentification,
+      });
+    }
+
+    // Add objectified fact types (which reference fact types and object types by name).
+    for (const { factTypeName, objectTypeName } of this.objectifiedFactTypeConfigs) {
+      const factType = model.getFactTypeByName(factTypeName);
+      if (!factType) {
+        throw new Error(
+          `ModelBuilder: fact type "${factTypeName}" not found ` +
+            `when building objectified fact type.`,
+        );
+      }
+      const objectType = model.getObjectTypeByName(objectTypeName);
+      if (!objectType) {
+        throw new Error(
+          `ModelBuilder: object type "${objectTypeName}" not found ` +
+            `when building objectified fact type.`,
+        );
+      }
+      model.addObjectifiedFactType({
+        factTypeId: factType.id,
+        objectTypeId: objectType.id,
       });
     }
 

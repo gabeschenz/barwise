@@ -207,4 +207,146 @@ describe("Full pipeline integration: load -> validate -> verbalize -> map -> DDL
       expect(ddl).toContain("CREATE TABLE ticket");
     });
   });
+
+  describe("University Enrollment model (objectified fact types)", () => {
+    const yaml = loadFixture("objectifiedFactTypes.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    it("loads the model with objectified fact types from YAML", () => {
+      expect(model.name).toBe("University Enrollment");
+      expect(model.objectTypes).toHaveLength(6);
+      expect(model.factTypes).toHaveLength(4);
+      expect(model.objectifiedFactTypes).toHaveLength(1);
+
+      const oft = model.objectifiedFactTypes[0]!;
+      expect(oft.factTypeId).toBe("ft-student-enrolls-course");
+      expect(oft.objectTypeId).toBe("ot-enrollment");
+    });
+
+    it("passes validation with no errors", () => {
+      const diagnostics = validator.validate(model);
+      const errors = diagnostics.filter((d) => d.severity === "error");
+      expect(errors).toHaveLength(0);
+    });
+
+    it("verbalizes objectified fact types", () => {
+      const verbalizations = verbalizer.verbalizeModel(model);
+
+      // Should have objectification verbalizations.
+      const objectificationVerbs = verbalizations.filter(
+        (v) => v.category === "objectification",
+      );
+      expect(objectificationVerbs).toHaveLength(1);
+      expect(objectificationVerbs[0]!.text).toBe(
+        "Enrollment is where Student enrolls in Course.",
+      );
+
+      // Should also have fact type readings for all 4 fact types.
+      const factTypeVerbs = verbalizations.filter(
+        (v) => v.category === "fact_type",
+      );
+      expect(factTypeVerbs.length).toBeGreaterThanOrEqual(4);
+
+      // Constraint verbalizations should exist (uniqueness, mandatory).
+      const constraintVerbs = verbalizations.filter(
+        (v) => v.category === "constraint",
+      );
+      expect(constraintVerbs.length).toBeGreaterThan(0);
+    });
+
+    it("maps objectified fact type to a table with composite PK", () => {
+      const schema = mapper.map(model);
+
+      // Enrollment table should exist with composite PK from the objectified roles.
+      const enrollmentTable = schema.tables.find(
+        (t) => t.name === "enrollment",
+      )!;
+      expect(enrollmentTable).toBeDefined();
+
+      // PK should be the composite of student_id and course_code (from the roles).
+      expect(enrollmentTable.primaryKey.columnNames).toEqual([
+        "student_id",
+        "course_code",
+      ]);
+
+      // Should have FK constraints to both student and course tables.
+      expect(enrollmentTable.foreignKeys.length).toBeGreaterThanOrEqual(2);
+      const studentFk = enrollmentTable.foreignKeys.find(
+        (fk) => fk.referencedTable === "student",
+      );
+      expect(studentFk).toBeDefined();
+      expect(studentFk!.referencedColumns).toEqual(["student_id"]);
+
+      const courseFk = enrollmentTable.foreignKeys.find(
+        (fk) => fk.referencedTable === "course",
+      );
+      expect(courseFk).toBeDefined();
+      expect(courseFk!.referencedColumns).toEqual(["course_code"]);
+    });
+
+    it("maps non-objectified fact types normally alongside objectified ones", () => {
+      const schema = mapper.map(model);
+
+      // Instructor teaches Course should produce a FK on Course table.
+      const courseTable = schema.tables.find((t) => t.name === "course")!;
+      expect(courseTable).toBeDefined();
+      const instructorFk = courseTable.foreignKeys.find(
+        (fk) => fk.referencedTable === "instructor",
+      );
+      expect(instructorFk).toBeDefined();
+
+      // Enrollment has Grade should produce a grade column on enrollment.
+      const enrollmentTable = schema.tables.find(
+        (t) => t.name === "enrollment",
+      )!;
+      const gradeCol = enrollmentTable.columns.find(
+        (c) => c.name === "grade",
+      );
+      expect(gradeCol).toBeDefined();
+
+      // Enrollment in Semester should produce a semester column on enrollment.
+      const semesterCol = enrollmentTable.columns.find(
+        (c) => c.name === "semester",
+      );
+      expect(semesterCol).toBeDefined();
+      // Semester is mandatory, so not nullable.
+      expect(semesterCol!.nullable).toBe(false);
+    });
+
+    it("does not create an associative table for the objectified fact type", () => {
+      const schema = mapper.map(model);
+
+      // No associative table for "Student enrolls in Course" -- it's absorbed
+      // into the Enrollment entity table instead.
+      const tableNames = schema.tables.map((t) => t.name);
+      expect(tableNames).not.toContain("student_enrolls_in_course");
+    });
+
+    it("renders valid DDL with objectified table", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+
+      // Entity tables should all be present.
+      expect(ddl).toContain("CREATE TABLE student");
+      expect(ddl).toContain("CREATE TABLE course");
+      expect(ddl).toContain("CREATE TABLE enrollment");
+      expect(ddl).toContain("CREATE TABLE instructor");
+
+      // Enrollment table should have composite PK.
+      expect(ddl).toContain("PRIMARY KEY (student_id, course_code)");
+
+      // FK constraints from enrollment to student and course.
+      expect(ddl).toContain(
+        "FOREIGN KEY (student_id) REFERENCES student (student_id)",
+      );
+      expect(ddl).toContain(
+        "FOREIGN KEY (course_code) REFERENCES course (course_code)",
+      );
+
+      // Every CREATE TABLE should have a matching closing );
+      const createCount = (ddl.match(/CREATE TABLE/g) ?? []).length;
+      const closeCount = (ddl.match(/\);/g) ?? []).length;
+      expect(closeCount).toBe(createCount);
+    });
+  });
 });

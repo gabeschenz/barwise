@@ -4,6 +4,10 @@ import {
   SubtypeFact,
   type SubtypeFactConfig,
 } from "./SubtypeFact.js";
+import {
+  ObjectifiedFactType,
+  type ObjectifiedFactTypeConfig,
+} from "./ObjectifiedFactType.js";
 import type { Definition } from "./Definition.js";
 
 /**
@@ -29,6 +33,8 @@ export class OrmModel {
   private readonly _objectTypes: Map<string, ObjectType> = new Map();
   private readonly _factTypes: Map<string, FactType> = new Map();
   private readonly _subtypeFacts: Map<string, SubtypeFact> = new Map();
+  private readonly _objectifiedFactTypes: Map<string, ObjectifiedFactType> =
+    new Map();
   private readonly _definitions: Definition[] = [];
 
   constructor(config: OrmModelConfig) {
@@ -122,6 +128,15 @@ export class OrmModel {
       }
     }
 
+    // Check for references from objectified fact types.
+    for (const oft of this._objectifiedFactTypes.values()) {
+      if (oft.objectTypeId === id) {
+        throw new Error(
+          `Cannot remove object type "${ot.name}": it is referenced by an objectified fact type.`,
+        );
+      }
+    }
+
     this._objectTypes.delete(id);
   }
 
@@ -171,11 +186,25 @@ export class OrmModel {
     return ft;
   }
 
-  /** Remove a fact type from the model. */
+  /**
+   * Remove a fact type from the model.
+   * @throws If an objectified fact type references this fact type.
+   */
   removeFactType(id: string): void {
-    if (!this._factTypes.has(id)) {
+    const ft = this._factTypes.get(id);
+    if (!ft) {
       throw new Error(`Fact type with id "${id}" not found.`);
     }
+
+    // Check for references from objectified fact types.
+    for (const oft of this._objectifiedFactTypes.values()) {
+      if (oft.factTypeId === id) {
+        throw new Error(
+          `Cannot remove fact type "${ft.name}": it is referenced by an objectified fact type.`,
+        );
+      }
+    }
+
     this._factTypes.delete(id);
   }
 
@@ -277,6 +306,99 @@ export class OrmModel {
     return result;
   }
 
+  // ---- Objectified Fact Types ----
+
+  /** All objectified fact types in the model. */
+  get objectifiedFactTypes(): readonly ObjectifiedFactType[] {
+    return [...this._objectifiedFactTypes.values()];
+  }
+
+  /** Look up an objectified fact type by id. */
+  getObjectifiedFactType(id: string): ObjectifiedFactType | undefined {
+    return this._objectifiedFactTypes.get(id);
+  }
+
+  /**
+   * Add an objectified fact type to the model.
+   * @throws If the referenced fact type does not exist.
+   * @throws If the referenced object type does not exist or is not an entity.
+   * @throws If the fact type is already objectified.
+   */
+  addObjectifiedFactType(
+    config: ObjectifiedFactTypeConfig,
+  ): ObjectifiedFactType {
+    const factType = this._factTypes.get(config.factTypeId);
+    if (!factType) {
+      throw new Error(
+        `Fact type id "${config.factTypeId}" does not exist in the model.`,
+      );
+    }
+
+    const objectType = this._objectTypes.get(config.objectTypeId);
+    if (!objectType) {
+      throw new Error(
+        `Object type id "${config.objectTypeId}" does not exist in the model.`,
+      );
+    }
+    if (objectType.kind !== "entity") {
+      throw new Error(
+        `Object type "${objectType.name}" must be an entity type, not a ${objectType.kind} type.`,
+      );
+    }
+
+    // Check that the fact type is not already objectified.
+    for (const existing of this._objectifiedFactTypes.values()) {
+      if (existing.factTypeId === config.factTypeId) {
+        throw new Error(
+          `Fact type "${factType.name}" is already objectified.`,
+        );
+      }
+    }
+
+    // Check that the object type is not already used as an objectification.
+    for (const existing of this._objectifiedFactTypes.values()) {
+      if (existing.objectTypeId === config.objectTypeId) {
+        throw new Error(
+          `Object type "${objectType.name}" is already used as an objectification.`,
+        );
+      }
+    }
+
+    const oft = new ObjectifiedFactType(config);
+    this._objectifiedFactTypes.set(oft.id, oft);
+    return oft;
+  }
+
+  /** Remove an objectified fact type from the model. */
+  removeObjectifiedFactType(id: string): void {
+    if (!this._objectifiedFactTypes.has(id)) {
+      throw new Error(`Objectified fact type with id "${id}" not found.`);
+    }
+    this._objectifiedFactTypes.delete(id);
+  }
+
+  /**
+   * Get the objectified fact type for a given fact type, if any.
+   * Returns undefined if the fact type is not objectified.
+   */
+  objectificationOf(factTypeId: string): ObjectifiedFactType | undefined {
+    for (const oft of this._objectifiedFactTypes.values()) {
+      if (oft.factTypeId === factTypeId) return oft;
+    }
+    return undefined;
+  }
+
+  /**
+   * Get the objectified fact type for a given entity type, if any.
+   * Returns undefined if the entity type is not an objectification.
+   */
+  objectificationFor(objectTypeId: string): ObjectifiedFactType | undefined {
+    for (const oft of this._objectifiedFactTypes.values()) {
+      if (oft.objectTypeId === objectTypeId) return oft;
+    }
+    return undefined;
+  }
+
   // ---- Definitions ----
 
   /** All ubiquitous language definitions. */
@@ -310,6 +432,7 @@ export class OrmModel {
       this._objectTypes.size +
       this._factTypes.size +
       this._subtypeFacts.size +
+      this._objectifiedFactTypes.size +
       this._definitions.length
     );
   }
