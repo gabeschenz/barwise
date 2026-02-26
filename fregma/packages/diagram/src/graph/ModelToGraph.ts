@@ -4,6 +4,7 @@ import type {
   ObjectTypeNode,
   FactTypeNode,
   GraphEdge,
+  SubtypeEdge,
   RoleBox,
 } from "./GraphTypes.js";
 
@@ -18,6 +19,7 @@ import type {
 export function modelToGraph(model: OrmModel): OrmGraph {
   const nodes: (ObjectTypeNode | FactTypeNode)[] = [];
   const edges: GraphEdge[] = [];
+  const subtypeEdges: SubtypeEdge[] = [];
 
   // Create object type nodes.
   for (const ot of model.objectTypes) {
@@ -85,5 +87,14 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     }
   }
 
-  return { nodes, edges };
+  // Create subtype edges.
+  for (const sf of model.subtypeFacts) {
+    subtypeEdges.push({
+      subtypeNodeId: sf.subtypeId,
+      supertypeNodeId: sf.supertypeId,
+      providesIdentification: sf.providesIdentification,
+    });
+  }
+
+  return { nodes, edges, subtypeEdges };
 }

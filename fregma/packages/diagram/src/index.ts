@@ -3,6 +3,7 @@ export type {
   OrmGraph,
   GraphNode,
   GraphEdge,
+  SubtypeEdge,
   ObjectTypeNode,
   FactTypeNode,
   RoleBox,
@@ -17,6 +18,7 @@ export type {
   PositionedFactTypeNode,
   PositionedRoleBox,
   PositionedEdge,
+  PositionedSubtypeEdge,
   Position,
   Dimensions,
 } from "./layout/LayoutTypes.js";

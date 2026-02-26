@@ -37,3 +37,8 @@ export const COLOR_SPANNING = "#e8703a";
 export const UNIQUENESS_BAR_HEIGHT = 3;
 export const UNIQUENESS_BAR_OFFSET = 4;
 export const MANDATORY_DOT_RADIUS = 4;
+
+// -- Subtype arrows --
+export const COLOR_SUBTYPE = "#3a86c8";
+export const SUBTYPE_ARROW_SIZE = 8;
+export const SUBTYPE_STROKE_WIDTH = 1.5;

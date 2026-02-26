@@ -62,9 +62,26 @@ export interface GraphEdge {
 }
 
 /**
+ * An edge representing a subtype relationship between two entity types.
+ *
+ * In ORM 2 notation, subtype relationships are drawn as arrows from the
+ * subtype entity to the supertype entity, with an arrowhead at the
+ * supertype end.
+ */
+export interface SubtypeEdge {
+  /** The subtype entity type node id (arrow tail). */
+  readonly subtypeNodeId: string;
+  /** The supertype entity type node id (arrow head). */
+  readonly supertypeNodeId: string;
+  /** Whether the subtype uses the supertype's reference scheme. */
+  readonly providesIdentification: boolean;
+}
+
+/**
  * The complete graph representing an ORM model's visual structure.
  */
 export interface OrmGraph {
   readonly nodes: readonly GraphNode[];
   readonly edges: readonly GraphEdge[];
+  readonly subtypeEdges: readonly SubtypeEdge[];
 }

@@ -61,9 +61,20 @@ export interface PositionedEdge {
   readonly points: readonly Position[];
 }
 
+/**
+ * A positioned subtype edge with routing points for the arrow path.
+ */
+export interface PositionedSubtypeEdge {
+  readonly subtypeNodeId: string;
+  readonly supertypeNodeId: string;
+  readonly providesIdentification: boolean;
+  readonly points: readonly Position[];
+}
+
 export interface PositionedGraph {
   readonly nodes: readonly PositionedNode[];
   readonly edges: readonly PositionedEdge[];
+  readonly subtypeEdges: readonly PositionedSubtypeEdge[];
   readonly width: number;
   readonly height: number;
 }

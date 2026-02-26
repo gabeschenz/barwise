@@ -22,6 +22,7 @@ function makeMinimalGraph(): PositionedGraph {
   return {
     width: 400,
     height: 300,
+    subtypeEdges: [],
     nodes: [
       {
         kind: "object_type",
@@ -198,11 +199,96 @@ describe("SvgRenderer", () => {
         },
       ],
       edges: [],
+      subtypeEdges: [],
     };
     const svg = renderSvg(graph);
     expect(svg).toContain("A&lt;B&amp;C");
     expect(svg).toContain("(ref &quot;mode&quot;)");
     expect(svg).not.toContain("A<B&C");
+  });
+
+  it("renders subtype edges with arrow markers", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-person",
+          name: "Person",
+          objectTypeKind: "entity",
+          referenceMode: "person_id",
+          x: 100,
+          y: 50,
+          width: 120,
+          height: 40,
+        },
+        {
+          kind: "object_type",
+          id: "ot-employee",
+          name: "Employee",
+          objectTypeKind: "entity",
+          referenceMode: "employee_id",
+          x: 100,
+          y: 200,
+          width: 120,
+          height: 40,
+        },
+      ],
+      edges: [],
+      subtypeEdges: [
+        {
+          subtypeNodeId: "ot-employee",
+          supertypeNodeId: "ot-person",
+          providesIdentification: true,
+          points: [
+            { x: 160, y: 200 },
+            { x: 160, y: 90 },
+          ],
+        },
+      ],
+    };
+    const svg = renderSvg(graph);
+
+    // Should have an arrowhead marker definition.
+    expect(svg).toContain("<defs>");
+    expect(svg).toContain('id="subtype-arrow"');
+    expect(svg).toContain("</defs>");
+
+    // Should render a path with data-kind="subtype".
+    expect(svg).toContain('data-kind="subtype"');
+    expect(svg).toContain('marker-end="url(#subtype-arrow)"');
+
+    // Should use the subtype color.
+    expect(svg).toContain('stroke="#3a86c8"');
+  });
+
+  it("skips subtype edge rendering when points are insufficient", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [],
+      edges: [],
+      subtypeEdges: [
+        {
+          subtypeNodeId: "ot-a",
+          supertypeNodeId: "ot-b",
+          providesIdentification: true,
+          points: [{ x: 50, y: 50 }], // Only 1 point, needs 2.
+        },
+      ],
+    };
+    const svg = renderSvg(graph);
+    // Arrow defs should still be present (we have subtype edges).
+    expect(svg).toContain("subtype-arrow");
+    // But no path should be rendered for the degenerate edge.
+    expect(svg).not.toContain('data-kind="subtype"');
+  });
+
+  it("omits subtype arrow defs when no subtype edges exist", () => {
+    const svg = renderSvg(makeMinimalGraph());
+    expect(svg).not.toContain("<defs>");
+    expect(svg).not.toContain("subtype-arrow");
   });
 
   it("handles empty graphs", () => {
@@ -211,6 +297,7 @@ describe("SvgRenderer", () => {
       height: 0,
       nodes: [],
       edges: [],
+      subtypeEdges: [],
     };
     const svg = renderSvg(graph);
     expect(svg).toContain("<svg");

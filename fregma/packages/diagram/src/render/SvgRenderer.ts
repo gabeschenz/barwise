@@ -4,6 +4,7 @@ import type {
   PositionedFactTypeNode,
   PositionedRoleBox,
   PositionedEdge,
+  PositionedSubtypeEdge,
   Position,
 } from "../layout/LayoutTypes.js";
 import * as theme from "./theme.js";
@@ -21,6 +22,8 @@ export function renderSvg(graph: PositionedGraph): string {
 
   const parts: string[] = [];
 
+  const hasSubtypeEdges = graph.subtypeEdges.length > 0;
+
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" ` +
     `width="${svgWidth}" height="${svgHeight}" ` +
@@ -28,9 +31,19 @@ export function renderSvg(graph: PositionedGraph): string {
     `style="font-family: ${theme.FONT_FAMILY}; background: #fafafa;">`,
   );
 
-  // Render edges first (behind nodes).
+  // Define arrowhead marker for subtype edges.
+  if (hasSubtypeEdges) {
+    parts.push(renderSubtypeArrowDef());
+  }
+
+  // Render role edges first (behind nodes).
   for (const edge of graph.edges) {
     parts.push(renderEdge(edge));
+  }
+
+  // Render subtype edges (behind nodes, on top of role edges).
+  for (const se of graph.subtypeEdges) {
+    parts.push(renderSubtypeEdge(se));
   }
 
   // Render nodes.
@@ -196,6 +209,38 @@ function buildPathData(points: readonly Position[]): string {
     parts.push(`L ${p.x} ${p.y}`);
   }
   return parts.join(" ");
+}
+
+/**
+ * SVG <defs> block containing the arrowhead marker for subtype edges.
+ *
+ * The arrowhead is a filled triangle pointing in the direction of the
+ * supertype (the "is-a" target), matching standard ORM 2 notation.
+ */
+function renderSubtypeArrowDef(): string {
+  const s = theme.SUBTYPE_ARROW_SIZE;
+  return (
+    `<defs>` +
+    `<marker id="subtype-arrow" viewBox="0 0 ${s} ${s}" ` +
+    `refX="${s}" refY="${s / 2}" ` +
+    `markerWidth="${s}" markerHeight="${s}" orient="auto-start-reverse">` +
+    `<path d="M 0 0 L ${s} ${s / 2} L 0 ${s} Z" ` +
+    `fill="${theme.COLOR_SUBTYPE}"/>` +
+    `</marker>` +
+    `</defs>`
+  );
+}
+
+function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
+  if (edge.points.length < 2) return "";
+
+  const d = buildPathData(edge.points);
+  return (
+    `<path data-kind="subtype" d="${d}" fill="none" ` +
+    `stroke="${theme.COLOR_SUBTYPE}" ` +
+    `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" ` +
+    `marker-end="url(#subtype-arrow)"/>`
+  );
 }
 
 function esc(text: string): string {

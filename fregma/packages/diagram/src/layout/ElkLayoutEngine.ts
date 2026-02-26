@@ -8,6 +8,7 @@ import type {
   PositionedFactTypeNode,
   PositionedRoleBox,
   PositionedEdge,
+  PositionedSubtypeEdge,
   Position,
 } from "./LayoutTypes.js";
 import { ROLE_BOX_WIDTH, ROLE_BOX_HEIGHT, OT_MIN_WIDTH, OT_HEIGHT } from "../render/theme.js";
@@ -86,6 +87,15 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
       id: `${edge.sourceNodeId}--${edge.roleId}`,
       sources: [edge.sourceNodeId],
       targets: [edge.roleId],
+    });
+  }
+
+  // Subtype edges connect object type nodes directly (subtype -> supertype).
+  for (const se of graph.subtypeEdges) {
+    edges.push({
+      id: `subtype:${se.subtypeNodeId}--${se.supertypeNodeId}`,
+      sources: [se.subtypeNodeId],
+      targets: [se.supertypeNodeId],
     });
   }
 
@@ -214,9 +224,59 @@ function extractPositions(
     });
   }
 
+  // Extract subtype edge routing points from ELK.
+  const positionedSubtypeEdges: PositionedSubtypeEdge[] = [];
+  for (const se of graph.subtypeEdges) {
+    const elkEdgeId = `subtype:${se.subtypeNodeId}--${se.supertypeNodeId}`;
+    const elkEdge = (laid.edges ?? []).find((e) => e.id === elkEdgeId);
+
+    let points: Position[] = [];
+    if (elkEdge && "sections" in elkEdge) {
+      const sections = (elkEdge as { sections?: Array<{
+        startPoint: Position;
+        endPoint: Position;
+        bendPoints?: Position[];
+      }> }).sections;
+      if (sections && sections[0]) {
+        const section = sections[0];
+        points = [
+          section.startPoint,
+          ...(section.bendPoints ?? []),
+          section.endPoint,
+        ];
+      }
+    }
+
+    // Fallback: straight line between node centers.
+    if (points.length === 0) {
+      const sourceElk = nodeMap.get(se.subtypeNodeId);
+      const targetElk = nodeMap.get(se.supertypeNodeId);
+      if (sourceElk && targetElk) {
+        points = [
+          {
+            x: (sourceElk.x ?? 0) + (sourceElk.width ?? 0) / 2,
+            y: (sourceElk.y ?? 0) + (sourceElk.height ?? 0) / 2,
+          },
+          {
+            x: (targetElk.x ?? 0) + (targetElk.width ?? 0) / 2,
+            y: (targetElk.y ?? 0) + (targetElk.height ?? 0) / 2,
+          },
+        ];
+      }
+    }
+
+    positionedSubtypeEdges.push({
+      subtypeNodeId: se.subtypeNodeId,
+      supertypeNodeId: se.supertypeNodeId,
+      providesIdentification: se.providesIdentification,
+      points,
+    });
+  }
+
   return {
     nodes: positionedNodes,
     edges: positionedEdges,
+    subtypeEdges: positionedSubtypeEdges,
     width: laid.width ?? 800,
     height: laid.height ?? 600,
   };

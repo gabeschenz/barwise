@@ -175,5 +175,76 @@ describe("ModelToGraph", () => {
     const graph = modelToGraph(model);
     expect(graph.nodes).toHaveLength(0);
     expect(graph.edges).toHaveLength(0);
+    expect(graph.subtypeEdges).toHaveLength(0);
+  });
+
+  it("creates subtype edges from SubtypeFacts", () => {
+    const model = new ModelBuilder("Subtypes")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Employee", { referenceMode: "employee_id" })
+      .withSubtypeFact("Employee", "Person")
+      .build();
+
+    const graph = modelToGraph(model);
+
+    // 2 object type nodes, no fact types.
+    expect(graph.nodes).toHaveLength(2);
+    expect(graph.edges).toHaveLength(0);
+
+    // 1 subtype edge.
+    expect(graph.subtypeEdges).toHaveLength(1);
+
+    const se = graph.subtypeEdges[0]!;
+    const employee = model.getObjectTypeByName("Employee")!;
+    const person = model.getObjectTypeByName("Person")!;
+    expect(se.subtypeNodeId).toBe(employee.id);
+    expect(se.supertypeNodeId).toBe(person.id);
+    expect(se.providesIdentification).toBe(true);
+  });
+
+  it("creates subtype edges with providesIdentification false", () => {
+    const model = new ModelBuilder("Subtypes")
+      .withEntityType("Animal", { referenceMode: "animal_id" })
+      .withEntityType("Pet", { referenceMode: "pet_id" })
+      .withSubtypeFact("Pet", "Animal", { providesIdentification: false })
+      .build();
+
+    const graph = modelToGraph(model);
+    expect(graph.subtypeEdges).toHaveLength(1);
+    expect(graph.subtypeEdges[0]!.providesIdentification).toBe(false);
+  });
+
+  it("creates multiple subtype edges for a type hierarchy", () => {
+    const model = new ModelBuilder("Hierarchy")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Employee", { referenceMode: "employee_id" })
+      .withEntityType("Manager", { referenceMode: "manager_id" })
+      .withSubtypeFact("Employee", "Person")
+      .withSubtypeFact("Manager", "Employee")
+      .build();
+
+    const graph = modelToGraph(model);
+
+    // 3 object type nodes, 2 subtype edges.
+    expect(graph.nodes).toHaveLength(3);
+    expect(graph.subtypeEdges).toHaveLength(2);
+
+    const employee = model.getObjectTypeByName("Employee")!;
+    const person = model.getObjectTypeByName("Person")!;
+    const manager = model.getObjectTypeByName("Manager")!;
+
+    // Employee -> Person.
+    const empToPerson = graph.subtypeEdges.find(
+      (e) => e.subtypeNodeId === employee.id,
+    );
+    expect(empToPerson).toBeDefined();
+    expect(empToPerson!.supertypeNodeId).toBe(person.id);
+
+    // Manager -> Employee.
+    const mgrToEmp = graph.subtypeEdges.find(
+      (e) => e.subtypeNodeId === manager.id,
+    );
+    expect(mgrToEmp).toBeDefined();
+    expect(mgrToEmp!.supertypeNodeId).toBe(employee.id);
   });
 });
