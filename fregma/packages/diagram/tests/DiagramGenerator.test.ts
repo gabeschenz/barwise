@@ -120,6 +120,113 @@ describe("DiagramGenerator (end-to-end)", () => {
     expect(result.layout.edges).toHaveLength(0);
   });
 
+  it("generates a diagram with subtype relationships", async () => {
+    const model = new ModelBuilder("Subtypes")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Employee", { referenceMode: "employee_id" })
+      .withEntityType("Manager", { referenceMode: "manager_id" })
+      .withSubtypeFact("Employee", "Person")
+      .withSubtypeFact("Manager", "Employee")
+      .build();
+
+    const result = await generateDiagram(model);
+
+    // SVG should contain all entity names.
+    expect(result.svg).toContain("Person");
+    expect(result.svg).toContain("Employee");
+    expect(result.svg).toContain("Manager");
+
+    // Graph should have 3 nodes, 0 role edges, 2 subtype edges.
+    expect(result.graph.nodes).toHaveLength(3);
+    expect(result.graph.edges).toHaveLength(0);
+    expect(result.graph.subtypeEdges).toHaveLength(2);
+
+    // Layout should position 2 subtype edges with routing points.
+    expect(result.layout.subtypeEdges).toHaveLength(2);
+    for (const se of result.layout.subtypeEdges) {
+      expect(se.points.length).toBeGreaterThanOrEqual(2);
+    }
+
+    // SVG should contain subtype arrow marker.
+    expect(result.svg).toContain("subtype-arrow");
+    expect(result.svg).toContain('data-kind="subtype"');
+  });
+
+  it("generates a diagram with subtypes and fact types together", async () => {
+    const model = new ModelBuilder("Mixed")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Employee", { referenceMode: "employee_id" })
+      .withValueType("Name")
+      .withSubtypeFact("Employee", "Person")
+      .withBinaryFactType("Person has Name", {
+        role1: { player: "Person", name: "has" },
+        role2: { player: "Name", name: "is of" },
+        uniqueness: "role1",
+        mandatory: "role1",
+      })
+      .build();
+
+    const result = await generateDiagram(model);
+
+    // 3 OT nodes + 1 FT node = 4 nodes.
+    expect(result.graph.nodes).toHaveLength(4);
+    // 2 role edges + 1 subtype edge.
+    expect(result.graph.edges).toHaveLength(2);
+    expect(result.graph.subtypeEdges).toHaveLength(1);
+
+    // Layout should include both edge types.
+    expect(result.layout.edges).toHaveLength(2);
+    expect(result.layout.subtypeEdges).toHaveLength(1);
+
+    // SVG should contain both role edges and subtype arrows.
+    expect(result.svg).toContain('data-kind="subtype"');
+    expect(result.svg).toContain("Person");
+    expect(result.svg).toContain("Employee");
+    expect(result.svg).toContain("Name");
+  });
+
+  it("generates a diagram with external uniqueness constraints", async () => {
+    const model = new ModelBuilder("External Uniqueness")
+      .withEntityType("Employee", { referenceMode: "emp_id" })
+      .withValueType("FirstName")
+      .withValueType("LastName")
+      .withBinaryFactType("Employee has FirstName", {
+        role1: { player: "Employee", name: "has" },
+        role2: { player: "FirstName", name: "is of" },
+      })
+      .withBinaryFactType("Employee has LastName", {
+        role1: { player: "Employee", name: "has" },
+        role2: { player: "LastName", name: "is of" },
+      })
+      .build();
+
+    // Add external uniqueness across FirstName and LastName roles.
+    const ft1 = model.getFactTypeByName("Employee has FirstName")!;
+    const ft2 = model.getFactTypeByName("Employee has LastName")!;
+    ft1.addConstraint({
+      type: "external_uniqueness",
+      roleIds: [ft1.roles[1]!.id, ft2.roles[1]!.id],
+    });
+
+    const result = await generateDiagram(model);
+
+    // Graph: 3 OTs + 2 FTs + 1 constraint node = 6 nodes.
+    expect(result.graph.nodes).toHaveLength(6);
+    expect(result.graph.constraintEdges).toHaveLength(2);
+
+    // Layout should position constraint node and edges.
+    const constraintNodes = result.layout.nodes.filter(
+      (n) => n.kind === "constraint",
+    );
+    expect(constraintNodes).toHaveLength(1);
+    expect(result.layout.constraintEdges).toHaveLength(2);
+
+    // SVG should contain constraint rendering.
+    expect(result.svg).toContain('data-kind="constraint"');
+    expect(result.svg).toContain('data-kind="constraint-edge"');
+    expect(result.svg).toContain('stroke-dasharray="4,3"');
+  });
+
   it("includes constraint markers in the SVG", async () => {
     const model = new ModelBuilder("Constraints")
       .withEntityType("Customer", { referenceMode: "cid" })

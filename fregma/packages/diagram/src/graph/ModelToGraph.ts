@@ -3,7 +3,10 @@ import type {
   OrmGraph,
   ObjectTypeNode,
   FactTypeNode,
+  ConstraintNode,
   GraphEdge,
+  ConstraintEdge,
+  SubtypeEdge,
   RoleBox,
 } from "./GraphTypes.js";
 
@@ -16,8 +19,10 @@ import type {
  * becomes a GraphEdge.
  */
 export function modelToGraph(model: OrmModel): OrmGraph {
-  const nodes: (ObjectTypeNode | FactTypeNode)[] = [];
+  const nodes: (ObjectTypeNode | FactTypeNode | ConstraintNode)[] = [];
   const edges: GraphEdge[] = [];
+  const constraintEdges: ConstraintEdge[] = [];
+  const subtypeEdges: SubtypeEdge[] = [];
 
   // Create object type nodes.
   for (const ot of model.objectTypes) {
@@ -85,5 +90,48 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     }
   }
 
-  return { nodes, edges };
+  // Build role-to-fact-type lookup for constraint edge routing.
+  const roleToFactType = new Map<string, string>();
+  for (const ft of model.factTypes) {
+    for (const role of ft.roles) {
+      roleToFactType.set(role.id, ft.id);
+    }
+  }
+
+  // Extract external uniqueness constraints as nodes + edges.
+  let constraintIndex = 0;
+  for (const ft of model.factTypes) {
+    for (const c of ft.constraints) {
+      if (c.type === "external_uniqueness") {
+        const constraintId = `ext-uniq-${constraintIndex++}`;
+        nodes.push({
+          kind: "constraint",
+          id: constraintId,
+          constraintKind: "external_uniqueness",
+          roleIds: c.roleIds,
+        });
+        for (const roleId of c.roleIds) {
+          const factTypeId = roleToFactType.get(roleId);
+          if (factTypeId) {
+            constraintEdges.push({
+              constraintNodeId: constraintId,
+              factTypeNodeId: factTypeId,
+              roleId,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Create subtype edges.
+  for (const sf of model.subtypeFacts) {
+    subtypeEdges.push({
+      subtypeNodeId: sf.subtypeId,
+      supertypeNodeId: sf.supertypeId,
+      providesIdentification: sf.providesIdentification,
+    });
+  }
+
+  return { nodes, edges, constraintEdges, subtypeEdges };
 }

@@ -49,7 +49,24 @@ export interface FactTypeNode {
   readonly hasSpanningUniqueness: boolean;
 }
 
-export type GraphNode = ObjectTypeNode | FactTypeNode;
+/**
+ * A node representing an external constraint symbol.
+ *
+ * In ORM 2 notation, constraints that span roles across multiple fact types
+ * are drawn as small symbols (typically a circled bar or dot) with lines
+ * connecting to each covered role. This node represents the symbol itself;
+ * the connections to roles are ConstraintEdges.
+ */
+export interface ConstraintNode {
+  readonly kind: "constraint";
+  readonly id: string;
+  /** The type of constraint this node represents. */
+  readonly constraintKind: "external_uniqueness";
+  /** The role ids this constraint covers. */
+  readonly roleIds: readonly string[];
+}
+
+export type GraphNode = ObjectTypeNode | FactTypeNode | ConstraintNode;
 
 /**
  * An edge connecting an object type to a role box within a fact type.
@@ -62,9 +79,38 @@ export interface GraphEdge {
 }
 
 /**
+ * An edge connecting a constraint node to a role box it covers.
+ */
+export interface ConstraintEdge {
+  readonly constraintNodeId: string;
+  /** The fact type node containing the target role. */
+  readonly factTypeNodeId: string;
+  /** The specific role this edge connects to. */
+  readonly roleId: string;
+}
+
+/**
+ * An edge representing a subtype relationship between two entity types.
+ *
+ * In ORM 2 notation, subtype relationships are drawn as arrows from the
+ * subtype entity to the supertype entity, with an arrowhead at the
+ * supertype end.
+ */
+export interface SubtypeEdge {
+  /** The subtype entity type node id (arrow tail). */
+  readonly subtypeNodeId: string;
+  /** The supertype entity type node id (arrow head). */
+  readonly supertypeNodeId: string;
+  /** Whether the subtype uses the supertype's reference scheme. */
+  readonly providesIdentification: boolean;
+}
+
+/**
  * The complete graph representing an ORM model's visual structure.
  */
 export interface OrmGraph {
   readonly nodes: readonly GraphNode[];
   readonly edges: readonly GraphEdge[];
+  readonly constraintEdges: readonly ConstraintEdge[];
+  readonly subtypeEdges: readonly SubtypeEdge[];
 }
