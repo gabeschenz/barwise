@@ -5,6 +5,8 @@
  * ready for direct SVG rendering.
  */
 
+import type { RingTypeLabel, ConstraintKind } from "../graph/GraphTypes.js";
+
 export interface Position {
   readonly x: number;
   readonly y: number;
@@ -21,6 +23,8 @@ export interface PositionedRoleBox {
   readonly playerName: string;
   readonly hasUniqueness: boolean;
   readonly isMandatory: boolean;
+  readonly frequencyMin?: number;
+  readonly frequencyMax?: number | "unbounded";
   /** Position relative to the parent fact type node. */
   readonly x: number;
   readonly y: number;
@@ -46,6 +50,11 @@ export interface PositionedFactTypeNode {
   readonly name: string;
   readonly roles: readonly PositionedRoleBox[];
   readonly hasSpanningUniqueness: boolean;
+  readonly ringConstraint?: {
+    readonly label: RingTypeLabel;
+    readonly roleId1: string;
+    readonly roleId2: string;
+  };
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -55,8 +64,9 @@ export interface PositionedFactTypeNode {
 export interface PositionedConstraintNode {
   readonly kind: "constraint";
   readonly id: string;
-  readonly constraintKind: "external_uniqueness";
+  readonly constraintKind: ConstraintKind;
   readonly roleIds: readonly string[];
+  readonly supersetRoleIds?: readonly string[];
   readonly x: number;
   readonly y: number;
   readonly width: number;
