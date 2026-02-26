@@ -22,6 +22,7 @@ function makeMinimalGraph(): PositionedGraph {
   return {
     width: 400,
     height: 300,
+    constraintEdges: [],
     subtypeEdges: [],
     nodes: [
       {
@@ -199,6 +200,7 @@ describe("SvgRenderer", () => {
         },
       ],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [],
     };
     const svg = renderSvg(graph);
@@ -236,6 +238,7 @@ describe("SvgRenderer", () => {
         },
       ],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [
         {
           subtypeNodeId: "ot-employee",
@@ -269,6 +272,7 @@ describe("SvgRenderer", () => {
       height: 200,
       nodes: [],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [
         {
           subtypeNodeId: "ot-a",
@@ -291,12 +295,92 @@ describe("SvgRenderer", () => {
     expect(svg).not.toContain("subtype-arrow");
   });
 
+  it("renders constraint nodes as circled bars", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "constraint",
+          id: "ext-uniq-0",
+          constraintKind: "external_uniqueness",
+          roleIds: ["r-1", "r-2"],
+          x: 100,
+          y: 100,
+          width: 20,
+          height: 20,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    // Should render a circle for the constraint symbol.
+    expect(svg).toContain('data-kind="constraint"');
+    expect(svg).toContain("<circle");
+    // Should use constraint stroke color.
+    expect(svg).toContain('stroke="#8a3ac8"');
+    // Should have a uniqueness bar (rect) inside.
+    expect(svg).toContain("<rect");
+  });
+
+  it("renders constraint edges as dashed paths", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [],
+      edges: [],
+      constraintEdges: [
+        {
+          constraintNodeId: "ext-uniq-0",
+          factTypeNodeId: "ft-1",
+          roleId: "r-1",
+          points: [
+            { x: 110, y: 110 },
+            { x: 200, y: 164 },
+          ],
+        },
+      ],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    // Should render a dashed path.
+    expect(svg).toContain('data-kind="constraint-edge"');
+    expect(svg).toContain('stroke-dasharray="4,3"');
+    expect(svg).toContain('stroke="#8a3ac8"');
+  });
+
+  it("skips constraint edge rendering when points are insufficient", () => {
+    const graph: PositionedGraph = {
+      width: 200,
+      height: 200,
+      nodes: [],
+      edges: [],
+      constraintEdges: [
+        {
+          constraintNodeId: "ext-uniq-0",
+          factTypeNodeId: "ft-1",
+          roleId: "r-1",
+          points: [{ x: 50, y: 50 }], // Only 1 point, needs 2.
+        },
+      ],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // No constraint edge path should be rendered.
+    expect(svg).not.toContain('data-kind="constraint-edge"');
+  });
+
   it("handles empty graphs", () => {
     const graph: PositionedGraph = {
       width: 0,
       height: 0,
       nodes: [],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [],
     };
     const svg = renderSvg(graph);

@@ -1,17 +1,25 @@
 import ELKModule from "elkjs";
 import type { ELK, ElkNode, ElkExtendedEdge } from "elkjs";
-import type { OrmGraph, FactTypeNode } from "../graph/GraphTypes.js";
+import type { OrmGraph, FactTypeNode, ConstraintNode } from "../graph/GraphTypes.js";
 import type {
   PositionedGraph,
   PositionedNode,
   PositionedObjectTypeNode,
   PositionedFactTypeNode,
+  PositionedConstraintNode,
   PositionedRoleBox,
   PositionedEdge,
+  PositionedConstraintEdge,
   PositionedSubtypeEdge,
   Position,
 } from "./LayoutTypes.js";
-import { ROLE_BOX_WIDTH, ROLE_BOX_HEIGHT, OT_MIN_WIDTH, OT_HEIGHT } from "../render/theme.js";
+import {
+  ROLE_BOX_WIDTH,
+  ROLE_BOX_HEIGHT,
+  OT_MIN_WIDTH,
+  OT_HEIGHT,
+  CONSTRAINT_RADIUS,
+} from "../render/theme.js";
 
 // elkjs has CJS/ESM interop quirks: the default export may be the
 // constructor directly or wrapped in a `.default` property.
@@ -55,7 +63,7 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
         width: labelWidth,
         height: OT_HEIGHT,
       });
-    } else {
+    } else if (node.kind === "fact_type") {
       // Fact type node: width is the sum of role boxes.
       const ftWidth = node.roles.length * ROLE_BOX_WIDTH;
       const ftHeight = ROLE_BOX_HEIGHT;
@@ -79,6 +87,14 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
           "org.eclipse.elk.portConstraints": "FIXED_POS",
         },
       });
+    } else {
+      // Constraint node: small circle.
+      const diameter = CONSTRAINT_RADIUS * 2;
+      children.push({
+        id: node.id,
+        width: diameter,
+        height: diameter,
+      });
     }
   }
 
@@ -87,6 +103,15 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
       id: `${edge.sourceNodeId}--${edge.roleId}`,
       sources: [edge.sourceNodeId],
       targets: [edge.roleId],
+    });
+  }
+
+  // Constraint edges connect constraint nodes to role ports on fact type nodes.
+  for (const ce of graph.constraintEdges) {
+    edges.push({
+      id: `constraint:${ce.constraintNodeId}--${ce.roleId}`,
+      sources: [ce.constraintNodeId],
+      targets: [ce.roleId],
     });
   }
 
@@ -145,7 +170,7 @@ function extractPositions(
         height,
       };
       positionedNodes.push(posNode);
-    } else {
+    } else if (node.kind === "fact_type") {
       const ftNode = node as FactTypeNode;
       const roles: PositionedRoleBox[] = ftNode.roles.map((role, i) => ({
         roleId: role.roleId,
@@ -165,6 +190,19 @@ function extractPositions(
         name: node.name,
         roles,
         hasSpanningUniqueness: ftNode.hasSpanningUniqueness,
+        x,
+        y,
+        width,
+        height,
+      };
+      positionedNodes.push(posNode);
+    } else {
+      const cNode = node as ConstraintNode;
+      const posNode: PositionedConstraintNode = {
+        kind: "constraint",
+        id: cNode.id,
+        constraintKind: cNode.constraintKind,
+        roleIds: cNode.roleIds,
         x,
         y,
         width,
@@ -273,9 +311,59 @@ function extractPositions(
     });
   }
 
+  // Extract constraint edge routing points from ELK.
+  const positionedConstraintEdges: PositionedConstraintEdge[] = [];
+  for (const ce of graph.constraintEdges) {
+    const elkEdgeId = `constraint:${ce.constraintNodeId}--${ce.roleId}`;
+    const elkEdge = (laid.edges ?? []).find((e) => e.id === elkEdgeId);
+
+    let points: Position[] = [];
+    if (elkEdge && "sections" in elkEdge) {
+      const sections = (elkEdge as { sections?: Array<{
+        startPoint: Position;
+        endPoint: Position;
+        bendPoints?: Position[];
+      }> }).sections;
+      if (sections && sections[0]) {
+        const section = sections[0];
+        points = [
+          section.startPoint,
+          ...(section.bendPoints ?? []),
+          section.endPoint,
+        ];
+      }
+    }
+
+    // Fallback: straight line between node centers.
+    if (points.length === 0) {
+      const sourceElk = nodeMap.get(ce.constraintNodeId);
+      const targetElk = nodeMap.get(ce.factTypeNodeId);
+      if (sourceElk && targetElk) {
+        points = [
+          {
+            x: (sourceElk.x ?? 0) + (sourceElk.width ?? 0) / 2,
+            y: (sourceElk.y ?? 0) + (sourceElk.height ?? 0) / 2,
+          },
+          {
+            x: (targetElk.x ?? 0) + (targetElk.width ?? 0) / 2,
+            y: (targetElk.y ?? 0) + (targetElk.height ?? 0) / 2,
+          },
+        ];
+      }
+    }
+
+    positionedConstraintEdges.push({
+      constraintNodeId: ce.constraintNodeId,
+      factTypeNodeId: ce.factTypeNodeId,
+      roleId: ce.roleId,
+      points,
+    });
+  }
+
   return {
     nodes: positionedNodes,
     edges: positionedEdges,
+    constraintEdges: positionedConstraintEdges,
     subtypeEdges: positionedSubtypeEdges,
     width: laid.width ?? 800,
     height: laid.height ?? 600,

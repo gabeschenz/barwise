@@ -84,6 +84,7 @@ describe("ElkLayoutEngine", () => {
       edges: [
         { sourceNodeId: "ot-1", targetNodeId: "ft-1", roleId: "r-1" },
       ],
+      constraintEdges: [],
       subtypeEdges: [],
     };
 
@@ -119,6 +120,7 @@ describe("ElkLayoutEngine", () => {
         // Edge references a target node that does not exist in the layout.
         { sourceNodeId: "ot-missing", targetNodeId: "ft-missing", roleId: "r-1" },
       ],
+      constraintEdges: [],
       subtypeEdges: [],
     };
 
@@ -147,6 +149,7 @@ describe("ElkLayoutEngine", () => {
         },
       ],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [
         {
           subtypeNodeId: "ot-employee",
@@ -184,6 +187,7 @@ describe("ElkLayoutEngine", () => {
         },
       ],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [],
     };
 
@@ -243,6 +247,7 @@ describe("ElkLayoutEngine", () => {
       edges: [
         { sourceNodeId: "ot-1", targetNodeId: "ft-1", roleId: "r-1" },
       ],
+      constraintEdges: [],
       subtypeEdges: [],
     };
 
@@ -317,6 +322,7 @@ describe("ElkLayoutEngine", () => {
       edges: [
         { sourceNodeId: "ot-1", targetNodeId: "ft-1", roleId: "r-1" },
       ],
+      constraintEdges: [],
       subtypeEdges: [],
     };
 
@@ -377,6 +383,7 @@ describe("ElkLayoutEngine", () => {
         },
       ],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [
         {
           subtypeNodeId: "ot-2",
@@ -402,6 +409,7 @@ describe("ElkLayoutEngine", () => {
     const graph: OrmGraph = {
       nodes: [],
       edges: [],
+      constraintEdges: [],
       subtypeEdges: [
         {
           subtypeNodeId: "ot-missing-sub",

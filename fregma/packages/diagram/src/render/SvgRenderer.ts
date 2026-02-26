@@ -2,8 +2,10 @@ import type {
   PositionedGraph,
   PositionedObjectTypeNode,
   PositionedFactTypeNode,
+  PositionedConstraintNode,
   PositionedRoleBox,
   PositionedEdge,
+  PositionedConstraintEdge,
   PositionedSubtypeEdge,
   Position,
 } from "../layout/LayoutTypes.js";
@@ -41,6 +43,11 @@ export function renderSvg(graph: PositionedGraph): string {
     parts.push(renderEdge(edge));
   }
 
+  // Render constraint edges (dashed lines, behind nodes).
+  for (const ce of graph.constraintEdges) {
+    parts.push(renderConstraintEdge(ce));
+  }
+
   // Render subtype edges (behind nodes, on top of role edges).
   for (const se of graph.subtypeEdges) {
     parts.push(renderSubtypeEdge(se));
@@ -50,8 +57,10 @@ export function renderSvg(graph: PositionedGraph): string {
   for (const node of graph.nodes) {
     if (node.kind === "object_type") {
       parts.push(renderObjectType(node));
-    } else {
+    } else if (node.kind === "fact_type") {
       parts.push(renderFactType(node));
+    } else {
+      parts.push(renderConstraintNode(node));
     }
   }
 
@@ -240,6 +249,53 @@ function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
     `stroke="${theme.COLOR_SUBTYPE}" ` +
     `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" ` +
     `marker-end="url(#subtype-arrow)"/>`
+  );
+}
+
+/**
+ * Render an external constraint node as a circled uniqueness bar.
+ *
+ * In ORM 2 notation, external uniqueness is drawn as a small circle
+ * containing a horizontal bar (similar to the uniqueness symbol).
+ */
+function renderConstraintNode(node: PositionedConstraintNode): string {
+  const cx = node.x + node.width / 2;
+  const cy = node.y + node.height / 2;
+  const r = theme.CONSTRAINT_RADIUS;
+
+  const parts: string[] = [];
+  parts.push(`<g data-id="${esc(node.id)}" data-kind="constraint">`);
+
+  // Outer circle.
+  parts.push(
+    `<circle cx="${cx}" cy="${cy}" r="${r}" ` +
+    `fill="${theme.COLOR_CONSTRAINT_FILL}" ` +
+    `stroke="${theme.COLOR_CONSTRAINT_STROKE}" ` +
+    `stroke-width="${theme.CONSTRAINT_STROKE_WIDTH}"/>`,
+  );
+
+  // Uniqueness bar inside the circle.
+  const barWidth = r * 1.2;
+  const barHeight = 2;
+  parts.push(
+    `<rect x="${cx - barWidth / 2}" y="${cy - barHeight / 2}" ` +
+    `width="${barWidth}" height="${barHeight}" ` +
+    `fill="${theme.COLOR_CONSTRAINT_STROKE}"/>`,
+  );
+
+  parts.push("</g>");
+  return parts.join("\n");
+}
+
+function renderConstraintEdge(edge: PositionedConstraintEdge): string {
+  if (edge.points.length < 2) return "";
+
+  const d = buildPathData(edge.points);
+  return (
+    `<path data-kind="constraint-edge" d="${d}" fill="none" ` +
+    `stroke="${theme.COLOR_CONSTRAINT_STROKE}" ` +
+    `stroke-width="${theme.CONSTRAINT_STROKE_WIDTH}" ` +
+    `stroke-dasharray="${theme.CONSTRAINT_EDGE_DASH}"/>`
   );
 }
 

@@ -52,7 +52,21 @@ export interface PositionedFactTypeNode {
   readonly height: number;
 }
 
-export type PositionedNode = PositionedObjectTypeNode | PositionedFactTypeNode;
+export interface PositionedConstraintNode {
+  readonly kind: "constraint";
+  readonly id: string;
+  readonly constraintKind: "external_uniqueness";
+  readonly roleIds: readonly string[];
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export type PositionedNode =
+  | PositionedObjectTypeNode
+  | PositionedFactTypeNode
+  | PositionedConstraintNode;
 
 export interface PositionedEdge {
   readonly sourceNodeId: string;
@@ -71,9 +85,20 @@ export interface PositionedSubtypeEdge {
   readonly points: readonly Position[];
 }
 
+/**
+ * A positioned edge from a constraint node to a role box.
+ */
+export interface PositionedConstraintEdge {
+  readonly constraintNodeId: string;
+  readonly factTypeNodeId: string;
+  readonly roleId: string;
+  readonly points: readonly Position[];
+}
+
 export interface PositionedGraph {
   readonly nodes: readonly PositionedNode[];
   readonly edges: readonly PositionedEdge[];
+  readonly constraintEdges: readonly PositionedConstraintEdge[];
   readonly subtypeEdges: readonly PositionedSubtypeEdge[];
   readonly width: number;
   readonly height: number;

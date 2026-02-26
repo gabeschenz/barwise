@@ -49,7 +49,24 @@ export interface FactTypeNode {
   readonly hasSpanningUniqueness: boolean;
 }
 
-export type GraphNode = ObjectTypeNode | FactTypeNode;
+/**
+ * A node representing an external constraint symbol.
+ *
+ * In ORM 2 notation, constraints that span roles across multiple fact types
+ * are drawn as small symbols (typically a circled bar or dot) with lines
+ * connecting to each covered role. This node represents the symbol itself;
+ * the connections to roles are ConstraintEdges.
+ */
+export interface ConstraintNode {
+  readonly kind: "constraint";
+  readonly id: string;
+  /** The type of constraint this node represents. */
+  readonly constraintKind: "external_uniqueness";
+  /** The role ids this constraint covers. */
+  readonly roleIds: readonly string[];
+}
+
+export type GraphNode = ObjectTypeNode | FactTypeNode | ConstraintNode;
 
 /**
  * An edge connecting an object type to a role box within a fact type.
@@ -58,6 +75,17 @@ export interface GraphEdge {
   readonly sourceNodeId: string;
   readonly targetNodeId: string;
   /** The role id this edge connects to (port on the fact type node). */
+  readonly roleId: string;
+}
+
+/**
+ * An edge connecting a constraint node to a role box it covers.
+ */
+export interface ConstraintEdge {
+  readonly constraintNodeId: string;
+  /** The fact type node containing the target role. */
+  readonly factTypeNodeId: string;
+  /** The specific role this edge connects to. */
   readonly roleId: string;
 }
 
@@ -83,5 +111,6 @@ export interface SubtypeEdge {
 export interface OrmGraph {
   readonly nodes: readonly GraphNode[];
   readonly edges: readonly GraphEdge[];
+  readonly constraintEdges: readonly ConstraintEdge[];
   readonly subtypeEdges: readonly SubtypeEdge[];
 }

@@ -42,3 +42,10 @@ export const MANDATORY_DOT_RADIUS = 4;
 export const COLOR_SUBTYPE = "#3a86c8";
 export const SUBTYPE_ARROW_SIZE = 8;
 export const SUBTYPE_STROKE_WIDTH = 1.5;
+
+// -- External constraint symbols --
+export const CONSTRAINT_RADIUS = 10;
+export const COLOR_CONSTRAINT_FILL = "#ffffff";
+export const COLOR_CONSTRAINT_STROKE = "#8a3ac8";
+export const CONSTRAINT_STROKE_WIDTH = 1.5;
+export const CONSTRAINT_EDGE_DASH = "4,3";

@@ -185,6 +185,48 @@ describe("DiagramGenerator (end-to-end)", () => {
     expect(result.svg).toContain("Name");
   });
 
+  it("generates a diagram with external uniqueness constraints", async () => {
+    const model = new ModelBuilder("External Uniqueness")
+      .withEntityType("Employee", { referenceMode: "emp_id" })
+      .withValueType("FirstName")
+      .withValueType("LastName")
+      .withBinaryFactType("Employee has FirstName", {
+        role1: { player: "Employee", name: "has" },
+        role2: { player: "FirstName", name: "is of" },
+      })
+      .withBinaryFactType("Employee has LastName", {
+        role1: { player: "Employee", name: "has" },
+        role2: { player: "LastName", name: "is of" },
+      })
+      .build();
+
+    // Add external uniqueness across FirstName and LastName roles.
+    const ft1 = model.getFactTypeByName("Employee has FirstName")!;
+    const ft2 = model.getFactTypeByName("Employee has LastName")!;
+    ft1.addConstraint({
+      type: "external_uniqueness",
+      roleIds: [ft1.roles[1]!.id, ft2.roles[1]!.id],
+    });
+
+    const result = await generateDiagram(model);
+
+    // Graph: 3 OTs + 2 FTs + 1 constraint node = 6 nodes.
+    expect(result.graph.nodes).toHaveLength(6);
+    expect(result.graph.constraintEdges).toHaveLength(2);
+
+    // Layout should position constraint node and edges.
+    const constraintNodes = result.layout.nodes.filter(
+      (n) => n.kind === "constraint",
+    );
+    expect(constraintNodes).toHaveLength(1);
+    expect(result.layout.constraintEdges).toHaveLength(2);
+
+    // SVG should contain constraint rendering.
+    expect(result.svg).toContain('data-kind="constraint"');
+    expect(result.svg).toContain('data-kind="constraint-edge"');
+    expect(result.svg).toContain('stroke-dasharray="4,3"');
+  });
+
   it("includes constraint markers in the SVG", async () => {
     const model = new ModelBuilder("Constraints")
       .withEntityType("Customer", { referenceMode: "cid" })
