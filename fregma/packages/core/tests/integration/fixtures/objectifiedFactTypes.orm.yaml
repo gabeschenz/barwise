@@ -1,0 +1,119 @@
+orm_version: "1.0"
+
+model:
+  name: "University Enrollment"
+  domain_context: "education"
+
+  object_types:
+    - id: "ot-student"
+      name: "Student"
+      kind: "entity"
+      reference_mode: "student_id"
+      definition: "A person enrolled in one or more courses at the university."
+
+    - id: "ot-course"
+      name: "Course"
+      kind: "entity"
+      reference_mode: "course_code"
+
+    - id: "ot-enrollment"
+      name: "Enrollment"
+      kind: "entity"
+      reference_mode: "enrollment_id"
+      definition: "The objectified relationship of a student enrolling in a course."
+
+    - id: "ot-instructor"
+      name: "Instructor"
+      kind: "entity"
+      reference_mode: "instructor_id"
+
+    - id: "ot-grade"
+      name: "Grade"
+      kind: "value"
+      value_constraint:
+        values: ["A", "B", "C", "D", "F"]
+
+    - id: "ot-semester"
+      name: "Semester"
+      kind: "value"
+
+  fact_types:
+    # The objectified fact type: Student enrolls in Course
+    - id: "ft-student-enrolls-course"
+      name: "Student enrolls in Course"
+      roles:
+        - id: "r-student-enrolls"
+          player: "ot-student"
+          role_name: "enrolls in"
+        - id: "r-course-enrolled-by"
+          player: "ot-course"
+          role_name: "is enrolled in by"
+      readings:
+        - "{0} enrolls in {1}"
+        - "{1} is enrolled in by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-student-enrolls", "r-course-enrolled-by"]
+
+    # Enrollment gets a Grade (the objectified entity participates here)
+    - id: "ft-enrollment-has-grade"
+      name: "Enrollment has Grade"
+      roles:
+        - id: "r-enrollment-has-grade"
+          player: "ot-enrollment"
+          role_name: "has"
+        - id: "r-grade-of-enrollment"
+          player: "ot-grade"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-enrollment-has-grade"]
+
+    # Enrollment occurs in a Semester
+    - id: "ft-enrollment-in-semester"
+      name: "Enrollment in Semester"
+      roles:
+        - id: "r-enrollment-in-semester"
+          player: "ot-enrollment"
+          role_name: "occurs in"
+        - id: "r-semester-of-enrollment"
+          player: "ot-semester"
+          role_name: "is semester of"
+      readings:
+        - "{0} occurs in {1}"
+        - "{1} is semester of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-enrollment-in-semester"]
+        - type: "mandatory"
+          role: "r-enrollment-in-semester"
+
+    # A non-objectified fact type: Instructor teaches Course
+    - id: "ft-instructor-teaches-course"
+      name: "Instructor teaches Course"
+      roles:
+        - id: "r-instructor-teaches"
+          player: "ot-instructor"
+          role_name: "teaches"
+        - id: "r-course-taught-by"
+          player: "ot-course"
+          role_name: "is taught by"
+      readings:
+        - "{0} teaches {1}"
+        - "{1} is taught by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-course-taught-by"]
+
+  objectified_fact_types:
+    - id: "oft-enrollment"
+      fact_type: "ft-student-enrolls-course"
+      object_type: "ot-enrollment"
+
+  definitions:
+    - term: "Enrollment"
+      definition: "The act of a student registering for a specific course offering."
+      context: "registrar"

@@ -628,4 +628,43 @@ describe("ModelToGraph", () => {
     expect(mgrToEmp).toBeDefined();
     expect(mgrToEmp!.supertypeNodeId).toBe(employee.id);
   });
+
+  it("marks objectified fact types with isObjectified and entity name", () => {
+    const model = new ModelBuilder("Objectification")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Marriage", { referenceMode: "marriage_id" })
+      .withBinaryFactType("Person marries Person", {
+        role1: { player: "Person", name: "marries" },
+        role2: { player: "Person", name: "is married to" },
+      })
+      .withObjectifiedFactType("Person marries Person", "Marriage")
+      .build();
+
+    const graph = modelToGraph(model);
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    expect(ftNode).toBeDefined();
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.isObjectified).toBe(true);
+      expect(ftNode.objectifiedEntityName).toBe("Marriage");
+    }
+  });
+
+  it("does not mark non-objectified fact types", () => {
+    const model = new ModelBuilder("Regular")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Order", { referenceMode: "order_id" })
+      .withBinaryFactType("Person places Order", {
+        role1: { player: "Person", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const graph = modelToGraph(model);
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    expect(ftNode).toBeDefined();
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.isObjectified).toBe(false);
+      expect(ftNode.objectifiedEntityName).toBeUndefined();
+    }
+  });
 });

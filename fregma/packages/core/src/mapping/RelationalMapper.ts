@@ -16,12 +16,16 @@
  * 7. Value types in non-identifying roles become column types.
  * 8. Subtype facts with identification: subtype table's PK is a FK to the
  *    supertype table (shared PK pattern).
+ * 9. Objectified fact types: the objectified entity's table absorbs the
+ *    underlying fact type's roles as FK columns, and its PK becomes
+ *    the composite of those columns.
  */
 
 import type { OrmModel } from "../model/OrmModel.js";
 import type { FactType } from "../model/FactType.js";
 import type { ObjectType } from "../model/ObjectType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
+import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type {
   RelationalSchema,
   Table,
@@ -53,8 +57,16 @@ export class RelationalMapper {
       }
     }
 
-    // Step 2: Process each fact type.
+    // Collect fact type ids that are objectified -- they are handled
+    // separately in step 2b and should not produce their own mapping.
+    const objectifiedFactTypeIds = new Set(
+      model.objectifiedFactTypes.map((oft) => oft.factTypeId),
+    );
+
+    // Step 2: Process each non-objectified fact type.
     for (const ft of model.factTypes) {
+      if (objectifiedFactTypeIds.has(ft.id)) continue;
+
       if (ft.arity === 1) {
         this.mapUnaryFactType(ft, model, entityTables);
       } else if (ft.arity === 2) {
@@ -62,6 +74,13 @@ export class RelationalMapper {
       } else {
         this.mapNaryFactType(ft, model, entityTables, associativeTables);
       }
+    }
+
+    // Step 2b: Process objectified fact types. The objectified entity's
+    // table absorbs the underlying fact type's roles as FK columns, and
+    // its PK becomes the composite of those columns.
+    for (const oft of model.objectifiedFactTypes) {
+      this.mapObjectifiedFactType(oft, model, entityTables);
     }
 
     // Step 3: Process subtype facts.
@@ -365,6 +384,58 @@ export class RelationalMapper {
         referencedTable: supertypeTable.name,
         referencedColumns: [supertypePkCol],
       });
+    }
+  }
+
+  /**
+   * Objectified fact type mapping: absorb the underlying fact type's
+   * roles into the objectified entity's table as FK columns, and set
+   * the PK to the composite of those columns.
+   */
+  private mapObjectifiedFactType(
+    oft: ObjectifiedFactType,
+    model: OrmModel,
+    entityTables: Map<string, MutableTable>,
+  ): void {
+    const entityTable = entityTables.get(oft.objectTypeId);
+    const factType = model.getFactType(oft.factTypeId);
+    if (!entityTable || !factType) return;
+
+    const fkColNames: string[] = [];
+
+    for (const role of factType.roles) {
+      const player = model.getObjectType(role.playerId);
+      if (!player || player.kind !== "entity") continue;
+
+      const targetTable = entityTables.get(player.id);
+      if (!targetTable) continue;
+
+      const refCol = targetTable.primaryKey.columnNames[0]!;
+      // Disambiguate if the same entity appears in multiple roles.
+      const usedNames = new Set(entityTable.columns.map((c) => c.name));
+      const colName = usedNames.has(refCol)
+        ? `${toSnake(role.name)}_${refCol}`
+        : refCol;
+
+      entityTable.columns.push({
+        name: colName,
+        dataType: "TEXT",
+        nullable: false,
+        sourceRoleId: role.id,
+      });
+
+      fkColNames.push(colName);
+
+      entityTable.foreignKeys.push({
+        columnNames: [colName],
+        referencedTable: targetTable.name,
+        referencedColumns: [refCol],
+      });
+    }
+
+    // Replace the PK with the composite of FK columns.
+    if (fkColNames.length > 0) {
+      entityTable.primaryKey = { columnNames: fkColNames };
     }
   }
 

@@ -193,6 +193,8 @@ function extractPositions(
         roles,
         hasSpanningUniqueness: ftNode.hasSpanningUniqueness,
         ringConstraint: ftNode.ringConstraint,
+        isObjectified: ftNode.isObjectified,
+        objectifiedEntityName: ftNode.objectifiedEntityName,
         x,
         y,
         width,

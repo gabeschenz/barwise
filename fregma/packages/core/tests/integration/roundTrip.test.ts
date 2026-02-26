@@ -2,7 +2,7 @@
  * Round-trip serialization integration tests.
  *
  * These tests load realistic .orm.yaml fixture files (Order Management,
- * Phase 2 Constraints), deserialize them into OrmModels, re-serialize
+ * Phase 2 Constraints, Objectified Fact Types), deserialize them into OrmModels, re-serialize
  * to YAML, and deserialize again. Every model element (object types,
  * fact types, roles, constraints, definitions, value constraints) is
  * checked for structural equivalence after the round trip, ensuring the
@@ -172,5 +172,75 @@ describe("Round-trip serialization integration", () => {
     expect(rtParent).toBeDefined();
     const rtRings = rtParent!.constraints.filter((c) => c.type === "ring");
     expect(rtRings).toHaveLength(2);
+  });
+
+  it("round-trips the Objectified Fact Types model", () => {
+    const yaml = loadFixture("objectifiedFactTypes.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    expect(model.name).toBe("University Enrollment");
+    expect(model.domainContext).toBe("education");
+    expect(model.objectTypes).toHaveLength(6);
+    expect(model.factTypes).toHaveLength(4);
+    expect(model.objectifiedFactTypes).toHaveLength(1);
+    expect(model.definitions).toHaveLength(1);
+
+    // Verify the objectified fact type loaded correctly.
+    const oft = model.objectifiedFactTypes[0]!;
+    expect(oft.id).toBe("oft-enrollment");
+    expect(oft.factTypeId).toBe("ft-student-enrolls-course");
+    expect(oft.objectTypeId).toBe("ot-enrollment");
+
+    // Round-trip.
+    const reserialized = serializer.serialize(model);
+    const roundTripped = serializer.deserialize(reserialized);
+
+    // Verify structural equivalence.
+    expect(roundTripped.name).toBe(model.name);
+    expect(roundTripped.domainContext).toBe(model.domainContext);
+    expect(roundTripped.objectTypes).toHaveLength(model.objectTypes.length);
+    expect(roundTripped.factTypes).toHaveLength(model.factTypes.length);
+    expect(roundTripped.objectifiedFactTypes).toHaveLength(1);
+    expect(roundTripped.definitions).toHaveLength(model.definitions.length);
+  });
+
+  it("preserves objectified fact type details through round-trip", () => {
+    const yaml = loadFixture("objectifiedFactTypes.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    // Verify each objectified fact type survived the round trip.
+    for (const origOft of original.objectifiedFactTypes) {
+      const rtOft = roundTripped.getObjectifiedFactType(origOft.id);
+      expect(rtOft).toBeDefined();
+      expect(rtOft!.id).toBe(origOft.id);
+      expect(rtOft!.factTypeId).toBe(origOft.factTypeId);
+      expect(rtOft!.objectTypeId).toBe(origOft.objectTypeId);
+    }
+
+    // Verify the objectification query helpers work on the round-tripped model.
+    const oft = roundTripped.objectificationOf("ft-student-enrolls-course");
+    expect(oft).toBeDefined();
+    expect(oft!.objectTypeId).toBe("ot-enrollment");
+
+    const oftForEntity = roundTripped.objectificationFor("ot-enrollment");
+    expect(oftForEntity).toBeDefined();
+    expect(oftForEntity!.factTypeId).toBe("ft-student-enrolls-course");
+  });
+
+  it("preserves value constraints on Grade through round-trip with objectification", () => {
+    const yaml = loadFixture("objectifiedFactTypes.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    const origGrade = original.getObjectTypeByName("Grade");
+    const rtGrade = roundTripped.getObjectTypeByName("Grade");
+    expect(origGrade).toBeDefined();
+    expect(rtGrade).toBeDefined();
+    expect(rtGrade!.valueConstraint).toEqual(origGrade!.valueConstraint);
   });
 });

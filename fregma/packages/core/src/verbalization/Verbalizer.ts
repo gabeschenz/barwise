@@ -1,5 +1,7 @@
 import type { OrmModel } from "../model/OrmModel.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
+import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import { expandReading } from "../model/ReadingOrder.js";
 import {
   type Verbalization,
   buildVerbalization,
@@ -39,6 +41,11 @@ export class Verbalizer {
     // Subtype fact verbalizations.
     for (const sf of model.subtypeFacts) {
       results.push(this.verbalizeSubtypeFact(sf, model));
+    }
+
+    // Objectified fact type verbalizations.
+    for (const oft of model.objectifiedFactTypes) {
+      results.push(this.verbalizeObjectifiedFactType(oft, model));
     }
 
     return results;
@@ -93,5 +100,41 @@ export class Verbalizer {
       refSeg(supertypeName, sf.supertypeId),
       textSeg("."),
     ]);
+  }
+
+  /**
+   * Verbalize an objectified fact type:
+   * "{EntityType} is where {primary reading of fact type}."
+   *
+   * For example: "Marriage is where Person marries Person."
+   */
+  verbalizeObjectifiedFactType(
+    oft: ObjectifiedFactType,
+    model: OrmModel,
+  ): Verbalization {
+    const objectType = model.getObjectType(oft.objectTypeId);
+    const factType = model.getFactType(oft.factTypeId);
+    const entityName = objectType?.name ?? oft.objectTypeId;
+
+    const segments: import("./Verbalization.js").VerbalizationSegment[] = [
+      refSeg(entityName, oft.objectTypeId),
+      textSeg(" is where "),
+    ];
+
+    if (factType && factType.readings.length > 0) {
+      const reading = factType.readings[0]!;
+      const roleNames = factType.roles.map((r) => {
+        const player = model.getObjectType(r.playerId);
+        return player?.name ?? r.name;
+      });
+      const expanded = expandReading(reading.template, roleNames);
+      segments.push(textSeg(expanded));
+    } else {
+      segments.push(textSeg(factType?.name ?? oft.factTypeId));
+    }
+
+    segments.push(textSeg("."));
+
+    return buildVerbalization(oft.id, "objectification", segments);
   }
 }

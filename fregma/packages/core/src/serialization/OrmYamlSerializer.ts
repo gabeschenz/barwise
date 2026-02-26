@@ -3,6 +3,7 @@ import { OrmModel } from "../model/OrmModel.js";
 import type { ObjectType } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
+import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
 import type { Constraint, RingType } from "../model/Constraint.js";
@@ -24,6 +25,7 @@ interface OrmYamlDocument {
     object_types?: OrmYamlObjectType[];
     fact_types?: OrmYamlFactType[];
     subtype_facts?: OrmYamlSubtypeFact[];
+    objectified_fact_types?: OrmYamlObjectifiedFactType[];
     definitions?: OrmYamlDefinition[];
   };
 }
@@ -71,6 +73,12 @@ interface OrmYamlSubtypeFact {
   subtype: string;
   supertype: string;
   provides_identification?: boolean;
+}
+
+interface OrmYamlObjectifiedFactType {
+  id: string;
+  fact_type: string;
+  object_type: string;
 }
 
 interface OrmYamlDefinition {
@@ -172,6 +180,13 @@ export class OrmYamlSerializer {
     if (subtypeFacts.length > 0) {
       doc.model.subtype_facts = subtypeFacts.map((sf) =>
         this.serializeSubtypeFact(sf),
+      );
+    }
+
+    const objectifiedFactTypes = model.objectifiedFactTypes;
+    if (objectifiedFactTypes.length > 0) {
+      doc.model.objectified_fact_types = objectifiedFactTypes.map((oft) =>
+        this.serializeObjectifiedFactType(oft),
       );
     }
 
@@ -284,6 +299,16 @@ export class OrmYamlSerializer {
     return result;
   }
 
+  private serializeObjectifiedFactType(
+    oft: ObjectifiedFactType,
+  ): OrmYamlObjectifiedFactType {
+    return {
+      id: oft.id,
+      fact_type: oft.factTypeId,
+      object_type: oft.objectTypeId,
+    };
+  }
+
   private serializeDefinition(d: Definition): OrmYamlDefinition {
     const result: OrmYamlDefinition = {
       term: d.term,
@@ -345,6 +370,15 @@ export class OrmYamlSerializer {
         subtypeId: sfDoc.subtype,
         supertypeId: sfDoc.supertype,
         providesIdentification: sfDoc.provides_identification ?? true,
+      });
+    }
+
+    // Add objectified fact types (after object types and fact types).
+    for (const oftDoc of doc.model.objectified_fact_types ?? []) {
+      model.addObjectifiedFactType({
+        id: oftDoc.id,
+        factTypeId: oftDoc.fact_type,
+        objectTypeId: oftDoc.object_type,
       });
     }
 
