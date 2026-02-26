@@ -230,6 +230,48 @@ describe("Round-trip serialization integration", () => {
     expect(oftForEntity!.factTypeId).toBe("ft-student-enrolls-course");
   });
 
+  it("round-trips the Population Instances model", () => {
+    const yaml = loadFixture("populationInstances.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    expect(model.name).toBe("Order Management with Populations");
+    expect(model.populations).toHaveLength(2);
+
+    // Round-trip.
+    const reserialized = serializer.serialize(model);
+    const roundTripped = serializer.deserialize(reserialized);
+
+    // Verify structural equivalence.
+    expect(roundTripped.name).toBe(model.name);
+    expect(roundTripped.objectTypes).toHaveLength(model.objectTypes.length);
+    expect(roundTripped.factTypes).toHaveLength(model.factTypes.length);
+    expect(roundTripped.populations).toHaveLength(model.populations.length);
+  });
+
+  it("preserves population details through round-trip", () => {
+    const yaml = loadFixture("populationInstances.orm.yaml");
+    const original = serializer.deserialize(yaml);
+    const roundTripped = serializer.deserialize(
+      serializer.serialize(original),
+    );
+
+    for (const origPop of original.populations) {
+      const rtPop = roundTripped.getPopulation(origPop.id);
+      expect(rtPop).toBeDefined();
+      expect(rtPop!.id).toBe(origPop.id);
+      expect(rtPop!.factTypeId).toBe(origPop.factTypeId);
+      expect(rtPop!.description).toBe(origPop.description);
+      expect(rtPop!.instances).toHaveLength(origPop.instances.length);
+
+      for (let i = 0; i < origPop.instances.length; i++) {
+        const origInst = origPop.instances[i]!;
+        const rtInst = rtPop!.instances[i]!;
+        expect(rtInst.id).toBe(origInst.id);
+        expect(rtInst.values).toEqual(origInst.values);
+      }
+    }
+  });
+
   it("preserves value constraints on Grade through round-trip with objectification", () => {
     const yaml = loadFixture("objectifiedFactTypes.orm.yaml");
     const original = serializer.deserialize(yaml);

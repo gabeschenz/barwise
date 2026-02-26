@@ -8,6 +8,10 @@ import {
   ObjectifiedFactType,
   type ObjectifiedFactTypeConfig,
 } from "./ObjectifiedFactType.js";
+import {
+  Population,
+  type PopulationConfig,
+} from "./Population.js";
 import type { Definition } from "./Definition.js";
 
 /**
@@ -35,6 +39,7 @@ export class OrmModel {
   private readonly _subtypeFacts: Map<string, SubtypeFact> = new Map();
   private readonly _objectifiedFactTypes: Map<string, ObjectifiedFactType> =
     new Map();
+  private readonly _populations: Map<string, Population> = new Map();
   private readonly _definitions: Definition[] = [];
 
   constructor(config: OrmModelConfig) {
@@ -399,6 +404,53 @@ export class OrmModel {
     return undefined;
   }
 
+  // ---- Populations ----
+
+  /** All populations in the model. */
+  get populations(): readonly Population[] {
+    return [...this._populations.values()];
+  }
+
+  /** Look up a population by id. */
+  getPopulation(id: string): Population | undefined {
+    return this._populations.get(id);
+  }
+
+  /**
+   * Get all populations for a given fact type.
+   */
+  populationsForFactType(factTypeId: string): readonly Population[] {
+    const result: Population[] = [];
+    for (const pop of this._populations.values()) {
+      if (pop.factTypeId === factTypeId) result.push(pop);
+    }
+    return result;
+  }
+
+  /**
+   * Add a population to the model.
+   * @throws If the referenced fact type does not exist.
+   */
+  addPopulation(config: PopulationConfig): Population {
+    const factType = this._factTypes.get(config.factTypeId);
+    if (!factType) {
+      throw new Error(
+        `Fact type id "${config.factTypeId}" does not exist in the model.`,
+      );
+    }
+    const pop = new Population(config);
+    this._populations.set(pop.id, pop);
+    return pop;
+  }
+
+  /** Remove a population from the model. */
+  removePopulation(id: string): void {
+    if (!this._populations.has(id)) {
+      throw new Error(`Population with id "${id}" not found.`);
+    }
+    this._populations.delete(id);
+  }
+
   // ---- Definitions ----
 
   /** All ubiquitous language definitions. */
@@ -433,6 +485,7 @@ export class OrmModel {
       this._factTypes.size +
       this._subtypeFacts.size +
       this._objectifiedFactTypes.size +
+      this._populations.size +
       this._definitions.length
     );
   }

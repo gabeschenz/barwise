@@ -48,6 +48,12 @@ export {
   ObjectifiedFactType,
   type ObjectifiedFactTypeConfig,
 } from "./model/ObjectifiedFactType.js";
+export {
+  Population,
+  type PopulationConfig,
+  type FactInstance,
+  type FactInstanceConfig,
+} from "./model/Population.js";
 export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
 export {
   OrmProject,
@@ -104,6 +110,7 @@ export { ValidationEngine } from "./validation/ValidationEngine.js";
 export { structuralRules } from "./validation/rules/structural.js";
 export { constraintConsistencyRules } from "./validation/rules/constraintConsistency.js";
 export { completenessWarnings } from "./validation/rules/completenessWarnings.js";
+export { populationValidationRules } from "./validation/rules/populationValidation.js";
 export {
   projectRules,
   type ProjectValidationRule,

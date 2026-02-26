@@ -4,6 +4,7 @@ import type { ValidationRule } from "./ValidationRule.js";
 import { structuralRules } from "./rules/structural.js";
 import { constraintConsistencyRules } from "./rules/constraintConsistency.js";
 import { completenessWarnings } from "./rules/completenessWarnings.js";
+import { populationValidationRules } from "./rules/populationValidation.js";
 
 /**
  * The validation engine orchestrates rule sets against an OrmModel
@@ -18,6 +19,7 @@ export class ValidationEngine {
     structuralRules,
     constraintConsistencyRules,
     completenessWarnings,
+    populationValidationRules,
   ];
 
   /**

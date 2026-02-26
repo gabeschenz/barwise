@@ -47,6 +47,11 @@
           "items": { "$ref": "#/definitions/objectified_fact_type" },
           "description": "Fact types that are simultaneously entity types (objectification/nesting)."
         },
+        "populations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/population" },
+          "description": "Sample fact instance populations used for constraint validation."
+        },
         "definitions": {
           "type": "array",
           "items": { "$ref": "#/definitions/definition" },
@@ -405,6 +410,49 @@
           "type": "string",
           "minLength": 1,
           "description": "The id of the entity type created by objectification."
+        }
+      }
+    },
+    "population": {
+      "type": "object",
+      "required": ["id", "fact_type", "instances"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier."
+        },
+        "fact_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The id of the fact type this population samples."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of this population."
+        },
+        "instances": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/fact_instance" },
+          "description": "The sample fact instances in this population."
+        }
+      }
+    },
+    "fact_instance": {
+      "type": "object",
+      "required": ["id", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable unique identifier for this instance."
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Mapping of role id to concrete value."
         }
       }
     },

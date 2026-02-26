@@ -31,6 +31,61 @@ function loadFixture(name: string): string {
 }
 
 describe("Full pipeline integration: load -> validate -> verbalize -> map -> DDL", () => {
+  describe("Order Management model with populations", () => {
+    const yaml = loadFixture("populationInstances.orm.yaml");
+    const model = serializer.deserialize(yaml);
+
+    it("loads the model with populations from YAML", () => {
+      expect(model.name).toBe("Order Management with Populations");
+      expect(model.objectTypes).toHaveLength(4);
+      expect(model.factTypes).toHaveLength(2);
+      expect(model.populations).toHaveLength(2);
+    });
+
+    it("loads population instances correctly", () => {
+      const ordersPop = model.getPopulation("pop-orders");
+      expect(ordersPop).toBeDefined();
+      expect(ordersPop!.description).toBe("Sample customer orders");
+      expect(ordersPop!.instances).toHaveLength(3);
+
+      const inst1 = ordersPop!.getInstance("inst-1")!;
+      expect(inst1.values["r-cust-places"]).toBe("C001");
+      expect(inst1.values["r-order-placed-by"]).toBe("O100");
+    });
+
+    it("passes validation with valid populations (no constraint violations)", () => {
+      const diagnostics = validator.validate(model);
+      const errors = diagnostics.filter((d) => d.severity === "error");
+      expect(errors).toHaveLength(0);
+    });
+
+    it("verbalizes fact types regardless of populations", () => {
+      const verbalizations = verbalizer.verbalizeModel(model);
+      expect(verbalizations.length).toBeGreaterThan(0);
+      const texts = verbalizations.map((v) => v.text);
+      expect(texts.some((t) => t.includes("Customer"))).toBe(true);
+      expect(texts.some((t) => t.includes("Order"))).toBe(true);
+    });
+
+    it("maps to relational schema (populations do not affect mapping)", () => {
+      const schema = mapper.map(model);
+      const tableNames = schema.tables.map((t) => t.name);
+      expect(tableNames).toContain("customer");
+      expect(tableNames).toContain("order");
+      expect(tableNames).toContain("product");
+    });
+
+    it("renders valid DDL", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+      expect(ddl).toContain("CREATE TABLE customer");
+      expect(ddl).toContain("CREATE TABLE order");
+      const createCount = (ddl.match(/CREATE TABLE/g) ?? []).length;
+      const closeCount = (ddl.match(/\);/g) ?? []).length;
+      expect(closeCount).toBe(createCount);
+    });
+  });
+
   describe("Order Management model", () => {
     const yaml = loadFixture("orderManagement.orm.yaml");
     const model = serializer.deserialize(yaml);
