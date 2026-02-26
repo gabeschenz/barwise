@@ -1,0 +1,101 @@
+orm_version: "1.0"
+
+model:
+  name: "Order Management with Populations"
+  domain_context: "ecommerce"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+
+    - id: "ot-order"
+      name: "Order"
+      kind: "entity"
+      reference_mode: "order_number"
+
+    - id: "ot-product"
+      name: "Product"
+      kind: "entity"
+      reference_mode: "product_code"
+
+    - id: "ot-rating"
+      name: "Rating"
+      kind: "value"
+      value_constraint:
+        values: ["A", "B", "C", "D", "F"]
+
+  fact_types:
+    - id: "ft-customer-places-order"
+      name: "Customer places Order"
+      roles:
+        - id: "r-cust-places"
+          player: "ot-customer"
+          role_name: "places"
+        - id: "r-order-placed-by"
+          player: "ot-order"
+          role_name: "is placed by"
+      readings:
+        - "{0} places {1}"
+        - "{1} is placed by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-placed-by"]
+        - type: "mandatory"
+          role: "r-order-placed-by"
+
+    - id: "ft-customer-rates-product"
+      name: "Customer rates Product"
+      roles:
+        - id: "r-cust-rates"
+          player: "ot-customer"
+          role_name: "rates"
+        - id: "r-product-rated"
+          player: "ot-product"
+          role_name: "is rated by"
+      readings:
+        - "{0} rates {1}"
+        - "{1} is rated by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-cust-rates", "r-product-rated"]
+        - type: "frequency"
+          role: "r-cust-rates"
+          min: 1
+          max: 3
+
+  populations:
+    - id: "pop-orders"
+      fact_type: "ft-customer-places-order"
+      description: "Sample customer orders"
+      instances:
+        - id: "inst-1"
+          values:
+            r-cust-places: "C001"
+            r-order-placed-by: "O100"
+        - id: "inst-2"
+          values:
+            r-cust-places: "C001"
+            r-order-placed-by: "O101"
+        - id: "inst-3"
+          values:
+            r-cust-places: "C002"
+            r-order-placed-by: "O102"
+
+    - id: "pop-ratings"
+      fact_type: "ft-customer-rates-product"
+      description: "Sample product ratings"
+      instances:
+        - id: "inst-r1"
+          values:
+            r-cust-rates: "C001"
+            r-product-rated: "P001"
+        - id: "inst-r2"
+          values:
+            r-cust-rates: "C001"
+            r-product-rated: "P002"
+        - id: "inst-r3"
+          values:
+            r-cust-rates: "C002"
+            r-product-rated: "P001"

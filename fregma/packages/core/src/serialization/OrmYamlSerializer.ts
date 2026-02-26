@@ -4,6 +4,7 @@ import type { ObjectType } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import type { Population, FactInstance } from "../model/Population.js";
 import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
 import type { Constraint, RingType } from "../model/Constraint.js";
@@ -26,6 +27,7 @@ interface OrmYamlDocument {
     fact_types?: OrmYamlFactType[];
     subtype_facts?: OrmYamlSubtypeFact[];
     objectified_fact_types?: OrmYamlObjectifiedFactType[];
+    populations?: OrmYamlPopulation[];
     definitions?: OrmYamlDefinition[];
   };
 }
@@ -79,6 +81,18 @@ interface OrmYamlObjectifiedFactType {
   id: string;
   fact_type: string;
   object_type: string;
+}
+
+interface OrmYamlPopulation {
+  id: string;
+  fact_type: string;
+  description?: string;
+  instances: OrmYamlFactInstance[];
+}
+
+interface OrmYamlFactInstance {
+  id: string;
+  values: Record<string, string>;
 }
 
 interface OrmYamlDefinition {
@@ -187,6 +201,13 @@ export class OrmYamlSerializer {
     if (objectifiedFactTypes.length > 0) {
       doc.model.objectified_fact_types = objectifiedFactTypes.map((oft) =>
         this.serializeObjectifiedFactType(oft),
+      );
+    }
+
+    const populations = model.populations;
+    if (populations.length > 0) {
+      doc.model.populations = populations.map((p) =>
+        this.serializePopulation(p),
       );
     }
 
@@ -309,6 +330,25 @@ export class OrmYamlSerializer {
     };
   }
 
+  private serializePopulation(pop: Population): OrmYamlPopulation {
+    const result: OrmYamlPopulation = {
+      id: pop.id,
+      fact_type: pop.factTypeId,
+      instances: pop.instances.map((inst) => this.serializeFactInstance(inst)),
+    };
+    if (pop.description) {
+      result.description = pop.description;
+    }
+    return result;
+  }
+
+  private serializeFactInstance(inst: FactInstance): OrmYamlFactInstance {
+    return {
+      id: inst.id,
+      values: { ...inst.values },
+    };
+  }
+
   private serializeDefinition(d: Definition): OrmYamlDefinition {
     const result: OrmYamlDefinition = {
       term: d.term,
@@ -380,6 +420,21 @@ export class OrmYamlSerializer {
         factTypeId: oftDoc.fact_type,
         objectTypeId: oftDoc.object_type,
       });
+    }
+
+    // Add populations (after fact types, since they reference them).
+    for (const popDoc of doc.model.populations ?? []) {
+      const pop = model.addPopulation({
+        id: popDoc.id,
+        factTypeId: popDoc.fact_type,
+        description: popDoc.description,
+      });
+      for (const instDoc of popDoc.instances) {
+        pop.addInstance({
+          id: instDoc.id,
+          values: instDoc.values,
+        });
+      }
     }
 
     // Add definitions.

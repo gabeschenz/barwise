@@ -1,6 +1,7 @@
 import { OrmModel } from "../../src/model/OrmModel.js";
 import type { ObjectTypeKind, ValueConstraintDef } from "../../src/model/ObjectType.js";
 import type { Constraint } from "../../src/model/Constraint.js";
+import type { FactInstanceConfig } from "../../src/model/Population.js";
 
 /**
  * Shorthand options for adding an object type via the builder.
@@ -75,6 +76,11 @@ export class ModelBuilder {
   private readonly objectifiedFactTypeConfigs: Array<{
     factTypeName: string;
     objectTypeName: string;
+  }> = [];
+  private readonly populationConfigs: Array<{
+    factTypeName: string;
+    description?: string;
+    instances: FactInstanceConfig[];
   }> = [];
   private readonly definitionConfigs: Array<{
     term: string;
@@ -159,6 +165,21 @@ export class ModelBuilder {
     objectTypeName: string,
   ): this {
     this.objectifiedFactTypeConfigs.push({ factTypeName, objectTypeName });
+    return this;
+  }
+
+  /**
+   * Add a population with sample instances for a fact type.
+   *
+   * Instance values use the builder's deterministic role IDs:
+   * "FactTypeName::role1" and "FactTypeName::role2".
+   */
+  withPopulation(
+    factTypeName: string,
+    instances: FactInstanceConfig[],
+    description?: string,
+  ): this {
+    this.populationConfigs.push({ factTypeName, instances, description });
     return this;
   }
 
@@ -331,6 +352,24 @@ export class ModelBuilder {
         factTypeId: factType.id,
         objectTypeId: objectType.id,
       });
+    }
+
+    // Add populations (which reference fact types by name).
+    for (const { factTypeName, instances, description } of this.populationConfigs) {
+      const factType = model.getFactTypeByName(factTypeName);
+      if (!factType) {
+        throw new Error(
+          `ModelBuilder: fact type "${factTypeName}" not found ` +
+            `when building population.`,
+        );
+      }
+      const pop = model.addPopulation({
+        factTypeId: factType.id,
+        description,
+      });
+      for (const inst of instances) {
+        pop.addInstance(inst);
+      }
     }
 
     // Add definitions.
