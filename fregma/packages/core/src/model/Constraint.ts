@@ -22,6 +22,15 @@ export interface InternalUniquenessConstraint {
   readonly type: "internal_uniqueness";
   /** Role ids within the same fact type. */
   readonly roleIds: readonly string[];
+  /**
+   * True if this uniqueness constraint is the preferred identifier for
+   * the entity type that plays the constrained role(s). The preferred
+   * identifier determines the primary key in relational mapping.
+   *
+   * At most one internal uniqueness constraint per entity type should
+   * be marked as preferred.
+   */
+  readonly isPreferred?: boolean;
 }
 
 /**

@@ -274,6 +274,66 @@ describe("NormaToOrmMapper", () => {
       }
     });
 
+    it("maps isPreferred from uniqueness constraint", () => {
+      const uc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc1",
+        name: "UC1",
+        isInternal: true,
+        isPreferred: true,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_uc1"],
+          }),
+        ],
+        constraints: [uc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const iuc = ft.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(iuc).toBeDefined();
+      if (iuc?.type === "internal_uniqueness") {
+        expect(iuc.isPreferred).toBe(true);
+      }
+    });
+
+    it("does not set isPreferred when constraint is not preferred", () => {
+      const uc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc1",
+        name: "UC1",
+        isInternal: true,
+        isPreferred: false,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_uc1"],
+          }),
+        ],
+        constraints: [uc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const iuc = ft.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(iuc).toBeDefined();
+      if (iuc?.type === "internal_uniqueness") {
+        expect(iuc.isPreferred).toBeUndefined();
+      }
+    });
+
     it("maps simple mandatory constraint from internalConstraintRefs", () => {
       const mc: NormaConstraint = {
         type: "mandatory",

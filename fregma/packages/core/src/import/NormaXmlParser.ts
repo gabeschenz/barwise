@@ -448,7 +448,9 @@ function parseConstraints(
       id: attr(uc, "id") ?? "",
       name: attr(uc, "Name") ?? "",
       isInternal: attr(uc, "IsInternal") === "true",
-      isPreferred: attr(uc, "IsPreferred") === "true",
+      isPreferred:
+        attr(uc, "IsPreferred") === "true" ||
+        asArray(uc["PreferredIdentifierFor"]).length > 0,
       roleRefs,
     });
   }

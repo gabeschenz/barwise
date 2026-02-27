@@ -179,6 +179,10 @@
               "items": { "type": "string", "minLength": 1 },
               "minItems": 1,
               "description": "Role ids within the same fact type."
+            },
+            "is_preferred": {
+              "type": "boolean",
+              "description": "True if this uniqueness constraint is the preferred identifier for the entity type."
             }
           },
           "required": ["type", "roles"],

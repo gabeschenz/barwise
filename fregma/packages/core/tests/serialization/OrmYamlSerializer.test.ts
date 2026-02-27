@@ -110,6 +110,46 @@ describe("OrmYamlSerializer", () => {
       expect(yaml).not.toContain("data_type");
     });
 
+    it("serializes isPreferred on internal_uniqueness constraint", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addFactType({
+        name: "Customer has id",
+        roles: [{ id: "r1", name: "has", playerId: customer.id }],
+        readings: ["{0} has id"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"], isPreferred: true },
+        ],
+      });
+
+      const yaml = serializer.serialize(model);
+      expect(yaml).toContain("is_preferred: true");
+    });
+
+    it("omits is_preferred when false or undefined", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addFactType({
+        name: "Customer has id",
+        roles: [{ id: "r1", name: "has", playerId: customer.id }],
+        readings: ["{0} has id"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      const yaml = serializer.serialize(model);
+      expect(yaml).not.toContain("is_preferred");
+    });
+
     it("serializes fact types with roles, readings, and constraints", () => {
       const model = new ModelBuilder("Test")
         .withEntityType("Customer", { referenceMode: "customer_id" })
@@ -270,6 +310,77 @@ model:
       expect(ot.dataType!.name).toBe("decimal");
       expect(ot.dataType!.length).toBe(10);
       expect(ot.dataType!.scale).toBe(2);
+    });
+
+    it("deserializes isPreferred on internal_uniqueness constraint", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+  fact_types:
+    - id: "ft-001"
+      name: "Customer has id"
+      roles:
+        - id: "r-001"
+          player: "ot-001"
+          role_name: "has"
+      readings:
+        - "{0} has id"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-001"]
+          is_preferred: true
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ft = model.factTypes[0]!;
+      const uc = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      );
+      expect(uc).toBeDefined();
+      if (uc?.type === "internal_uniqueness") {
+        expect(uc.isPreferred).toBe(true);
+      }
+    });
+
+    it("deserializes internal_uniqueness without is_preferred", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+  fact_types:
+    - id: "ft-001"
+      name: "Customer has id"
+      roles:
+        - id: "r-001"
+          player: "ot-001"
+          role_name: "has"
+      readings:
+        - "{0} has id"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-001"]
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ft = model.factTypes[0]!;
+      const uc = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      );
+      expect(uc).toBeDefined();
+      if (uc?.type === "internal_uniqueness") {
+        expect(uc.isPreferred).toBeUndefined();
+      }
     });
 
     it("deserializes fact types with roles, readings, and constraints", () => {

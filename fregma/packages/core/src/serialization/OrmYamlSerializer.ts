@@ -59,7 +59,7 @@ interface OrmYamlRole {
 }
 
 type OrmYamlConstraint =
-  | { type: "internal_uniqueness"; roles: string[] }
+  | { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }
   | { type: "mandatory"; role: string }
   | { type: "external_uniqueness"; roles: string[] }
   | { type: "value_constraint"; role?: string; values: string[] }
@@ -282,8 +282,13 @@ export class OrmYamlSerializer {
 
   private serializeConstraint(c: Constraint): OrmYamlConstraint {
     switch (c.type) {
-      case "internal_uniqueness":
-        return { type: "internal_uniqueness", roles: [...c.roleIds] };
+      case "internal_uniqueness": {
+        const iuc: OrmYamlConstraint = { type: "internal_uniqueness", roles: [...c.roleIds] };
+        if (c.isPreferred) {
+          (iuc as { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }).is_preferred = true;
+        }
+        return iuc;
+      }
       case "mandatory":
         return { type: "mandatory", role: c.roleId };
       case "external_uniqueness":
@@ -465,8 +470,13 @@ export class OrmYamlSerializer {
 
   private deserializeConstraint(c: OrmYamlConstraint): Constraint {
     switch (c.type) {
-      case "internal_uniqueness":
-        return { type: "internal_uniqueness", roleIds: c.roles };
+      case "internal_uniqueness": {
+        const result: Constraint = { type: "internal_uniqueness", roleIds: c.roles };
+        if (c.is_preferred) {
+          return { ...result, isPreferred: true } as Constraint;
+        }
+        return result;
+      }
       case "mandatory":
         return { type: "mandatory", roleId: c.role };
       case "external_uniqueness":

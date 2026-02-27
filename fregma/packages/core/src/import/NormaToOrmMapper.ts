@@ -339,10 +339,14 @@ function mapUniquenessConstraint(
   if (relevantRoles.length === 0) return undefined;
 
   if (nc.isInternal) {
-    return {
+    const result: Constraint = {
       type: "internal_uniqueness",
       roleIds: relevantRoles,
     };
+    if (nc.isPreferred) {
+      return { ...result, isPreferred: true } as Constraint;
+    }
+    return result;
   } else {
     return {
       type: "external_uniqueness",
