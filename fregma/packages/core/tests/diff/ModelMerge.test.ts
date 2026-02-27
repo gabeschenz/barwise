@@ -430,4 +430,55 @@ describe("mergeModels", () => {
     expect(merged.factTypes.map((f) => f.name)).toEqual(["Person has Email"]);
     expect(merged.definitions.map((d) => d.term)).toEqual(["Person"]);
   });
+
+  it("preserves dataType on unchanged object types", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Price", { dataType: { name: "decimal", length: 10, scale: 2 } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Price", { dataType: { name: "decimal", length: 10, scale: 2 } })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const merged = mergeModels(existing, incoming, diff.deltas, new Set());
+    const price = merged.getObjectTypeByName("Price")!;
+    expect(price.dataType).toBeDefined();
+    expect(price.dataType!.name).toBe("decimal");
+    expect(price.dataType!.length).toBe(10);
+    expect(price.dataType!.scale).toBe(2);
+  });
+
+  it("propagates dataType when accepting added object type", () => {
+    const existing = new ModelBuilder("Test").build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Amount", { dataType: { name: "money" } })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const allIndices = new Set(diff.deltas.map((_, i) => i));
+    const merged = mergeModels(existing, incoming, diff.deltas, allIndices);
+    const amount = merged.getObjectTypeByName("Amount")!;
+    expect(amount.dataType).toBeDefined();
+    expect(amount.dataType!.name).toBe("money");
+  });
+
+  it("takes incoming dataType when accepting modification", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Code", { dataType: { name: "text" } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Code", { dataType: { name: "text", length: 10 } })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const modifiedIdx = diff.deltas.findIndex(
+      (d) => d.name === "Code" && d.kind === "modified",
+    );
+    expect(modifiedIdx).toBeGreaterThanOrEqual(0);
+
+    const merged = mergeModels(existing, incoming, diff.deltas, new Set([modifiedIdx]));
+    const code = merged.getObjectTypeByName("Code")!;
+    expect(code.dataType).toBeDefined();
+    expect(code.dataType!.length).toBe(10);
+  });
 });

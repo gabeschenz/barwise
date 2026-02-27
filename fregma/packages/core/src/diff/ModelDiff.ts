@@ -10,7 +10,7 @@
  */
 
 import type { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType } from "../model/ObjectType.js";
+import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { Constraint } from "../model/Constraint.js";
 import type { Definition } from "../model/Definition.js";
@@ -235,6 +235,19 @@ function diffObjectType(
     changes.push("value constraint changed");
   }
 
+  // Data type comparison.
+  const aDt = a.dataType;
+  const bDt = b.dataType;
+  if (aDt && bDt) {
+    if (aDt.name !== bDt.name || aDt.length !== bDt.length || aDt.scale !== bDt.scale) {
+      changes.push(`data type: ${formatDataType(aDt)} -> ${formatDataType(bDt)}`);
+    }
+  } else if (aDt && !bDt) {
+    changes.push(`data type removed (was ${formatDataType(aDt)})`);
+  } else if (!aDt && bDt) {
+    changes.push(`data type added: ${formatDataType(bDt)}`);
+  }
+
   return changes;
 }
 
@@ -337,6 +350,15 @@ function diffConstraints(
   }
 
   return changes;
+}
+
+/** Format a DataTypeDef for human-readable diff output. */
+function formatDataType(dt: DataTypeDef): string {
+  let s = dt.name;
+  if (dt.length !== undefined) s += `(${dt.length}`;
+  if (dt.length !== undefined && dt.scale !== undefined) s += `,${dt.scale}`;
+  if (dt.length !== undefined) s += ")";
+  return s;
 }
 
 function diffDefinition(a: Definition, b: Definition): string[] {

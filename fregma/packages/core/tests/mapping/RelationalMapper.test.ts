@@ -536,6 +536,66 @@ describe("RelationalMapper", () => {
       expect(ddl).toContain("person_id INTEGER NOT NULL");
       expect(ddl).toContain("first_name VARCHAR(50) NOT NULL");
     });
+
+    it("uses isPreferred uniqueness constraint to determine PK type", () => {
+      // Person has both a Name (text) and a PersonCode (integer).
+      // Only PersonCode's fact type has isPreferred, so PK should be INTEGER.
+      const model = new OrmModel({ name: "Test" });
+      const person = model.addObjectType({
+        name: "Person",
+        kind: "entity",
+        referenceMode: "person_code",
+      });
+      const personName = model.addObjectType({
+        name: "Name",
+        kind: "value",
+        dataType: { name: "text", length: 80 },
+      });
+      const personCode = model.addObjectType({
+        name: "Person_code",
+        kind: "value",
+        dataType: { name: "integer" },
+      });
+
+      // Add Name fact type FIRST (without isPreferred) -- the heuristic
+      // would pick this one up if isPreferred were not checked.
+      model.addFactType({
+        name: "Person has Name",
+        roles: [
+          { id: "r1", name: "has", playerId: person.id },
+          { id: "r2", name: "is of", playerId: personName.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+          { type: "mandatory", roleId: "r1" },
+        ],
+      });
+
+      // Add PersonCode fact type SECOND with isPreferred.
+      model.addFactType({
+        name: "Person has code",
+        roles: [
+          { id: "r3", name: "has", playerId: person.id },
+          { id: "r4", name: "is of", playerId: personCode.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r3"], isPreferred: true },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "person")!;
+      const pkCol = table.columns.find((c) => c.name === "person_code")!;
+      const ddl = renderDdl(schema);
+
+      // PK should use INTEGER from isPreferred, not VARCHAR(80) from Name
+      expect(pkCol.dataType).toBe("INTEGER");
+      expect(ddl).toContain("person_code INTEGER NOT NULL");
+      // Name column should still be VARCHAR(80)
+      expect(ddl).toContain("name VARCHAR(80) NOT NULL");
+    });
   });
 
   describe("schema metadata", () => {

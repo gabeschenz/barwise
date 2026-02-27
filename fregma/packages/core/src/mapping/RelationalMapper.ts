@@ -578,30 +578,56 @@ function conceptualTypeToSql(dataType: DataTypeDef | undefined): string {
 /**
  * Resolve the SQL type for an entity type's primary key column.
  *
- * Walks the model to find the reference-mode value type for the entity
- * and returns its SQL type. Falls back to "TEXT" if no value type is found.
+ * Strategy:
+ * 1. If any fact type has an internal uniqueness constraint with
+ *    isPreferred: true that references a role played by this entity,
+ *    use the value type from that fact type.
+ * 2. Otherwise fall back to the first binary fact type linking this
+ *    entity to a value type (the reference-mode heuristic).
+ * 3. Falls back to "TEXT" if no value type is found.
  */
 function resolveEntityPkType(ot: ObjectType, model: OrmModel): string {
-  // Find a binary fact type where one role is played by this entity
-  // and the other by a value type (the reference-mode pattern).
+  // Pass 1: look for fact type with isPreferred uniqueness constraint.
   for (const ft of model.factTypes) {
     if (ft.arity !== 2) continue;
-    const role1 = ft.roles[0]!;
-    const role2 = ft.roles[1]!;
 
-    let valuePlayer: ObjectType | undefined;
+    const hasPreferred = ft.constraints.some(
+      (c) => c.type === "internal_uniqueness" && c.isPreferred,
+    );
+    if (!hasPreferred) continue;
 
-    if (role1.playerId === ot.id) {
-      const other = model.getObjectType(role2.playerId);
-      if (other?.kind === "value") valuePlayer = other;
-    } else if (role2.playerId === ot.id) {
-      const other = model.getObjectType(role1.playerId);
-      if (other?.kind === "value") valuePlayer = other;
-    }
-
-    if (valuePlayer) {
-      return conceptualTypeToSql(valuePlayer.dataType);
-    }
+    const vp = findValuePlayer(ft, ot, model);
+    if (vp) return conceptualTypeToSql(vp.dataType);
   }
+
+  // Pass 2: heuristic -- first binary fact type with a value type.
+  for (const ft of model.factTypes) {
+    if (ft.arity !== 2) continue;
+    const vp = findValuePlayer(ft, ot, model);
+    if (vp) return conceptualTypeToSql(vp.dataType);
+  }
+
   return "TEXT";
+}
+
+/**
+ * Given a binary fact type and an entity, return the value type on
+ * the other side of the relationship (if any).
+ */
+function findValuePlayer(
+  ft: { roles: readonly { playerId: string }[] },
+  ot: ObjectType,
+  model: OrmModel,
+): ObjectType | undefined {
+  const role1 = ft.roles[0]!;
+  const role2 = ft.roles[1]!;
+
+  if (role1.playerId === ot.id) {
+    const other = model.getObjectType(role2.playerId);
+    if (other?.kind === "value") return other;
+  } else if (role2.playerId === ot.id) {
+    const other = model.getObjectType(role1.playerId);
+    if (other?.kind === "value") return other;
+  }
+  return undefined;
 }

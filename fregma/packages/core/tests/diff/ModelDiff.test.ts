@@ -380,6 +380,61 @@ describe("diffModels", () => {
     expect(delta!.changes).toContain('context: "CRM" -> "Sales"');
   });
 
+  it("detects added data type on value type", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Price")
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Price", { dataType: { name: "decimal", length: 10, scale: 2 } })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Price");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("data type added"))).toBe(true);
+  });
+
+  it("detects changed data type on value type", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Age", { dataType: { name: "text" } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Age", { dataType: { name: "integer" } })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Age");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("data type: text -> integer"))).toBe(true);
+  });
+
+  it("detects removed data type on value type", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Code", { dataType: { name: "text", length: 10 } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Code")
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Code");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("data type removed"))).toBe(true);
+  });
+
+  it("reports no change when data types are identical", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Price", { dataType: { name: "decimal", length: 10, scale: 2 } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Price", { dataType: { name: "decimal", length: 10, scale: 2 } })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Price");
+    expect(delta!.kind).toBe("unchanged");
+  });
+
   it("detects modified definition text", () => {
     const existing = baseModel();
     const incoming = new ModelBuilder("Test")
