@@ -228,3 +228,7 @@ export type {
   ReportCategory,
 } from "./import/DbtImportReport.js";
 export { ReportBuilder } from "./import/DbtImportReport.js";
+export {
+  annotateDbtYaml,
+  type AnnotationOptions,
+} from "./import/DbtYamlAnnotator.js";

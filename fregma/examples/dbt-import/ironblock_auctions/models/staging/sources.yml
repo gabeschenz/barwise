@@ -1,0 +1,96 @@
+version: 2
+
+sources:
+  - name: ironblock_raw
+    description: Raw operational database tables for IronBlock Auctions.
+    tables:
+      - name: raw_consignors
+        columns:
+          - name: consignor_id
+            data_type: integer
+          - name: consignor_name
+            data_type: varchar(200)
+          - name: consignor_type
+            data_type: varchar(20)
+          - name: registration_date
+            data_type: date
+          - name: country_code
+            data_type: varchar(2)
+          - name: is_verified
+            data_type: boolean
+      - name: raw_bidders
+        columns:
+          - name: bidder_id
+            data_type: integer
+          - name: bidder_name
+            data_type: varchar(200)
+          - name: email
+            data_type: varchar(255)
+          - name: bidder_tier
+            data_type: varchar(20)
+          - name: credit_limit
+            data_type: "decimal(12,2)"
+          - name: country_code
+            data_type: varchar(2)
+          - name: registered_at
+            data_type: timestamp
+      - name: raw_assets
+        columns:
+          - name: asset_id
+            data_type: integer
+          - name: consignor_id
+            data_type: integer
+          - name: asset_title
+            data_type: varchar(500)
+          - name: category
+            data_type: varchar(30)
+          - name: year_manufactured
+            data_type: integer
+          - name: manufacturer
+            data_type: varchar(100)
+          - name: model_number
+            data_type: varchar(100)
+          - name: serial_number
+            data_type: varchar(100)
+          - name: hours_meter
+            data_type: integer
+          - name: condition_rating
+            data_type: varchar(20)
+          - name: reserve_price
+            data_type: "decimal(12,2)"
+          - name: location_yard
+            data_type: varchar(100)
+      - name: raw_auctions
+        columns:
+          - name: auction_id
+            data_type: integer
+          - name: auction_name
+            data_type: varchar(300)
+          - name: auction_type
+            data_type: varchar(20)
+          - name: site_name
+            data_type: varchar(200)
+          - name: start_date
+            data_type: date
+          - name: end_date
+            data_type: date
+          - name: auction_status
+            data_type: varchar(20)
+          - name: currency_code
+            data_type: varchar(3)
+      - name: raw_bids
+        columns:
+          - name: bid_id
+            data_type: integer
+          - name: lot_id
+            data_type: integer
+          - name: bidder_id
+            data_type: integer
+          - name: bid_amount
+            data_type: "decimal(12,2)"
+          - name: bid_time
+            data_type: timestamp
+          - name: bid_channel
+            data_type: varchar(20)
+          - name: is_winning_bid
+            data_type: boolean
