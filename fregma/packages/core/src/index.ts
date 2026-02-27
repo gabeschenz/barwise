@@ -149,3 +149,30 @@ export {
 export { FactTypeVerbalizer } from "./verbalization/FactTypeVerbalizer.js";
 export { ConstraintVerbalizer } from "./verbalization/ConstraintVerbalizer.js";
 export { Verbalizer } from "./verbalization/Verbalizer.js";
+
+// Import (NORMA .orm XML)
+export {
+  importNormaXml,
+  NormaImportError,
+} from "./import/NormaXmlImporter.js";
+export {
+  parseNormaXml,
+  NormaParseError,
+} from "./import/NormaXmlParser.js";
+export {
+  mapNormaToOrm,
+  NormaMappingError,
+} from "./import/NormaToOrmMapper.js";
+export type {
+  NormaDocument,
+  NormaEntityType,
+  NormaValueType,
+  NormaObjectifiedType,
+  NormaFactType,
+  NormaRole,
+  NormaReadingOrder,
+  NormaReading,
+  NormaSubtypeFact,
+  NormaConstraint,
+  NormaRingType,
+} from "./import/NormaXmlTypes.js";
