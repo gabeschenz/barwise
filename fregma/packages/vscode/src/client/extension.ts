@@ -10,7 +10,8 @@ import { NewProjectCommand } from "../commands/NewProjectCommand.js";
 import { ValidateModelCommand } from "../commands/ValidateModelCommand.js";
 import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
 import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
-import { ImportTranscriptCommand } from "../commands/ImportTranscriptCommand.js";
+import { ImportCommand } from "../commands/ImportCommand.js";
+import { ExportCommand } from "../commands/ExportCommand.js";
 
 let client: LanguageClient;
 
@@ -63,8 +64,12 @@ export function activate(context: vscode.ExtensionContext): void {
       () => new ShowDiagramCommand(context.extensionUri).execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.importTranscript",
-      () => new ImportTranscriptCommand().execute(),
+      "orm.import",
+      () => new ImportCommand().execute(),
+    ),
+    vscode.commands.registerCommand(
+      "orm.export",
+      () => new ExportCommand().execute(),
     ),
   );
 }

@@ -42,8 +42,13 @@
         "category": "ORM"
       },
       {
-        "command": "orm.importTranscript",
-        "title": "Import Transcript",
+        "command": "orm.import",
+        "title": "Import...",
+        "category": "ORM"
+      },
+      {
+        "command": "orm.export",
+        "title": "Export...",
         "category": "ORM"
       }
     ],
