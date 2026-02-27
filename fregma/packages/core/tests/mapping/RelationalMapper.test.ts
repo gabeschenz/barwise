@@ -15,6 +15,7 @@ import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
+import { renderDdl } from "../../src/mapping/renderers/ddl.js";
 
 const mapper = new RelationalMapper();
 
@@ -219,6 +220,321 @@ describe("RelationalMapper", () => {
       expect(col).toBeDefined();
       expect(col!.dataType).toBe("BOOLEAN");
       expect(col!.nullable).toBe(true);
+    });
+  });
+
+  describe("data type resolution", () => {
+    it("resolves entity PK type from reference-mode value type", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addObjectType({
+        name: "Customer_id",
+        kind: "value",
+        dataType: { name: "auto_counter" },
+      });
+      // Reference-mode fact type linking Customer to Customer_id.
+      model.addFactType({
+        name: "Customer has id",
+        roles: [
+          { id: "r1", name: "has", playerId: customer.id },
+          {
+            id: "r2",
+            name: "is of",
+            playerId: model.getObjectTypeByName("Customer_id")!.id,
+          },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "customer")!;
+      expect(table.columns[0]!.dataType).toBe("INTEGER");
+    });
+
+    it("falls back to TEXT when entity has no reference-mode value type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Widget", { referenceMode: "widget_id" })
+        .build();
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "widget")!;
+      // No value type in the model, so PK defaults to TEXT.
+      expect(table.columns[0]!.dataType).toBe("TEXT");
+    });
+
+    it("maps text with length to VARCHAR(n)", () => {
+      const model = new OrmModel({ name: "Test" });
+      const person = model.addObjectType({
+        name: "Person",
+        kind: "entity",
+        referenceMode: "person_id",
+      });
+      const firstName = model.addObjectType({
+        name: "FirstName",
+        kind: "value",
+        dataType: { name: "text", length: 30 },
+      });
+      model.addFactType({
+        name: "Person has FirstName",
+        roles: [
+          { id: "r1", name: "has", playerId: person.id },
+          { id: "r2", name: "is of", playerId: firstName.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "person")!;
+      const col = table.columns.find((c) => c.name === "first_name")!;
+      expect(col.dataType).toBe("VARCHAR(30)");
+    });
+
+    it("maps text without length to TEXT", () => {
+      const model = new OrmModel({ name: "Test" });
+      const person = model.addObjectType({
+        name: "Person",
+        kind: "entity",
+        referenceMode: "person_id",
+      });
+      const note = model.addObjectType({
+        name: "Note",
+        kind: "value",
+        dataType: { name: "text" },
+      });
+      model.addFactType({
+        name: "Person has Note",
+        roles: [
+          { id: "r1", name: "has", playerId: person.id },
+          { id: "r2", name: "is of", playerId: note.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "person")!;
+      const col = table.columns.find((c) => c.name === "note")!;
+      expect(col.dataType).toBe("TEXT");
+    });
+
+    it("maps decimal with precision and scale", () => {
+      const model = new OrmModel({ name: "Test" });
+      const product = model.addObjectType({
+        name: "Product",
+        kind: "entity",
+        referenceMode: "product_id",
+      });
+      const price = model.addObjectType({
+        name: "Price",
+        kind: "value",
+        dataType: { name: "decimal", length: 10, scale: 2 },
+      });
+      model.addFactType({
+        name: "Product has Price",
+        roles: [
+          { id: "r1", name: "has", playerId: product.id },
+          { id: "r2", name: "is of", playerId: price.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "product")!;
+      const col = table.columns.find((c) => c.name === "price")!;
+      expect(col.dataType).toBe("DECIMAL(10,2)");
+    });
+
+    it("maps boolean, date, and uuid types correctly", () => {
+      const model = new OrmModel({ name: "Test" });
+      const person = model.addObjectType({
+        name: "Person",
+        kind: "entity",
+        referenceMode: "person_id",
+      });
+      const active = model.addObjectType({
+        name: "IsActive",
+        kind: "value",
+        dataType: { name: "boolean" },
+      });
+      const dob = model.addObjectType({
+        name: "BirthDate",
+        kind: "value",
+        dataType: { name: "date" },
+      });
+      const token = model.addObjectType({
+        name: "Token",
+        kind: "value",
+        dataType: { name: "uuid" },
+      });
+      model.addFactType({
+        name: "Person has IsActive",
+        roles: [
+          { id: "r1", name: "has", playerId: person.id },
+          { id: "r2", name: "is of", playerId: active.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [{ type: "internal_uniqueness", roleIds: ["r1"] }],
+      });
+      model.addFactType({
+        name: "Person has BirthDate",
+        roles: [
+          { id: "r3", name: "has", playerId: person.id },
+          { id: "r4", name: "is of", playerId: dob.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [{ type: "internal_uniqueness", roleIds: ["r3"] }],
+      });
+      model.addFactType({
+        name: "Person has Token",
+        roles: [
+          { id: "r5", name: "has", playerId: person.id },
+          { id: "r6", name: "is of", playerId: token.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [{ type: "internal_uniqueness", roleIds: ["r5"] }],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "person")!;
+      expect(table.columns.find((c) => c.name === "is_active")!.dataType).toBe("BOOLEAN");
+      expect(table.columns.find((c) => c.name === "birth_date")!.dataType).toBe("DATE");
+      expect(table.columns.find((c) => c.name === "token")!.dataType).toBe("UUID");
+    });
+
+    it("FK column type matches referenced PK type", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      const customerId = model.addObjectType({
+        name: "Customer_id",
+        kind: "value",
+        dataType: { name: "auto_counter" },
+      });
+      const order = model.addObjectType({
+        name: "Order",
+        kind: "entity",
+        referenceMode: "order_number",
+      });
+      // Reference-mode fact type for Customer.
+      model.addFactType({
+        name: "Customer has id",
+        roles: [
+          { id: "r1", name: "has", playerId: customer.id },
+          { id: "r2", name: "is of", playerId: customerId.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [],
+      });
+      // Binary fact type: Order -> Customer.
+      model.addFactType({
+        name: "Customer places Order",
+        roles: [
+          { id: "r3", name: "places", playerId: customer.id },
+          { id: "r4", name: "is placed by", playerId: order.id },
+        ],
+        readings: ["{0} places {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r4"] },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const orderTable = schema.tables.find((t) => t.name === "order")!;
+      const fkCol = orderTable.columns.find((c) => c.name === "customer_id")!;
+      // FK should be INTEGER (matching the auto_counter PK).
+      expect(fkCol.dataType).toBe("INTEGER");
+    });
+
+    it("maps money type to DECIMAL(19,2)", () => {
+      const model = new OrmModel({ name: "Test" });
+      const invoice = model.addObjectType({
+        name: "Invoice",
+        kind: "entity",
+        referenceMode: "invoice_id",
+      });
+      const amount = model.addObjectType({
+        name: "Amount",
+        kind: "value",
+        dataType: { name: "money" },
+      });
+      model.addFactType({
+        name: "Invoice has Amount",
+        roles: [
+          { id: "r1", name: "has", playerId: invoice.id },
+          { id: "r2", name: "is of", playerId: amount.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [{ type: "internal_uniqueness", roleIds: ["r1"] }],
+      });
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "invoice")!;
+      const col = table.columns.find((c) => c.name === "amount")!;
+      expect(col.dataType).toBe("DECIMAL(19,2)");
+    });
+  });
+
+  describe("data types in DDL rendering", () => {
+    it("renders parameterized types in DDL", () => {
+      const model = new OrmModel({ name: "Test" });
+      const person = model.addObjectType({
+        name: "Person",
+        kind: "entity",
+        referenceMode: "person_id",
+      });
+      const personId = model.addObjectType({
+        name: "Person_id",
+        kind: "value",
+        dataType: { name: "auto_counter" },
+      });
+      const firstName = model.addObjectType({
+        name: "FirstName",
+        kind: "value",
+        dataType: { name: "text", length: 50 },
+      });
+      model.addFactType({
+        name: "Person has id",
+        roles: [
+          { id: "r1", name: "has", playerId: person.id },
+          { id: "r2", name: "is of", playerId: personId.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [],
+      });
+      model.addFactType({
+        name: "Person has FirstName",
+        roles: [
+          { id: "r3", name: "has", playerId: person.id },
+          { id: "r4", name: "is of", playerId: firstName.id },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r3"] },
+          { type: "mandatory", roleId: "r3" },
+        ],
+      });
+
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+
+      expect(ddl).toContain("person_id INTEGER NOT NULL");
+      expect(ddl).toContain("first_name VARCHAR(50) NOT NULL");
     });
   });
 
