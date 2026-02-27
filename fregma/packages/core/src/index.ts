@@ -195,3 +195,36 @@ export type {
   NormaConstraint,
   NormaRingType,
 } from "./import/NormaXmlTypes.js";
+
+// Import (dbt project)
+export {
+  importDbtProject,
+  DbtImportError,
+  type DbtImportResult,
+} from "./import/DbtProjectImporter.js";
+export {
+  parseDbtSchema,
+  DbtParseError,
+} from "./import/DbtSchemaParser.js";
+export {
+  mapDbtToOrm,
+  DbtMappingError,
+  type DbtMapResult,
+} from "./import/DbtToOrmMapper.js";
+export type {
+  DbtProjectDocument,
+  DbtModel,
+  DbtColumn,
+  DbtSource,
+  DbtSourceTable,
+  DbtTest,
+  DbtStandardTest,
+  DbtCustomTest,
+} from "./import/DbtSchemaTypes.js";
+export type {
+  DbtImportReport,
+  ReportEntry,
+  ReportSeverity,
+  ReportCategory,
+} from "./import/DbtImportReport.js";
+export { ReportBuilder } from "./import/DbtImportReport.js";
