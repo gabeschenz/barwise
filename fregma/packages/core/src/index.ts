@@ -128,6 +128,21 @@ export {
 } from "./mapping/RelationalSchema.js";
 export { RelationalMapper } from "./mapping/RelationalMapper.js";
 export { renderDdl } from "./mapping/renderers/ddl.js";
+export {
+  renderDbt,
+  type DbtProject,
+  type DbtModelFile,
+  type DbtRenderOptions,
+} from "./mapping/renderers/dbt.js";
+export {
+  renderAvro,
+  avroSchemaToJson,
+  type AvroSchema,
+  type AvroSchemaSet,
+  type AvroField,
+  type AvroFieldType,
+  type AvroRenderOptions,
+} from "./mapping/renderers/avro.js";
 
 // Diff / Merge
 export {
