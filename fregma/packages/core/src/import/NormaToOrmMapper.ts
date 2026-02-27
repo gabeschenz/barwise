@@ -343,6 +343,10 @@ function mapMandatoryConstraint(
   nc: NormaMandatoryConstraint,
   factRoleIds: Set<string>,
 ): Constraint | undefined {
+  // NORMA auto-generates implied mandatory constraints for all played roles.
+  // These are not part of the user's model and must be excluded.
+  if (nc.isImplied) return undefined;
+
   if (nc.isSimple) {
     // Simple mandatory -> maps to mandatory role constraint.
     const roleId = nc.roleRefs.find((r) => factRoleIds.has(r));
@@ -461,8 +465,9 @@ function addSimpleMandatoryConstraints(
   }
 
   // Process unprocessed simple mandatory constraints.
+  // Skip implied constraints -- they are NORMA auto-generated.
   for (const nc of doc.constraints) {
-    if (nc.type !== "mandatory" || !nc.isSimple) continue;
+    if (nc.type !== "mandatory" || !nc.isSimple || nc.isImplied) continue;
     if (processedRefs.has(nc.id)) continue;
 
     // Find which fact type contains this role.

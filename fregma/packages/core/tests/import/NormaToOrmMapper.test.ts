@@ -26,6 +26,7 @@ function makeDoc(overrides?: Partial<NormaDocument>): NormaDocument {
     factTypes: [],
     subtypeFacts: [],
     constraints: [],
+    dataTypes: [],
     ...overrides,
   };
 }
@@ -65,8 +66,8 @@ function makeBinaryFactType(
     id,
     name,
     roles: [
-      { id: r1, name: "role1", playerRef: role1Player, isMandatory: false },
-      { id: r2, name: "role2", playerRef: role2Player, isMandatory: false },
+      { id: r1, name: "role1", playerRef: role1Player, isMandatory: false, multiplicity: "Unspecified" as const },
+      { id: r2, name: "role2", playerRef: role2Player, isMandatory: false, multiplicity: "Unspecified" as const },
     ],
     readingOrders: [
       {
@@ -279,6 +280,7 @@ describe("NormaToOrmMapper", () => {
         id: "_mc1",
         name: "MC1",
         isSimple: true,
+        isImplied: false,
         roleRefs: ["_ft1_r1"],
       };
       const doc = makeDoc({
@@ -390,6 +392,72 @@ describe("NormaToOrmMapper", () => {
         expect(subset.subsetRoleIds).toEqual(["_ft1_r1"]);
         expect(subset.supersetRoleIds).toEqual(["_ft2_r1"]);
       }
+    });
+
+    it("filters out implied mandatory constraints", () => {
+      const simpleMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc1",
+        name: "MC1",
+        isSimple: true,
+        isImplied: false,
+        roleRefs: ["_ft1_r1"],
+      };
+      const impliedMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc2",
+        name: "ImpliedMC",
+        isSimple: true,
+        isImplied: true,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_mc1", "_mc2"],
+          }),
+        ],
+        constraints: [simpleMc, impliedMc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const mandatories = ft.constraints.filter((c) => c.type === "mandatory");
+      // Only the non-implied one should be mapped.
+      expect(mandatories).toHaveLength(1);
+      if (mandatories[0]?.type === "mandatory") {
+        expect(mandatories[0].roleId).toBe("_ft1_r1");
+      }
+    });
+
+    it("filters out implied mandatory in addSimpleMandatoryConstraints path", () => {
+      // Implied mandatory NOT referenced by internalConstraintRefs
+      // but present in top-level constraints -- should still be filtered.
+      const impliedMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc_implied",
+        name: "ImpliedMC",
+        isSimple: true,
+        isImplied: true,
+        roleRefs: ["_ft1_r1"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2"),
+        ],
+        constraints: [impliedMc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const mandatories = ft.constraints.filter((c) => c.type === "mandatory");
+      expect(mandatories).toHaveLength(0);
     });
 
     it("maps value constraint on a role", () => {
@@ -551,6 +619,7 @@ describe("NormaToOrmMapper", () => {
         id: "_mc1",
         name: "MC1",
         isSimple: true,
+        isImplied: false,
         roleRefs: ["_ft1_r2"],
       };
       const doc = makeDoc({

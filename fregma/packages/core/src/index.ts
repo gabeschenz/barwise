@@ -165,11 +165,13 @@ export {
 } from "./import/NormaToOrmMapper.js";
 export type {
   NormaDocument,
+  NormaDataType,
   NormaEntityType,
   NormaValueType,
   NormaObjectifiedType,
   NormaFactType,
   NormaRole,
+  NormaMultiplicity,
   NormaReadingOrder,
   NormaReading,
   NormaSubtypeFact,
