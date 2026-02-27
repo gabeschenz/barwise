@@ -5,6 +5,8 @@ export {
   type ObjectTypeKind,
   type ObjectTypeConfig,
   type ValueConstraintDef,
+  type ConceptualDataTypeName,
+  type DataTypeDef,
 } from "./model/ObjectType.js";
 export { Role, type RoleConfig } from "./model/Role.js";
 export {

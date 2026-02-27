@@ -12,6 +12,10 @@ import { OrmModel } from "../model/OrmModel.js";
 import type { Constraint } from "../model/Constraint.js";
 import type { RoleConfig } from "../model/Role.js";
 import type {
+  ConceptualDataTypeName,
+  DataTypeDef,
+} from "../model/ObjectType.js";
+import type {
   NormaDocument,
   NormaConstraint,
   NormaUniquenessConstraint,
@@ -23,6 +27,7 @@ import type {
   NormaEqualityConstraint,
   NormaRingConstraint,
   NormaFactType,
+  NormaDataType,
 } from "./NormaXmlTypes.js";
 
 /**
@@ -59,6 +64,12 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
   // Fact type ids: NORMA fact id -> Fregma fact id.
   const factTypeIdMap = new Map<string, string>();
 
+  // Build a lookup from NORMA data type id to NormaDataType.
+  const dataTypeById = new Map<string, NormaDataType>();
+  for (const dt of doc.dataTypes) {
+    dataTypeById.set(dt.id, dt);
+  }
+
   // ---- Phase 1: Object Types ----
 
   // Entity types from both EntityType and ObjectifiedType elements.
@@ -82,6 +93,7 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
         vt.valueConstraint && vt.valueConstraint.values.length > 0
           ? { values: vt.valueConstraint.values }
           : undefined,
+      dataType: resolveDataType(vt.dataTypeRef, vt.dataTypeLength, vt.dataTypeScale, dataTypeById),
     });
     objectTypeIdMap.set(vt.id, ot.id);
   }
@@ -492,6 +504,84 @@ function addSimpleMandatoryConstraints(
       }
     }
   }
+}
+
+// ---- Data Type Resolution ----
+
+/**
+ * Maps NORMA data type kind strings (from dataTypeTagToKind in the parser)
+ * to portable ConceptualDataTypeName values.
+ *
+ * The NORMA kinds use snake_case derived from the XML tag name (e.g.
+ * "variable_length_text" from VariableLengthTextDataType). This table
+ * normalizes them to the Fregma conceptual type vocabulary.
+ */
+const normaKindToConceptual: Record<string, ConceptualDataTypeName> = {
+  // Text types
+  variable_length_text: "text",
+  fixed_length_text: "text",
+  large_length_text: "text",
+
+  // Numeric types
+  signed_integer_numeric: "integer",
+  unsigned_integer_numeric: "integer",
+  signed_small_integer_numeric: "integer",
+  unsigned_small_integer_numeric: "integer",
+  signed_large_integer_numeric: "integer",
+  unsigned_large_integer_numeric: "integer",
+  auto_counter_numeric: "auto_counter",
+  decimal_numeric: "decimal",
+  money_numeric: "money",
+  floating_point_numeric: "float",
+  single_precision_floating_point_numeric: "float",
+  double_precision_floating_point_numeric: "float",
+
+  // Boolean
+  true_or_false_logical: "boolean",
+
+  // Date/time types
+  date_and_time_temporal: "datetime",
+  date_temporal: "date",
+  time_temporal: "time",
+  auto_timestamp_temporal: "timestamp",
+
+  // Binary types
+  variable_length_raw_data: "binary",
+  fixed_length_raw_data: "binary",
+  large_length_raw_data: "binary",
+  picture_raw_data: "binary",
+  ole_object_raw_data: "binary",
+
+  // UUID
+  unique_identifier: "uuid",
+
+  // Row counter (NORMA-specific, treat as auto_counter)
+  row_counter_numeric: "auto_counter",
+};
+
+/**
+ * Resolve a NORMA DataType reference into a portable DataTypeDef.
+ * Returns undefined if the reference is absent or unrecognized.
+ */
+function resolveDataType(
+  dataTypeRef: string | undefined,
+  length: number | undefined,
+  scale: number | undefined,
+  dataTypeById: Map<string, NormaDataType>,
+): DataTypeDef | undefined {
+  if (!dataTypeRef) return undefined;
+
+  const normaDt = dataTypeById.get(dataTypeRef);
+  if (!normaDt) return undefined;
+
+  const conceptualName = normaKindToConceptual[normaDt.kind] ?? "other";
+
+  const result: { name: ConceptualDataTypeName; length?: number; scale?: number } = {
+    name: conceptualName,
+  };
+  if (length !== undefined) result.length = length;
+  if (scale !== undefined) result.scale = scale;
+  return result;
 }
 
 /**

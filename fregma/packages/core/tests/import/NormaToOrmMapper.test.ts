@@ -604,6 +604,95 @@ describe("NormaToOrmMapper", () => {
     });
   });
 
+  describe("data type resolution", () => {
+    it("resolves NORMA data type to conceptual data type", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "FirstName",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+            dataTypeLength: 30,
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "variable_length_text" }],
+      });
+      const model = mapNormaToOrm(doc);
+      const ot = model.getObjectTypeByName("FirstName")!;
+      expect(ot.dataType).toBeDefined();
+      expect(ot.dataType!.name).toBe("text");
+      expect(ot.dataType!.length).toBe(30);
+    });
+
+    it("resolves auto_counter_numeric to auto_counter", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "PersonId",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "auto_counter_numeric" }],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("PersonId")!.dataType!.name).toBe("auto_counter");
+    });
+
+    it("resolves unknown data type kind to 'other'", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Weird",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "some_future_norma_type" }],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("Weird")!.dataType!.name).toBe("other");
+    });
+
+    it("returns undefined dataType when no dataTypeRef", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Name",
+            playedRoleRefs: [],
+          },
+        ],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("Name")!.dataType).toBeUndefined();
+    });
+
+    it("resolves decimal with length and scale", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Price",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+            dataTypeLength: 10,
+            dataTypeScale: 2,
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "decimal_numeric" }],
+      });
+      const model = mapNormaToOrm(doc);
+      const dt = model.getObjectTypeByName("Price")!.dataType!;
+      expect(dt.name).toBe("decimal");
+      expect(dt.length).toBe(10);
+      expect(dt.scale).toBe(2);
+    });
+  });
+
   describe("complete model mapping", () => {
     it("maps a model with entities, values, facts, and constraints", () => {
       const uc: NormaConstraint = {

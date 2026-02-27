@@ -1,6 +1,6 @@
 import { stringify, parse } from "yaml";
 import { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType } from "../model/ObjectType.js";
+import type { ObjectType, ConceptualDataTypeName } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
@@ -40,6 +40,7 @@ interface OrmYamlObjectType {
   definition?: string;
   source_context?: string;
   value_constraint?: { values: string[] };
+  data_type?: { name: string; length?: number; scale?: number };
 }
 
 interface OrmYamlFactType {
@@ -240,6 +241,12 @@ export class OrmYamlSerializer {
     if (ot.valueConstraint) {
       result.value_constraint = { values: [...ot.valueConstraint.values] };
     }
+    if (ot.dataType) {
+      const dt: { name: string; length?: number; scale?: number } = { name: ot.dataType.name };
+      if (ot.dataType.length !== undefined) dt.length = ot.dataType.length;
+      if (ot.dataType.scale !== undefined) dt.scale = ot.dataType.scale;
+      result.data_type = dt;
+    }
 
     return result;
   }
@@ -379,6 +386,13 @@ export class OrmYamlSerializer {
         sourceContext: otDoc.source_context,
         valueConstraint: otDoc.value_constraint
           ? { values: otDoc.value_constraint.values }
+          : undefined,
+        dataType: otDoc.data_type
+          ? {
+              name: otDoc.data_type.name as ConceptualDataTypeName,
+              length: otDoc.data_type.length,
+              scale: otDoc.data_type.scale,
+            }
           : undefined,
       });
     }

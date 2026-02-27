@@ -97,6 +97,10 @@
         "value_constraint": {
           "$ref": "#/definitions/value_constraint_def",
           "description": "Value constraint for value types."
+        },
+        "data_type": {
+          "$ref": "#/definitions/data_type_def",
+          "description": "Conceptual data type for value types (e.g. text, integer, decimal)."
         }
       },
       "if": {
@@ -116,6 +120,28 @@
           "items": { "type": "string" },
           "minItems": 1,
           "description": "Enumerated allowed values."
+        }
+      }
+    },
+    "data_type_def": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["text", "integer", "decimal", "money", "float", "boolean", "date", "time", "datetime", "timestamp", "auto_counter", "binary", "uuid", "other"],
+          "description": "Portable conceptual data type name."
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Length parameter (e.g. VARCHAR length)."
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Scale parameter (e.g. decimal scale)."
         }
       }
     },
