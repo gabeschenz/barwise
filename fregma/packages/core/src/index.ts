@@ -135,6 +135,11 @@ export {
   type DbtRenderOptions,
 } from "./mapping/renderers/dbt.js";
 export {
+  annotateDbtExport,
+  type ExportAnnotation,
+  type ExportAnnotationResult,
+} from "./mapping/renderers/DbtExportAnnotator.js";
+export {
   renderAvro,
   avroSchemaToJson,
   type AvroSchema,
