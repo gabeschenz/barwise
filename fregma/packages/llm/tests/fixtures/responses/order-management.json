@@ -66,6 +66,7 @@
       "name": "Name",
       "kind": "value",
       "definition": "A customer's display name.",
+      "data_type": { "name": "text", "length": 100 },
       "source_references": [
         {
           "lines": [15, 15],
@@ -204,6 +205,7 @@
       "roles": ["has"],
       "description": "Each Customer has at most one Name.",
       "confidence": "medium",
+      "is_preferred": true,
       "source_references": [
         {
           "lines": [15, 15],

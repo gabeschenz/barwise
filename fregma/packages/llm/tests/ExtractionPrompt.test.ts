@@ -52,6 +52,20 @@ describe("ExtractionPrompt", () => {
       expect(prompt).toContain("specialization");
       expect(prompt).toContain("provides_identification");
     });
+
+    it("includes data type guidance for value types", () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain("data_type");
+      expect(prompt).toContain("text");
+      expect(prompt).toContain("integer");
+      expect(prompt).toContain("decimal");
+    });
+
+    it("includes is_preferred guidance for uniqueness constraints", () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toContain("is_preferred");
+      expect(prompt).toContain("preferred identifier");
+    });
   });
 
   describe("buildUserMessage", () => {
@@ -97,6 +111,30 @@ describe("ExtractionPrompt", () => {
       expect(itemRequired).toContain("supertype");
       expect(itemRequired).toContain("description");
       expect(itemRequired).toContain("source_references");
+    });
+
+    it("includes data_type in object_types schema", () => {
+      const schema = buildResponseSchema();
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      const items = props["object_types"]?.items as Record<string, unknown>;
+      const itemProps = items.properties as Record<string, Record<string, unknown>>;
+      expect(itemProps["data_type"]).toBeDefined();
+      const dtProps = itemProps["data_type"]?.properties as Record<string, Record<string, unknown>>;
+      expect(dtProps["name"]?.enum).toContain("text");
+      expect(dtProps["name"]?.enum).toContain("integer");
+      expect(dtProps["name"]?.enum).toContain("decimal");
+      expect(dtProps["length"]).toBeDefined();
+      expect(dtProps["scale"]).toBeDefined();
+    });
+
+    it("includes is_preferred in inferred_constraints schema", () => {
+      const schema = buildResponseSchema();
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      const constraintItems = props["inferred_constraints"] as Record<string, unknown>;
+      const items = constraintItems.items as Record<string, unknown>;
+      const itemProps = items.properties as Record<string, Record<string, unknown>>;
+      expect(itemProps["is_preferred"]).toBeDefined();
+      expect(itemProps["is_preferred"]?.type).toBe("boolean");
     });
 
     it("defines constraint types enum", () => {

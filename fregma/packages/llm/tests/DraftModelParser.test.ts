@@ -107,6 +107,84 @@ describe("DraftModelParser", () => {
       expect(result.warnings.length).toBeGreaterThan(0);
     });
 
+    it("creates value types with data_type", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Amount",
+              kind: "value",
+              data_type: { name: "decimal", length: 10, scale: 2 },
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Amount");
+      expect(ot).toBeDefined();
+      expect(ot?.dataType).toEqual({ name: "decimal", length: 10, scale: 2 });
+    });
+
+    it("creates value types with simple data_type (no length/scale)", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "BirthDate",
+              kind: "value",
+              data_type: { name: "date" },
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("BirthDate");
+      expect(ot?.dataType).toEqual({ name: "date" });
+    });
+
+    it("ignores unrecognized data_type names with a warning", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Foo",
+              kind: "value",
+              data_type: { name: "varchar" } as never,
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Foo");
+      expect(ot?.dataType).toBeUndefined();
+      expect(result.warnings.some((w) => w.includes("unrecognized data type"))).toBe(true);
+    });
+
+    it("handles missing data_type gracefully", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Name",
+              kind: "value",
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Name");
+      expect(ot?.dataType).toBeUndefined();
+      expect(result.warnings).toHaveLength(0);
+    });
+
     it("records provenance for each object type", () => {
       const result = parseDraftModel(
         makeResponse({
@@ -331,6 +409,58 @@ describe("DraftModelParser", () => {
       expect(mc).toBeDefined();
 
       expect(result.constraintProvenance[0]?.applied).toBe(true);
+    });
+
+    it("applies internal uniqueness with is_preferred", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "internal_uniqueness",
+              fact_type: "Customer places Order",
+              roles: ["is placed by"],
+              description: "Each Order is placed by at most one Customer.",
+              confidence: "high",
+              is_preferred: true,
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      const ft = result.model.getFactTypeByName("Customer places Order");
+      const uc = ft?.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(uc).toBeDefined();
+      expect(uc?.type === "internal_uniqueness" && uc.isPreferred).toBe(true);
+      expect(result.constraintProvenance[0]?.applied).toBe(true);
+    });
+
+    it("omits isPreferred when is_preferred is not set", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "internal_uniqueness",
+              fact_type: "Customer places Order",
+              roles: ["is placed by"],
+              description: "Each Order is placed by at most one Customer.",
+              confidence: "high",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      const ft = result.model.getFactTypeByName("Customer places Order");
+      const uc = ft?.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(uc).toBeDefined();
+      expect(uc?.type === "internal_uniqueness" && uc.isPreferred).toBeFalsy();
     });
 
     it("records skip reason for constraints on missing fact types", () => {

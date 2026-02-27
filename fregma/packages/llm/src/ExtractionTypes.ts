@@ -34,6 +34,15 @@ export interface ExtractedObjectType {
   readonly reference_mode?: string;
   /** Enumerated values for value types. */
   readonly value_constraint?: { readonly values: readonly string[] };
+  /**
+   * Conceptual data type for value types (e.g. "text", "integer", "date").
+   * Optional length/scale for parameterized types like text(50) or decimal(10,2).
+   */
+  readonly data_type?: {
+    readonly name: string;
+    readonly length?: number;
+    readonly scale?: number;
+  };
   readonly source_references: readonly SourceReference[];
 }
 
@@ -69,6 +78,12 @@ export interface InferredConstraint {
   /** Human-readable description of the business rule. */
   readonly description: string;
   readonly confidence: "high" | "medium" | "low";
+  /**
+   * For internal_uniqueness constraints only: marks this as the entity's
+   * preferred identifier (primary reference scheme). At most one uniqueness
+   * constraint per entity should be marked as preferred.
+   */
+  readonly is_preferred?: boolean;
   readonly source_references: readonly SourceReference[];
 }
 
