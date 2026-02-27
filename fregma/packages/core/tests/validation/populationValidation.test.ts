@@ -6,6 +6,11 @@
  *   - Internal uniqueness constraint violations
  *   - Value constraint violations
  *   - Frequency constraint violations
+ *   - Exclusion constraint violations
+ *   - Exclusive-or constraint violations
+ *   - Subset constraint violations
+ *   - Equality constraint violations
+ *   - Ring constraint violations (all 8 ring types)
  *   - Valid populations produce no diagnostics
  */
 import { describe, it, expect } from "vitest";
@@ -322,4 +327,497 @@ describe("populationValidationRules", () => {
       expect(ruleIds).toContain("population/value-constraint-violation");
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Phase 2 constraint population validation
+  // -----------------------------------------------------------------------
+
+  describe("exclusion violations", () => {
+    it("reports when same value appears in multiple excluded roles", () => {
+      const model = makeSelfRefModel({
+        exclusion: { roleIds: ["r1", "r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // P001 appears in both r1 and r2 -- violates exclusion.
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const excl = diags.filter(
+        (d) => d.ruleId === "population/exclusion-violation",
+      );
+      expect(excl).toHaveLength(1);
+      expect(excl[0]!.message).toContain("P001");
+    });
+
+    it("passes when values in excluded roles are distinct", () => {
+      const model = makeSelfRefModel({
+        exclusion: { roleIds: ["r1", "r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ values: { r1: "P003", r2: "P004" } });
+
+      const diags = populationValidationRules(model);
+      const excl = diags.filter(
+        (d) => d.ruleId === "population/exclusion-violation",
+      );
+      expect(excl).toHaveLength(0);
+    });
+  });
+
+  describe("exclusive-or violations", () => {
+    it("reports when no excluded role is played", () => {
+      const model = makeSelfRefModel({
+        exclusiveOr: { roleIds: ["r1", "r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // Instance with no values for either role.
+      pop.addInstance({ id: "inst-1", values: {} });
+
+      const diags = populationValidationRules(model);
+      const xor = diags.filter(
+        (d) => d.ruleId === "population/exclusive-or-violation",
+      );
+      expect(xor).toHaveLength(1);
+      expect(xor[0]!.message).toContain("does not play any");
+    });
+
+    it("reports when more than one exclusive-or role is played", () => {
+      const model = makeSelfRefModel({
+        exclusiveOr: { roleIds: ["r1", "r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const xor = diags.filter(
+        (d) => d.ruleId === "population/exclusive-or-violation",
+      );
+      expect(xor).toHaveLength(1);
+      expect(xor[0]!.message).toContain("plays 2");
+    });
+
+    it("passes when exactly one exclusive-or role is played", () => {
+      const model = makeSelfRefModel({
+        exclusiveOr: { roleIds: ["r1", "r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001" } });
+      pop.addInstance({ values: { r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const xor = diags.filter(
+        (d) => d.ruleId === "population/exclusive-or-violation",
+      );
+      expect(xor).toHaveLength(0);
+    });
+  });
+
+  describe("subset violations", () => {
+    it("reports when subset tuple has no match in superset", () => {
+      const model = makeSelfRefModel({
+        subset: { subsetRoleIds: ["r1"], supersetRoleIds: ["r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // r1 has "P001" but r2 has "P002" -- P001 not in superset.
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const sub = diags.filter(
+        (d) => d.ruleId === "population/subset-violation",
+      );
+      expect(sub).toHaveLength(1);
+      expect(sub[0]!.message).toContain("subset tuple");
+    });
+
+    it("passes when all subset tuples exist in superset", () => {
+      const model = makeSelfRefModel({
+        subset: { subsetRoleIds: ["r1"], supersetRoleIds: ["r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // r1="P001", r2="P001" -- subset value P001 exists in superset.
+      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ values: { r1: "P002", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const sub = diags.filter(
+        (d) => d.ruleId === "population/subset-violation",
+      );
+      expect(sub).toHaveLength(0);
+    });
+
+    it("validates multi-role subset tuples", () => {
+      // Both roles form subset and superset sequences.
+      const model = makeSelfRefModel({
+        subset: { subsetRoleIds: ["r1", "r2"], supersetRoleIds: ["r2", "r1"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // (r1=A, r2=B): subset tuple = (A, B), superset tuple = (B, A).
+      // Does (A, B) appear in superset set? Superset has (B, A). No match.
+      pop.addInstance({ id: "inst-1", values: { r1: "A", r2: "B" } });
+
+      const diags = populationValidationRules(model);
+      const sub = diags.filter(
+        (d) => d.ruleId === "population/subset-violation",
+      );
+      expect(sub).toHaveLength(1);
+    });
+  });
+
+  describe("equality violations", () => {
+    it("reports when tuple sets differ", () => {
+      const model = makeSelfRefModel({
+        equality: { roleIds1: ["r1"], roleIds2: ["r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      // r1 has {P001}, r2 has {P002} -- not equal.
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const eq = diags.filter(
+        (d) => d.ruleId === "population/equality-violation",
+      );
+      // P001 not in r2 set AND P002 not in r1 set.
+      expect(eq).toHaveLength(2);
+    });
+
+    it("passes when tuple sets are identical", () => {
+      const model = makeSelfRefModel({
+        equality: { roleIds1: ["r1"], roleIds2: ["r2"] },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ values: { r1: "P002", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const eq = diags.filter(
+        (d) => d.ruleId === "population/equality-violation",
+      );
+      expect(eq).toHaveLength(0);
+    });
+  });
+
+  describe("ring constraint violations", () => {
+    it("irreflexive: reports self-loop", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "irreflexive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(1);
+      expect(ring[0]!.message).toContain("irreflexive");
+    });
+
+    it("irreflexive: passes for distinct values", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "irreflexive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("asymmetric: reports reverse pair", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "asymmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-2", values: { r1: "P002", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring.length).toBeGreaterThan(0);
+      expect(ring[0]!.message).toContain("asymmetric");
+    });
+
+    it("asymmetric: reports self-loop (implies irreflexive)", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "asymmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(1);
+      expect(ring[0]!.message).toContain("asymmetric");
+    });
+
+    it("antisymmetric: reports mutual pair with distinct values", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "antisymmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-2", values: { r1: "P002", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring.length).toBeGreaterThan(0);
+      expect(ring[0]!.message).toContain("antisymmetric");
+    });
+
+    it("antisymmetric: allows self-loop (a, a)", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "antisymmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("symmetric: reports missing reverse pair", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "symmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(1);
+      expect(ring[0]!.message).toContain("symmetric");
+    });
+
+    it("symmetric: passes when reverse pair exists", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "symmetric" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ values: { r1: "P002", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("intransitive: reports when transitive closure exists", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "intransitive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ values: { r1: "A", r2: "C" } }); // violates intransitive
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring.length).toBeGreaterThan(0);
+      expect(ring[0]!.message).toContain("intransitive");
+    });
+
+    it("intransitive: passes when no transitive closure", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "intransitive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      // No (A, C) -- intransitive is satisfied.
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("transitive: reports missing transitive closure", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "transitive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      // Missing (A, C) violates transitivity.
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring.length).toBeGreaterThan(0);
+      expect(ring[0]!.message).toContain("transitive");
+    });
+
+    it("transitive: passes when closure is complete", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "transitive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ values: { r1: "A", r2: "C" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("acyclic: reports cycle", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "acyclic" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ values: { r1: "C", r2: "A" } }); // cycle A->B->C->A
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(1);
+      expect(ring[0]!.message).toContain("acyclic");
+      expect(ring[0]!.message).toContain("cycle");
+    });
+
+    it("acyclic: passes for DAG", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "acyclic" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "A", r2: "B" } });
+      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ values: { r1: "A", r2: "C" } }); // DAG, no cycle
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+
+    it("purely_reflexive: reports non-self-loop", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "purely_reflexive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(1);
+      expect(ring[0]!.message).toContain("purely reflexive");
+    });
+
+    it("purely_reflexive: passes for self-loop", () => {
+      const model = makeSelfRefModel({
+        ring: { roleId1: "r1", roleId2: "r2", ringType: "purely_reflexive" },
+      });
+      const ft = model.getFactTypeByName("Person is parent of Person")!;
+      const pop = model.addPopulation({ factTypeId: ft.id });
+      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+
+      const diags = populationValidationRules(model);
+      const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
+      expect(ring).toHaveLength(0);
+    });
+  });
 });
+
+// ---------------------------------------------------------------------------
+// Helpers for Phase 2 constraint tests
+// ---------------------------------------------------------------------------
+
+import type { Constraint, RingType } from "../../src/model/Constraint.js";
+
+/**
+ * Build a model with a self-referencing "Person is parent of Person" fact type.
+ * Both roles are played by the same object type, making it suitable for
+ * ring, exclusion, exclusive-or, subset, and equality constraint testing.
+ */
+function makeSelfRefModel(options?: {
+  exclusion?: { roleIds: string[] };
+  exclusiveOr?: { roleIds: string[] };
+  subset?: { subsetRoleIds: string[]; supersetRoleIds: string[] };
+  equality?: { roleIds1: string[]; roleIds2: string[] };
+  ring?: { roleId1: string; roleId2: string; ringType: RingType };
+}): OrmModel {
+  const model = new OrmModel({ name: "Test" });
+  const person = model.addObjectType({
+    name: "Person",
+    kind: "entity",
+    referenceMode: "person_id",
+  });
+
+  const constraints: Constraint[] = [];
+
+  if (options?.exclusion) {
+    constraints.push({
+      type: "exclusion",
+      roleIds: options.exclusion.roleIds,
+    });
+  }
+
+  if (options?.exclusiveOr) {
+    constraints.push({
+      type: "exclusive_or",
+      roleIds: options.exclusiveOr.roleIds,
+    });
+  }
+
+  if (options?.subset) {
+    constraints.push({
+      type: "subset",
+      subsetRoleIds: options.subset.subsetRoleIds,
+      supersetRoleIds: options.subset.supersetRoleIds,
+    });
+  }
+
+  if (options?.equality) {
+    constraints.push({
+      type: "equality",
+      roleIds1: options.equality.roleIds1,
+      roleIds2: options.equality.roleIds2,
+    });
+  }
+
+  if (options?.ring) {
+    constraints.push({
+      type: "ring",
+      roleId1: options.ring.roleId1,
+      roleId2: options.ring.roleId2,
+      ringType: options.ring.ringType,
+    });
+  }
+
+  model.addFactType({
+    name: "Person is parent of Person",
+    roles: [
+      { name: "is parent of", playerId: person.id, id: "r1" },
+      { name: "is child of", playerId: person.id, id: "r2" },
+    ],
+    readings: ["{0} is parent of {1}"],
+    constraints,
+  });
+
+  return model;
+}
