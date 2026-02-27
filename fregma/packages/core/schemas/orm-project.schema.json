@@ -37,11 +37,36 @@
             "$ref": "#/definitions/product"
           },
           "description": "Data product references."
+        },
+        "settings": {
+          "$ref": "#/definitions/settings",
+          "description": "Project-level settings persisted across sessions."
         }
       }
     }
   },
   "definitions": {
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dbt_project_dir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the dbt project root, relative to the project root."
+        },
+        "default_export_format": {
+          "type": "string",
+          "enum": ["dbt", "ddl", "avro"],
+          "description": "Default export format for relational mapping output."
+        },
+        "default_export_dir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default directory for export output, relative to the project root."
+        }
+      }
+    },
     "domain": {
       "type": "object",
       "required": ["path", "context"],
