@@ -23,27 +23,27 @@
     "commands": [
       {
         "command": "orm.newProject",
-        "title": "ORM: New Project",
+        "title": "New Project",
         "category": "ORM"
       },
       {
         "command": "orm.validateModel",
-        "title": "ORM: Validate Model",
+        "title": "Validate Model",
         "category": "ORM"
       },
       {
         "command": "orm.verbalize",
-        "title": "ORM: Verbalize Model",
+        "title": "Verbalize Model",
         "category": "ORM"
       },
       {
         "command": "orm.showDiagram",
-        "title": "ORM: Show Diagram",
+        "title": "Show Diagram",
         "category": "ORM"
       },
       {
         "command": "orm.importTranscript",
-        "title": "ORM: Import Transcript",
+        "title": "Import Transcript",
         "category": "ORM"
       }
     ],
