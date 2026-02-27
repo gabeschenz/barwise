@@ -7,6 +7,7 @@
  */
 
 import { OrmModel } from "@fregma/core";
+import type { ConceptualDataTypeName, DataTypeDef } from "@fregma/core";
 import type {
   ExtractionResponse,
   DraftModelResult,
@@ -14,6 +15,13 @@ import type {
   ConstraintProvenance,
   SubtypeProvenance,
 } from "./ExtractionTypes.js";
+
+/** Valid ConceptualDataTypeName values for validation of LLM output. */
+const VALID_DATA_TYPE_NAMES: ReadonlySet<string> = new Set<ConceptualDataTypeName>([
+  "text", "integer", "decimal", "money", "float", "boolean",
+  "date", "time", "datetime", "timestamp", "auto_counter",
+  "binary", "uuid", "other",
+]);
 
 /**
  * Parse an extraction response into an ORM model with provenance metadata.
@@ -50,6 +58,7 @@ export function parseDraftModel(
         valueConstraint: ext.value_constraint?.values?.length
           ? { values: [...ext.value_constraint.values] }
           : undefined,
+        dataType: resolveDataType(ext.data_type, ext.name, warnings),
       });
 
       objectTypeProvenance.push({
@@ -160,7 +169,10 @@ export function parseDraftModel(
       // Find the role(s) by player name.
       const roleIds = resolveRolesByPlayerName(ft, ic.roles, warnings, ic.description);
       if (roleIds.length > 0) {
-        ft.addConstraint({ type: "internal_uniqueness", roleIds });
+        const constraint: import("@fregma/core").Constraint = ic.is_preferred
+          ? { type: "internal_uniqueness", roleIds, isPreferred: true }
+          : { type: "internal_uniqueness", roleIds };
+        ft.addConstraint(constraint);
         constraintProvenance.push({
           description: ic.description,
           confidence: ic.confidence,
@@ -353,4 +365,32 @@ function buildDefaultReading(
     }
   }
   return parts.join(" ");
+}
+
+/**
+ * Validate and convert an LLM-produced data_type into a DataTypeDef.
+ * Returns undefined if the input is missing or has an unrecognized type name.
+ */
+function resolveDataType(
+  raw: { readonly name: string; readonly length?: number; readonly scale?: number } | undefined,
+  objectTypeName: string,
+  warnings: string[],
+): DataTypeDef | undefined {
+  if (!raw?.name) return undefined;
+
+  if (!VALID_DATA_TYPE_NAMES.has(raw.name)) {
+    warnings.push(
+      `Object type "${objectTypeName}": unrecognized data type "${raw.name}". Ignoring.`,
+    );
+    return undefined;
+  }
+
+  const result: DataTypeDef = { name: raw.name as ConceptualDataTypeName };
+  if (raw.length !== undefined && typeof raw.length === "number") {
+    (result as { length: number }).length = raw.length;
+  }
+  if (raw.scale !== undefined && typeof raw.scale === "number") {
+    (result as { scale: number }).scale = raw.scale;
+  }
+  return result;
 }

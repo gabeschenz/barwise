@@ -45,6 +45,7 @@ Analyze the transcript carefully and extract:
    - Classify as "entity" or "value"
    - Write a concise definition based on how the stakeholders describe it
    - For entity types, propose a reference_mode (the identifier, e.g., "customer_id")
+   - For value types, infer the conceptual data_type when possible. Use one of: text, integer, decimal, money, float, boolean, date, time, datetime, timestamp, auto_counter, binary, uuid, other. Include length for text (e.g. name: "text", length: 50) and length/scale for decimal (e.g. name: "decimal", length: 10, scale: 2).
    - For value types with a fixed set of allowed values, include a value_constraint
    - Include source references (line numbers and verbatim excerpts)
 
@@ -64,6 +65,7 @@ Analyze the transcript carefully and extract:
    - Specify the type (internal_uniqueness, mandatory, or value_constraint)
    - Reference the fact type name and role player names
    - Write a human-readable description
+   - For internal_uniqueness constraints that represent the entity's primary identifying relationship (its reference mode), set is_preferred to true. Typically there is exactly one preferred identifier per entity type -- the fact type linking the entity to its reference-mode value type.
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
@@ -117,6 +119,22 @@ export function buildResponseSchema(): Record<string, unknown> {
                 values: { type: "array", items: { type: "string" } },
               },
               required: ["values"],
+            },
+            data_type: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
+                  enum: [
+                    "text", "integer", "decimal", "money", "float",
+                    "boolean", "date", "time", "datetime", "timestamp",
+                    "auto_counter", "binary", "uuid", "other",
+                  ],
+                },
+                length: { type: "number" },
+                scale: { type: "number" },
+              },
+              required: ["name"],
             },
             source_references: {
               type: "array",
@@ -192,6 +210,7 @@ export function buildResponseSchema(): Record<string, unknown> {
               type: "string",
               enum: ["high", "medium", "low"],
             },
+            is_preferred: { type: "boolean" },
             source_references: {
               type: "array",
               items: {

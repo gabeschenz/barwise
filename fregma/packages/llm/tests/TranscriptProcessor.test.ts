@@ -207,6 +207,26 @@ describe("TranscriptProcessor", () => {
       }
     });
 
+    it("propagates data_type from fixture to model", () => {
+      const response = loadFixture("responses/order-management.json");
+      const result = parseExtractionFromJson(response, "Test");
+
+      const nameOt = result.model.getObjectTypeByName("Name");
+      expect(nameOt).toBeDefined();
+      expect(nameOt!.dataType).toEqual({ name: "text", length: 100 });
+    });
+
+    it("propagates is_preferred from fixture to model", () => {
+      const response = loadFixture("responses/order-management.json");
+      const result = parseExtractionFromJson(response, "Test");
+
+      const ft = result.model.getFactTypeByName("Customer has Name");
+      expect(ft).toBeDefined();
+      const uc = ft!.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(uc).toBeDefined();
+      expect(uc!.type === "internal_uniqueness" && uc!.isPreferred).toBe(true);
+    });
+
     it("records source references on provenance entries", () => {
       const response = loadFixture("responses/order-management.json");
       const result = parseExtractionFromJson(response, "Test");
