@@ -1,7 +1,12 @@
 import { stringify, parse } from "yaml";
 import { Ajv, type ErrorObject } from "ajv";
 import projectSchema from "../../schemas/orm-project.schema.json" with { type: "json" };
-import { OrmProject, type OrmProjectConfig } from "../model/OrmProject.js";
+import {
+  OrmProject,
+  type OrmProjectConfig,
+  type ProjectSettings,
+  type ExportFormat,
+} from "../model/OrmProject.js";
 import type { DomainModelConfig } from "../model/DomainModel.js";
 import type { ProductConfig } from "../model/ProductDependency.js";
 
@@ -21,6 +26,11 @@ interface ProjectYamlDocument {
         mappings?: string[];
       };
     }>;
+    settings?: {
+      dbt_project_dir?: string;
+      default_export_format?: string;
+      default_export_dir?: string;
+    };
   };
 }
 
@@ -89,6 +99,16 @@ export class ProjectSerializer {
       });
     }
 
+    // Serialize settings (only if at least one value is set).
+    const s = project.settings;
+    if (s.dbtProjectDir || s.defaultExportFormat || s.defaultExportDir) {
+      const settingsDoc: NonNullable<ProjectYamlDocument["project"]["settings"]> = {};
+      if (s.dbtProjectDir) settingsDoc.dbt_project_dir = s.dbtProjectDir;
+      if (s.defaultExportFormat) settingsDoc.default_export_format = s.defaultExportFormat;
+      if (s.defaultExportDir) settingsDoc.default_export_dir = s.defaultExportDir;
+      doc.project.settings = settingsDoc;
+    }
+
     return stringify(doc);
   }
 
@@ -139,10 +159,20 @@ export class ProjectSerializer {
       }),
     );
 
+    // Map snake_case YAML keys to camelCase model properties.
+    const settings: ProjectSettings | undefined = doc.project.settings
+      ? {
+          dbtProjectDir: doc.project.settings.dbt_project_dir,
+          defaultExportFormat: doc.project.settings.default_export_format as ExportFormat | undefined,
+          defaultExportDir: doc.project.settings.default_export_dir,
+        }
+      : undefined;
+
     const config: OrmProjectConfig = {
       name: doc.project.name,
       domains,
       products,
+      settings,
     };
 
     const project = new OrmProject(config);

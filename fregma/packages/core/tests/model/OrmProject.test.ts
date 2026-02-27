@@ -236,4 +236,64 @@ describe("OrmProject", () => {
       ]);
     });
   });
+
+  describe("settings", () => {
+    it("defaults to empty settings", () => {
+      const project = new OrmProject({ name: "Test" });
+      expect(project.settings).toEqual({});
+    });
+
+    it("initializes settings from config", () => {
+      const project = new OrmProject({
+        name: "Test",
+        settings: {
+          dbtProjectDir: "dbt",
+          defaultExportFormat: "dbt",
+        },
+      });
+      expect(project.settings.dbtProjectDir).toBe("dbt");
+      expect(project.settings.defaultExportFormat).toBe("dbt");
+      expect(project.settings.defaultExportDir).toBeUndefined();
+    });
+
+    it("replaces settings via setter", () => {
+      const project = new OrmProject({
+        name: "Test",
+        settings: { dbtProjectDir: "dbt" },
+      });
+
+      project.settings = { defaultExportFormat: "ddl" };
+
+      expect(project.settings.dbtProjectDir).toBeUndefined();
+      expect(project.settings.defaultExportFormat).toBe("ddl");
+    });
+
+    it("merges partial settings with updateSettings", () => {
+      const project = new OrmProject({
+        name: "Test",
+        settings: {
+          dbtProjectDir: "dbt",
+          defaultExportFormat: "dbt",
+        },
+      });
+
+      project.updateSettings({ defaultExportDir: "dbt/models/staging" });
+
+      expect(project.settings.dbtProjectDir).toBe("dbt");
+      expect(project.settings.defaultExportFormat).toBe("dbt");
+      expect(project.settings.defaultExportDir).toBe("dbt/models/staging");
+    });
+
+    it("returns a defensive copy from getter", () => {
+      const project = new OrmProject({
+        name: "Test",
+        settings: { dbtProjectDir: "dbt" },
+      });
+
+      const s = project.settings;
+      (s as Record<string, unknown>).dbtProjectDir = "MUTATED";
+
+      expect(project.settings.dbtProjectDir).toBe("dbt");
+    });
+  });
 });

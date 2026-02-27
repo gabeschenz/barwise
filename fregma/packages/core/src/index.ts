@@ -60,6 +60,8 @@ export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
 export {
   OrmProject,
   type OrmProjectConfig,
+  type ProjectSettings,
+  type ExportFormat,
 } from "./model/OrmProject.js";
 export {
   DomainModel,

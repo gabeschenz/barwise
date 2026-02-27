@@ -9,6 +9,33 @@ import {
 } from "./ProductDependency.js";
 import type { ObjectType } from "./ObjectType.js";
 
+// ---------------------------------------------------------------------------
+// Project Settings
+// ---------------------------------------------------------------------------
+
+/** Supported export formats. */
+export type ExportFormat = "dbt" | "ddl" | "avro";
+
+/**
+ * Project-level settings persisted in .orm-project.yaml.
+ *
+ * These are structural settings about the project layout that apply
+ * to all users (not personal editor preferences). All paths are
+ * relative to the project root.
+ */
+export interface ProjectSettings {
+  /** Path to the dbt project root (e.g. "dbt"). */
+  readonly dbtProjectDir?: string;
+  /** Default export format for relational mapping output. */
+  readonly defaultExportFormat?: ExportFormat;
+  /** Default directory for export output. */
+  readonly defaultExportDir?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Project Config & Class
+// ---------------------------------------------------------------------------
+
 /**
  * Configuration for creating an OrmProject.
  */
@@ -17,6 +44,7 @@ export interface OrmProjectConfig {
   readonly domains?: readonly DomainModelConfig[];
   readonly mappings?: readonly ContextMappingConfig[];
   readonly products?: readonly ProductConfig[];
+  readonly settings?: ProjectSettings;
 }
 
 /**
@@ -31,12 +59,14 @@ export class OrmProject {
   private readonly _domains: Map<string, DomainModel> = new Map();
   private readonly _mappings: ContextMapping[] = [];
   private readonly _products: Map<string, ProductDependency> = new Map();
+  private _settings: ProjectSettings;
 
   constructor(config: OrmProjectConfig) {
     if (!config.name || config.name.trim().length === 0) {
       throw new Error("Project name must be a non-empty string.");
     }
     this._name = config.name.trim();
+    this._settings = config.settings ? { ...config.settings } : {};
 
     for (const dc of config.domains ?? []) {
       this.addDomain(dc);
@@ -58,6 +88,26 @@ export class OrmProject {
       throw new Error("Project name must be a non-empty string.");
     }
     this._name = value.trim();
+  }
+
+  // ---- Settings ----
+
+  /** Project-level settings. Returns a shallow copy. */
+  get settings(): ProjectSettings {
+    return { ...this._settings };
+  }
+
+  /** Replace all settings. */
+  set settings(value: ProjectSettings) {
+    this._settings = { ...value };
+  }
+
+  /**
+   * Merge partial settings into the current settings.
+   * Only provided keys are updated; others are preserved.
+   */
+  updateSettings(partial: Partial<ProjectSettings>): void {
+    this._settings = { ...this._settings, ...partial };
   }
 
   // ---- Domains ----

@@ -162,6 +162,119 @@ project:
     });
   });
 
+  describe("settings", () => {
+    it("serializes settings", () => {
+      const project = new OrmProject({
+        name: "EDPL",
+        settings: {
+          dbtProjectDir: "dbt",
+          defaultExportFormat: "dbt",
+          defaultExportDir: "dbt/models/staging",
+        },
+      });
+      const yaml = serializer.serialize(project);
+
+      expect(yaml).toContain("settings:");
+      expect(yaml).toContain("dbt_project_dir: dbt");
+      expect(yaml).toContain("default_export_format: dbt");
+      expect(yaml).toContain("default_export_dir: dbt/models/staging");
+    });
+
+    it("omits settings when all values are undefined", () => {
+      const project = new OrmProject({ name: "Minimal" });
+      const yaml = serializer.serialize(project);
+      expect(yaml).not.toContain("settings:");
+    });
+
+    it("deserializes settings", () => {
+      const yaml = `
+project:
+  name: "EDPL"
+  settings:
+    dbt_project_dir: dbt
+    default_export_format: dbt
+    default_export_dir: dbt/models/staging
+`;
+      const project = serializer.deserialize(yaml);
+      expect(project.settings.dbtProjectDir).toBe("dbt");
+      expect(project.settings.defaultExportFormat).toBe("dbt");
+      expect(project.settings.defaultExportDir).toBe("dbt/models/staging");
+    });
+
+    it("deserializes partial settings", () => {
+      const yaml = `
+project:
+  name: "EDPL"
+  settings:
+    dbt_project_dir: dbt
+`;
+      const project = serializer.deserialize(yaml);
+      expect(project.settings.dbtProjectDir).toBe("dbt");
+      expect(project.settings.defaultExportFormat).toBeUndefined();
+      expect(project.settings.defaultExportDir).toBeUndefined();
+    });
+
+    it("deserializes project without settings", () => {
+      const yaml = `
+project:
+  name: "No Settings"
+`;
+      const project = serializer.deserialize(yaml);
+      expect(project.settings).toEqual({});
+    });
+
+    it("round-trips settings", () => {
+      const original = new OrmProject({
+        name: "EDPL",
+        settings: {
+          dbtProjectDir: "dbt",
+          defaultExportFormat: "avro",
+        },
+      });
+      const yaml = serializer.serialize(original);
+      const restored = serializer.deserialize(yaml);
+
+      expect(restored.settings.dbtProjectDir).toBe("dbt");
+      expect(restored.settings.defaultExportFormat).toBe("avro");
+      expect(restored.settings.defaultExportDir).toBeUndefined();
+    });
+
+    it("round-trips a full project with settings", () => {
+      const original = new OrmProject({
+        name: "Warehouse",
+        domains: [
+          { path: "./crm.orm.yaml", context: "crm" },
+        ],
+        settings: {
+          dbtProjectDir: "dbt",
+          defaultExportFormat: "dbt",
+          defaultExportDir: "dbt/models/staging",
+        },
+      });
+
+      const yaml = serializer.serialize(original);
+      const restored = serializer.deserialize(yaml);
+
+      expect(restored.name).toBe("Warehouse");
+      expect(restored.domains).toHaveLength(1);
+      expect(restored.settings.dbtProjectDir).toBe("dbt");
+      expect(restored.settings.defaultExportFormat).toBe("dbt");
+      expect(restored.settings.defaultExportDir).toBe("dbt/models/staging");
+    });
+
+    it("rejects invalid export format", () => {
+      const yaml = `
+project:
+  name: "Bad"
+  settings:
+    default_export_format: csv
+`;
+      expect(() => serializer.deserialize(yaml)).toThrow(
+        ProjectDeserializationError,
+      );
+    });
+  });
+
   describe("getMappingPaths", () => {
     it("extracts mapping paths from YAML", () => {
       const yaml = `
