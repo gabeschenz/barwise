@@ -93,6 +93,8 @@ class DbtMapper {
   private readonly valueTypeIdMap = new Map<string, string>();
   /** Source table data types: "sourceName.tableName.columnName" -> data_type string. */
   private readonly sourceDataTypes = new Map<string, string>();
+  /** Column-level source data types: "columnName" -> data_type string (if unambiguous). */
+  private readonly sourceColumnTypes = new Map<string, string | null>();
 
   constructor(doc: DbtProjectDocument) {
     this.doc = doc;
@@ -120,10 +122,34 @@ class DbtMapper {
           if (col.dataType) {
             const key = `${source.name}.${table.name}.${col.name}`;
             this.sourceDataTypes.set(key, col.dataType);
+
+            // Build column-level index. If the same column name appears
+            // across multiple source tables with different types, mark it
+            // as ambiguous (null) so we don't guess wrong.
+            const existing = this.sourceColumnTypes.get(col.name);
+            if (existing === undefined) {
+              // First time seeing this column name.
+              this.sourceColumnTypes.set(col.name, col.dataType);
+            } else if (existing !== null && existing !== col.dataType) {
+              // Conflicting types -- mark ambiguous.
+              this.sourceColumnTypes.set(col.name, null);
+            }
+            // If existing === col.dataType, no change needed (consistent).
           }
         }
       }
     }
+  }
+
+  /**
+   * Look up a column's data type from source definitions.
+   * Returns the type string if unambiguously found, undefined otherwise.
+   */
+  private resolveSourceColumnType(columnName: string): string | undefined {
+    const sourceType = this.sourceColumnTypes.get(columnName);
+    // null means ambiguous (multiple sources disagree), undefined means not found.
+    if (sourceType === null || sourceType === undefined) return undefined;
+    return sourceType;
   }
 
   // -----------------------------------------------------------------------
@@ -268,8 +294,21 @@ class DbtMapper {
           continue;
         }
 
-        // Resolve data type.
-        const dataType = resolveDataType(col.dataType);
+        // Resolve data type: prefer model column, fall back to source.
+        let rawDataType = col.dataType;
+        let dataTypeSource: "model" | "source" | "none" = "none";
+
+        if (rawDataType) {
+          dataTypeSource = "model";
+        } else {
+          const sourceType = this.resolveSourceColumnType(col.name);
+          if (sourceType) {
+            rawDataType = sourceType;
+            dataTypeSource = "source";
+          }
+        }
+
+        const dataType = resolveDataType(rawDataType);
 
         // Resolve description.
         const description =
@@ -294,18 +333,25 @@ class DbtMapper {
           );
         }
 
-        if (!col.dataType) {
-          this.report.gap(
-            "data_type",
-            m.name,
-            `No data_type for column "${col.name}". May be available in source definitions.`,
-            col.name,
-          );
-        } else {
+        if (dataTypeSource === "model") {
           this.report.info(
             "data_type",
             m.name,
             `Data type "${col.dataType}" resolved for column "${col.name}".`,
+            col.name,
+          );
+        } else if (dataTypeSource === "source") {
+          this.report.info(
+            "data_type",
+            m.name,
+            `Data type "${rawDataType}" resolved for column "${col.name}" from source definitions.`,
+            col.name,
+          );
+        } else {
+          this.report.gap(
+            "data_type",
+            m.name,
+            `No data_type for column "${col.name}" in model or source definitions.`,
             col.name,
           );
         }

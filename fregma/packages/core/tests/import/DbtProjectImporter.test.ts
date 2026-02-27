@@ -389,6 +389,195 @@ models:
       // Sources alone don't create models, but they should parse.
       expect(result.model.objectTypes).toHaveLength(0);
     });
+
+    it("resolves data_type from source when model column lacks it", () => {
+      const modelYaml = `
+models:
+  - name: stg_products
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: product_name
+      - name: price
+`;
+      const sourceYaml = `
+sources:
+  - name: raw
+    tables:
+      - name: products
+        columns:
+          - name: product_id
+            data_type: integer
+          - name: product_name
+            data_type: varchar(200)
+          - name: price
+            data_type: "decimal(10,2)"
+`;
+      const result = importDbtProject([modelYaml, sourceYaml]);
+
+      const productName = result.model.getObjectTypeByName("ProductName");
+      expect(productName).toBeDefined();
+      expect(productName!.dataType?.name).toBe("text");
+      expect(productName!.dataType?.length).toBe(200);
+
+      const price = result.model.getObjectTypeByName("Price");
+      expect(price).toBeDefined();
+      expect(price!.dataType?.name).toBe("decimal");
+      expect(price!.dataType?.length).toBe(10);
+      expect(price!.dataType?.scale).toBe(2);
+    });
+
+    it("prefers model data_type over source data_type", () => {
+      const modelYaml = `
+models:
+  - name: stg_products
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: price
+        data_type: "decimal(12,4)"
+`;
+      const sourceYaml = `
+sources:
+  - name: raw
+    tables:
+      - name: products
+        columns:
+          - name: price
+            data_type: "decimal(10,2)"
+`;
+      const result = importDbtProject([modelYaml, sourceYaml]);
+
+      const price = result.model.getObjectTypeByName("Price");
+      expect(price).toBeDefined();
+      // Model's decimal(12,4) should win over source's decimal(10,2).
+      expect(price!.dataType?.length).toBe(12);
+      expect(price!.dataType?.scale).toBe(4);
+    });
+
+    it("reports source-resolved types as info, not gap", () => {
+      const modelYaml = `
+models:
+  - name: stg_products
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: product_name
+`;
+      const sourceYaml = `
+sources:
+  - name: raw
+    tables:
+      - name: products
+        columns:
+          - name: product_name
+            data_type: varchar(200)
+`;
+      const result = importDbtProject([modelYaml, sourceYaml]);
+
+      // Should NOT have a gap for product_name.
+      const gaps = result.report.entries.filter(
+        (e) =>
+          e.severity === "gap" &&
+          e.category === "data_type" &&
+          e.columnName === "product_name",
+      );
+      expect(gaps).toHaveLength(0);
+
+      // Should have an info entry mentioning source resolution.
+      const infos = result.report.entries.filter(
+        (e) =>
+          e.severity === "info" &&
+          e.category === "data_type" &&
+          e.columnName === "product_name",
+      );
+      expect(infos).toHaveLength(1);
+      expect(infos[0]!.message).toContain("source");
+    });
+
+    it("reports gap when source types are ambiguous for same column name", () => {
+      const modelYaml = `
+models:
+  - name: stg_products
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: status
+`;
+      const sourceYaml = `
+sources:
+  - name: raw
+    tables:
+      - name: products
+        columns:
+          - name: status
+            data_type: varchar(20)
+      - name: orders
+        columns:
+          - name: status
+            data_type: integer
+`;
+      const result = importDbtProject([modelYaml, sourceYaml]);
+
+      // "status" appears in two source tables with different types.
+      // Should still be a gap.
+      const gaps = result.report.entries.filter(
+        (e) =>
+          e.severity === "gap" &&
+          e.category === "data_type" &&
+          e.columnName === "status",
+      );
+      expect(gaps).toHaveLength(1);
+    });
+
+    it("resolves source type when multiple sources agree", () => {
+      const modelYaml = `
+models:
+  - name: stg_products
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+      - name: status
+`;
+      const sourceYaml = `
+sources:
+  - name: raw
+    tables:
+      - name: products
+        columns:
+          - name: status
+            data_type: varchar(20)
+      - name: orders
+        columns:
+          - name: status
+            data_type: varchar(20)
+`;
+      const result = importDbtProject([modelYaml, sourceYaml]);
+
+      const status = result.model.getObjectTypeByName("Status");
+      expect(status).toBeDefined();
+      expect(status!.dataType?.name).toBe("text");
+      expect(status!.dataType?.length).toBe(20);
+
+      // No gap for status.
+      const gaps = result.report.entries.filter(
+        (e) =>
+          e.severity === "gap" &&
+          e.category === "data_type" &&
+          e.columnName === "status",
+      );
+      expect(gaps).toHaveLength(0);
+    });
   });
 
   describe("multiple files integration", () => {
