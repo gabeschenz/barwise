@@ -23,9 +23,29 @@ describe("ValidationEngine", () => {
         referenceMode: "customer_id",
         definition: "A person who buys things.",
       })
+      .withValueType("CustomerId", {
+        definition: "Unique customer identifier.",
+        dataType: { name: "integer" },
+      })
       .withEntityType("Order", {
         referenceMode: "order_number",
         definition: "A confirmed purchase.",
+      })
+      .withValueType("OrderNumber", {
+        definition: "Unique order number.",
+        dataType: { name: "text", length: 20 },
+      })
+      .withBinaryFactType("Customer has CustomerId", {
+        role1: { player: "Customer", name: "has" },
+        role2: { player: "CustomerId", name: "is of" },
+        uniqueness: "role1",
+        isPreferred: true,
+      })
+      .withBinaryFactType("Order has OrderNumber", {
+        role1: { player: "Order", name: "has" },
+        role2: { player: "OrderNumber", name: "is of" },
+        uniqueness: "role1",
+        isPreferred: true,
       })
       .withBinaryFactType("Customer places Order", {
         role1: { player: "Customer", name: "places" },
