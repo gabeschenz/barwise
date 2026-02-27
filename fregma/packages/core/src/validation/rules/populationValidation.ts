@@ -5,6 +5,11 @@ import {
   isInternalUniqueness,
   isValueConstraint,
   isFrequency,
+  isExclusion,
+  isExclusiveOr,
+  isSubset,
+  isEquality,
+  isRing,
 } from "../../model/Constraint.js";
 
 /**
@@ -17,10 +22,17 @@ import {
  * - Internal uniqueness violations: duplicate tuples for the constrained role set.
  * - Value constraint violations: instance values not in the allowed set.
  * - Frequency violations: a role is played too few or too many times.
+ * - Exclusion violations: an object plays more than one excluded role.
+ * - Exclusive-or violations: an object does not play exactly one of the roles.
+ * - Subset violations: a tuple in the subset roles has no match in the superset roles.
+ * - Equality violations: the tuple sets for both role sequences differ.
+ * - Ring violations: reflexive relationship properties are violated.
  *
- * Note: Mandatory constraint validation is not included here because it
- * requires cross-fact-type population analysis (knowing the full universe
- * of entity instances). That is deferred to a future enhancement.
+ * Note: Mandatory and disjunctive mandatory constraint validation is not
+ * included here because it requires cross-fact-type population analysis
+ * (knowing the full universe of entity instances). That is deferred to a
+ * future enhancement. Exclusion, exclusive-or, subset, and equality
+ * constraints that reference roles from other fact types are also skipped.
  */
 export function populationValidationRules(model: OrmModel): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -29,6 +41,11 @@ export function populationValidationRules(model: OrmModel): Diagnostic[] {
   diagnostics.push(...checkUniquenessViolations(model));
   diagnostics.push(...checkValueConstraintViolations(model));
   diagnostics.push(...checkFrequencyViolations(model));
+  diagnostics.push(...checkExclusionViolations(model));
+  diagnostics.push(...checkExclusiveOrViolations(model));
+  diagnostics.push(...checkSubsetViolations(model));
+  diagnostics.push(...checkEqualityViolations(model));
+  diagnostics.push(...checkRingViolations(model));
 
   return diagnostics;
 }
@@ -179,6 +196,502 @@ function checkFrequencyViolations(model: OrmModel): Diagnostic[] {
 
   return diagnostics;
 }
+
+/**
+ * Exclusion constraints forbid an object from playing more than one of the
+ * constrained roles. For each instance, collect values for the constrained
+ * roles and check that each distinct object value appears in at most one role.
+ *
+ * Only validates when all constrained roles belong to the same fact type.
+ */
+function checkExclusionViolations(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const pop of model.populations) {
+    const ft = model.getFactType(pop.factTypeId);
+    if (!ft) continue;
+
+    const exclusionConstraints = ft.constraints.filter(isExclusion);
+    for (const ec of exclusionConstraints) {
+      // Skip cross-fact-type constraints (roles not in this fact type).
+      const localRoleIds = ec.roleIds.filter((rid) => ft.hasRole(rid));
+      if (localRoleIds.length !== ec.roleIds.length) continue;
+
+      for (const inst of pop.instances) {
+        const valuesInRoles = new Map<string, string[]>(); // value -> role ids
+        for (const rid of localRoleIds) {
+          const val = inst.values[rid];
+          if (val !== undefined) {
+            const roles = valuesInRoles.get(val);
+            if (roles) {
+              roles.push(rid);
+            } else {
+              valuesInRoles.set(val, [rid]);
+            }
+          }
+        }
+
+        for (const [val, roles] of valuesInRoles) {
+          if (roles.length > 1) {
+            diagnostics.push({
+              severity: "error",
+              message:
+                `Population "${pop.id}": instance "${inst.id}" has value ` +
+                `"${val}" in multiple excluded roles [${roles.join(", ")}].`,
+              elementId: pop.id,
+              ruleId: "population/exclusion-violation",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Exclusive-or constraints require each object to play exactly one of the
+ * constrained roles. This combines disjunctive mandatory (at least one) with
+ * exclusion (at most one).
+ *
+ * Only validates when all constrained roles belong to the same fact type.
+ */
+function checkExclusiveOrViolations(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const pop of model.populations) {
+    const ft = model.getFactType(pop.factTypeId);
+    if (!ft) continue;
+
+    const xorConstraints = ft.constraints.filter(isExclusiveOr);
+    for (const xor of xorConstraints) {
+      const localRoleIds = xor.roleIds.filter((rid) => ft.hasRole(rid));
+      if (localRoleIds.length !== xor.roleIds.length) continue;
+
+      for (const inst of pop.instances) {
+        const playedRoles: string[] = [];
+        for (const rid of localRoleIds) {
+          if (inst.values[rid] !== undefined) {
+            playedRoles.push(rid);
+          }
+        }
+
+        if (playedRoles.length === 0) {
+          diagnostics.push({
+            severity: "error",
+            message:
+              `Population "${pop.id}": instance "${inst.id}" does not play ` +
+              `any of the exclusive-or roles [${localRoleIds.join(", ")}].`,
+            elementId: pop.id,
+            ruleId: "population/exclusive-or-violation",
+          });
+        } else if (playedRoles.length > 1) {
+          diagnostics.push({
+            severity: "error",
+            message:
+              `Population "${pop.id}": instance "${inst.id}" plays ` +
+              `${playedRoles.length} of the exclusive-or roles ` +
+              `[${playedRoles.join(", ")}] but must play exactly one.`,
+            elementId: pop.id,
+            ruleId: "population/exclusive-or-violation",
+          });
+        }
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Subset constraints require every tuple extracted from the subset role
+ * sequence to also appear in the superset role sequence.
+ *
+ * Only validates when all roles belong to the same fact type.
+ */
+function checkSubsetViolations(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const pop of model.populations) {
+    const ft = model.getFactType(pop.factTypeId);
+    if (!ft) continue;
+
+    const subsetConstraints = ft.constraints.filter(isSubset);
+    for (const sc of subsetConstraints) {
+      const allLocal =
+        sc.subsetRoleIds.every((rid) => ft.hasRole(rid)) &&
+        sc.supersetRoleIds.every((rid) => ft.hasRole(rid));
+      if (!allLocal) continue;
+
+      // Collect superset tuples.
+      const supersetTuples = new Set<string>();
+      for (const inst of pop.instances) {
+        supersetTuples.add(makeCompositeKey(inst, sc.supersetRoleIds));
+      }
+
+      // Check each subset tuple exists in the superset.
+      for (const inst of pop.instances) {
+        const subsetKey = makeCompositeKey(inst, sc.subsetRoleIds);
+        if (!supersetTuples.has(subsetKey)) {
+          diagnostics.push({
+            severity: "error",
+            message:
+              `Population "${pop.id}": instance "${inst.id}" has subset ` +
+              `tuple [${subsetKey}] for roles [${sc.subsetRoleIds.join(", ")}] ` +
+              `with no matching superset tuple in roles ` +
+              `[${sc.supersetRoleIds.join(", ")}].`,
+            elementId: pop.id,
+            ruleId: "population/subset-violation",
+          });
+        }
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Equality constraints require the tuple sets from both role sequences to
+ * be identical. This is equivalent to subset in both directions.
+ *
+ * Only validates when all roles belong to the same fact type.
+ */
+function checkEqualityViolations(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const pop of model.populations) {
+    const ft = model.getFactType(pop.factTypeId);
+    if (!ft) continue;
+
+    const equalityConstraints = ft.constraints.filter(isEquality);
+    for (const eq of equalityConstraints) {
+      const allLocal =
+        eq.roleIds1.every((rid) => ft.hasRole(rid)) &&
+        eq.roleIds2.every((rid) => ft.hasRole(rid));
+      if (!allLocal) continue;
+
+      // Collect both tuple sets.
+      const tuples1 = new Set<string>();
+      const tuples2 = new Set<string>();
+      for (const inst of pop.instances) {
+        tuples1.add(makeCompositeKey(inst, eq.roleIds1));
+        tuples2.add(makeCompositeKey(inst, eq.roleIds2));
+      }
+
+      // Check direction 1: every tuple in set 1 must be in set 2.
+      for (const inst of pop.instances) {
+        const key1 = makeCompositeKey(inst, eq.roleIds1);
+        if (!tuples2.has(key1)) {
+          diagnostics.push({
+            severity: "error",
+            message:
+              `Population "${pop.id}": instance "${inst.id}" has tuple ` +
+              `[${key1}] in roles [${eq.roleIds1.join(", ")}] with no ` +
+              `matching tuple in roles [${eq.roleIds2.join(", ")}].`,
+            elementId: pop.id,
+            ruleId: "population/equality-violation",
+          });
+        }
+      }
+
+      // Check direction 2: every tuple in set 2 must be in set 1.
+      for (const inst of pop.instances) {
+        const key2 = makeCompositeKey(inst, eq.roleIds2);
+        if (!tuples1.has(key2)) {
+          diagnostics.push({
+            severity: "error",
+            message:
+              `Population "${pop.id}": instance "${inst.id}" has tuple ` +
+              `[${key2}] in roles [${eq.roleIds2.join(", ")}] with no ` +
+              `matching tuple in roles [${eq.roleIds1.join(", ")}].`,
+            elementId: pop.id,
+            ruleId: "population/equality-violation",
+          });
+        }
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Ring constraints apply to reflexive relationships (a fact type where both
+ * roles are played by the same object type). They enforce properties on the
+ * directed pairs (roleId1 -> roleId2) in the population.
+ *
+ * Ring types and their semantics:
+ *
+ * - irreflexive: No self-loops. (a, a) is forbidden.
+ *     Example: "No Person is a parent of that same Person."
+ *
+ * - asymmetric: If (a, b) then NOT (b, a). Implies irreflexive.
+ *     Example: "If Person1 is parent of Person2, then Person2 is not
+ *     parent of Person1."
+ *
+ * - antisymmetric: If (a, b) AND (b, a) then a = b.
+ *     Example: "If Person1 manages Person2 and Person2 manages Person1,
+ *     then they are the same Person."
+ *
+ * - symmetric: If (a, b) then (b, a) must also exist.
+ *     Example: "If Person1 is sibling of Person2, then Person2 is
+ *     sibling of Person1."
+ *
+ * - intransitive: If (a, b) AND (b, c) then NOT (a, c).
+ *     Example: "If Person1 is parent of Person2 and Person2 is parent
+ *     of Person3, then Person1 is not parent of Person3."
+ *
+ * - transitive: If (a, b) AND (b, c) then (a, c) must exist.
+ *     Example: "If Person1 is ancestor of Person2 and Person2 is
+ *     ancestor of Person3, then Person1 is ancestor of Person3."
+ *
+ * - acyclic: No directed cycles of any length. (a -> b -> ... -> a) is
+ *     forbidden.
+ *     Example: "No Person can be their own ancestor through any chain
+ *     of parent relationships."
+ *
+ * - purely_reflexive: Only self-loops allowed. If (a, b) then a = b.
+ *     Example: "A Person can only be compared to themselves."
+ */
+function checkRingViolations(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const pop of model.populations) {
+    const ft = model.getFactType(pop.factTypeId);
+    if (!ft) continue;
+
+    const ringConstraints = ft.constraints.filter(isRing);
+    for (const rc of ringConstraints) {
+      if (!ft.hasRole(rc.roleId1) || !ft.hasRole(rc.roleId2)) continue;
+
+      // Build the set of directed pairs.
+      const pairs: Array<[string, string]> = [];
+      const pairSet = new Set<string>();
+      for (const inst of pop.instances) {
+        const a = inst.values[rc.roleId1];
+        const b = inst.values[rc.roleId2];
+        if (a !== undefined && b !== undefined) {
+          pairs.push([a, b]);
+          pairSet.add(`${a}\0${b}`);
+        }
+      }
+
+      switch (rc.ringType) {
+        case "irreflexive":
+          for (const inst of pop.instances) {
+            const a = inst.values[rc.roleId1];
+            const b = inst.values[rc.roleId2];
+            if (a !== undefined && a === b) {
+              diagnostics.push({
+                severity: "error",
+                message:
+                  `Population "${pop.id}": instance "${inst.id}" violates ` +
+                  `irreflexive ring constraint -- "${a}" appears in both roles.`,
+                elementId: pop.id,
+                ruleId: "population/ring-violation",
+              });
+            }
+          }
+          break;
+
+        case "asymmetric":
+          for (const inst of pop.instances) {
+            const a = inst.values[rc.roleId1];
+            const b = inst.values[rc.roleId2];
+            if (a !== undefined && b !== undefined) {
+              if (a === b) {
+                diagnostics.push({
+                  severity: "error",
+                  message:
+                    `Population "${pop.id}": instance "${inst.id}" violates ` +
+                    `asymmetric ring constraint -- "${a}" appears in both ` +
+                    `roles (asymmetric implies irreflexive).`,
+                  elementId: pop.id,
+                  ruleId: "population/ring-violation",
+                });
+              } else if (pairSet.has(`${b}\0${a}`)) {
+                diagnostics.push({
+                  severity: "error",
+                  message:
+                    `Population "${pop.id}": instance "${inst.id}" violates ` +
+                    `asymmetric ring constraint -- both (${a}, ${b}) and ` +
+                    `(${b}, ${a}) exist.`,
+                  elementId: pop.id,
+                  ruleId: "population/ring-violation",
+                });
+              }
+            }
+          }
+          break;
+
+        case "antisymmetric":
+          for (const inst of pop.instances) {
+            const a = inst.values[rc.roleId1];
+            const b = inst.values[rc.roleId2];
+            if (a !== undefined && b !== undefined && a !== b) {
+              if (pairSet.has(`${b}\0${a}`)) {
+                diagnostics.push({
+                  severity: "error",
+                  message:
+                    `Population "${pop.id}": instance "${inst.id}" violates ` +
+                    `antisymmetric ring constraint -- both (${a}, ${b}) and ` +
+                    `(${b}, ${a}) exist but ${a} != ${b}.`,
+                  elementId: pop.id,
+                  ruleId: "population/ring-violation",
+                });
+              }
+            }
+          }
+          break;
+
+        case "symmetric":
+          for (const inst of pop.instances) {
+            const a = inst.values[rc.roleId1];
+            const b = inst.values[rc.roleId2];
+            if (a !== undefined && b !== undefined && !pairSet.has(`${b}\0${a}`)) {
+              diagnostics.push({
+                severity: "error",
+                message:
+                  `Population "${pop.id}": instance "${inst.id}" violates ` +
+                  `symmetric ring constraint -- (${a}, ${b}) exists but ` +
+                  `(${b}, ${a}) does not.`,
+                elementId: pop.id,
+                ruleId: "population/ring-violation",
+              });
+            }
+          }
+          break;
+
+        case "intransitive":
+          for (const [a, b] of pairs) {
+            // Find all (b, c) pairs and check (a, c) does not exist.
+            for (const [b2, c] of pairs) {
+              if (b === b2 && pairSet.has(`${a}\0${c}`)) {
+                diagnostics.push({
+                  severity: "error",
+                  message:
+                    `Population "${pop.id}": intransitive ring constraint ` +
+                    `violated -- (${a}, ${b}) and (${b}, ${c}) exist, ` +
+                    `but (${a}, ${c}) also exists.`,
+                  elementId: pop.id,
+                  ruleId: "population/ring-violation",
+                });
+              }
+            }
+          }
+          break;
+
+        case "transitive":
+          for (const [a, b] of pairs) {
+            for (const [b2, c] of pairs) {
+              if (b === b2 && !pairSet.has(`${a}\0${c}`)) {
+                diagnostics.push({
+                  severity: "error",
+                  message:
+                    `Population "${pop.id}": transitive ring constraint ` +
+                    `violated -- (${a}, ${b}) and (${b}, ${c}) exist, ` +
+                    `but (${a}, ${c}) does not.`,
+                  elementId: pop.id,
+                  ruleId: "population/ring-violation",
+                });
+              }
+            }
+          }
+          break;
+
+        case "acyclic":
+          diagnostics.push(...checkAcyclic(pairs, pop.id));
+          break;
+
+        case "purely_reflexive":
+          for (const inst of pop.instances) {
+            const a = inst.values[rc.roleId1];
+            const b = inst.values[rc.roleId2];
+            if (a !== undefined && b !== undefined && a !== b) {
+              diagnostics.push({
+                severity: "error",
+                message:
+                  `Population "${pop.id}": instance "${inst.id}" violates ` +
+                  `purely reflexive ring constraint -- (${a}, ${b}) exists ` +
+                  `but only self-loops (a, a) are allowed.`,
+                elementId: pop.id,
+                ruleId: "population/ring-violation",
+              });
+            }
+          }
+          break;
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Check for cycles in a directed graph represented as edge pairs.
+ * Uses DFS with coloring (white/gray/black) for cycle detection.
+ */
+function checkAcyclic(
+  pairs: Array<[string, string]>,
+  popId: string,
+): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  // Build adjacency list.
+  const adj = new Map<string, string[]>();
+  for (const [a, b] of pairs) {
+    const neighbors = adj.get(a);
+    if (neighbors) {
+      neighbors.push(b);
+    } else {
+      adj.set(a, [b]);
+    }
+  }
+
+  // DFS with 3 states: 0 = unvisited, 1 = in progress, 2 = done.
+  const state = new Map<string, number>();
+  let cycleFound = false;
+
+  function dfs(node: string): void {
+    if (cycleFound) return;
+    state.set(node, 1); // in progress
+    for (const neighbor of adj.get(node) ?? []) {
+      const s = state.get(neighbor) ?? 0;
+      if (s === 1) {
+        // Back edge: cycle detected.
+        cycleFound = true;
+        diagnostics.push({
+          severity: "error",
+          message:
+            `Population "${popId}": acyclic ring constraint violated -- ` +
+            `cycle detected involving "${node}" and "${neighbor}".`,
+          elementId: popId,
+          ruleId: "population/ring-violation",
+        });
+        return;
+      }
+      if (s === 0) {
+        dfs(neighbor);
+      }
+    }
+    state.set(node, 2); // done
+  }
+
+  for (const node of adj.keys()) {
+    if ((state.get(node) ?? 0) === 0) {
+      dfs(node);
+      if (cycleFound) break;
+    }
+  }
+
+  return diagnostics;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Create a composite key from an instance's values for the given role ids.
