@@ -34,6 +34,8 @@ interface BinaryFactTypeOptions {
   uniqueness?: "role1" | "role2" | "both" | "spanning";
   /** Shorthand: "role1" or "role2" for mandatory role constraint. */
   mandatory?: "role1" | "role2" | "both";
+  /** Mark the uniqueness constraint as preferred identifier. */
+  isPreferred?: boolean;
   definition?: string;
 }
 
@@ -252,17 +254,20 @@ export class ModelBuilder {
       const role2Id = `${name}::role2`;
 
       if (options.uniqueness) {
+        const preferred = options.isPreferred ?? false;
         switch (options.uniqueness) {
           case "role1":
             constraints.push({
               type: "internal_uniqueness",
               roleIds: [role1Id],
+              ...(preferred ? { isPreferred: true } : {}),
             });
             break;
           case "role2":
             constraints.push({
               type: "internal_uniqueness",
               roleIds: [role2Id],
+              ...(preferred ? { isPreferred: true } : {}),
             });
             break;
           case "both":
@@ -279,6 +284,7 @@ export class ModelBuilder {
             constraints.push({
               type: "internal_uniqueness",
               roleIds: [role1Id, role2Id],
+              ...(preferred ? { isPreferred: true } : {}),
             });
             break;
         }

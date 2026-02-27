@@ -10,6 +10,8 @@ import type { Diagnostic } from "../Diagnostic.js";
  * - Fact types without any constraints (usually means the modeler
  *   hasn't finished specifying business rules).
  * - Object types not participating in any fact type (isolated types).
+ * - Value types without a declared data type.
+ * - Entity types with zero or multiple preferred identifiers.
  */
 export function completenessWarnings(model: OrmModel): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -17,6 +19,8 @@ export function completenessWarnings(model: OrmModel): Diagnostic[] {
   diagnostics.push(...checkMissingObjectTypeDefinitions(model));
   diagnostics.push(...checkFactTypesWithoutConstraints(model));
   diagnostics.push(...checkIsolatedObjectTypes(model));
+  diagnostics.push(...checkMissingValueTypeDataType(model));
+  diagnostics.push(...checkPreferredIdentifiers(model));
 
   return diagnostics;
 }
@@ -83,6 +87,76 @@ function checkIsolatedObjectTypes(model: OrmModel): Diagnostic[] {
           `Object type "${ot.name}" does not participate in any fact type.`,
         elementId: ot.id,
         ruleId: "completeness/isolated-object-type",
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Value types without a data type will cause the relational mapper to
+ * default column types to TEXT, which may not be desirable.
+ */
+function checkMissingValueTypeDataType(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const ot of model.objectTypes) {
+    if (ot.kind === "value" && !ot.dataType) {
+      diagnostics.push({
+        severity: "info",
+        message:
+          `Value type "${ot.name}" has no data type. ` +
+          `The relational mapper will default to TEXT.`,
+        elementId: ot.id,
+        ruleId: "completeness/missing-value-type-data-type",
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Each entity type should have exactly one preferred identifier
+ * (an internal uniqueness constraint with isPreferred = true on one
+ * of its identifying fact types). Zero means the relational mapper
+ * must guess; more than one is contradictory.
+ */
+function checkPreferredIdentifiers(model: OrmModel): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+
+  for (const ot of model.objectTypes) {
+    if (ot.kind !== "entity") continue;
+
+    const factTypes = model.factTypesForObjectType(ot.id);
+    let preferredCount = 0;
+
+    for (const ft of factTypes) {
+      for (const c of ft.constraints) {
+        if (c.type === "internal_uniqueness" && c.isPreferred) {
+          preferredCount++;
+        }
+      }
+    }
+
+    if (preferredCount === 0) {
+      diagnostics.push({
+        severity: "info",
+        message:
+          `Entity type "${ot.name}" has no preferred identifier. ` +
+          `The relational mapper will use a heuristic to determine the primary key.`,
+        elementId: ot.id,
+        ruleId: "completeness/missing-preferred-identifier",
+      });
+    } else if (preferredCount > 1) {
+      diagnostics.push({
+        severity: "warning",
+        message:
+          `Entity type "${ot.name}" has ${preferredCount} preferred identifiers. ` +
+          `Each entity should have exactly one.`,
+        elementId: ot.id,
+        ruleId: "completeness/multiple-preferred-identifiers",
       });
     }
   }

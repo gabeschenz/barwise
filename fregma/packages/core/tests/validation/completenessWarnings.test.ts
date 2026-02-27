@@ -8,6 +8,8 @@
  *     indicates the modeler forgot to specify cardinality)
  *   - Object types that do not participate in any fact type (info --
  *     "orphan" types that serve no purpose in the model)
+ *   - Value types without a declared data type (info)
+ *   - Entity types with zero or multiple preferred identifiers (info/warning)
  */
 import { describe, it, expect } from "vitest";
 import { completenessWarnings } from "../../src/validation/rules/completenessWarnings.js";
@@ -21,9 +23,29 @@ describe("completenessWarnings", () => {
         referenceMode: "customer_id",
         definition: "A person who buys things.",
       })
+      .withValueType("CustomerId", {
+        definition: "Unique customer identifier.",
+        dataType: { name: "integer" },
+      })
       .withEntityType("Order", {
         referenceMode: "order_number",
         definition: "A confirmed purchase.",
+      })
+      .withValueType("OrderNumber", {
+        definition: "Unique order number.",
+        dataType: { name: "text", length: 20 },
+      })
+      .withBinaryFactType("Customer has CustomerId", {
+        role1: { player: "Customer", name: "has" },
+        role2: { player: "CustomerId", name: "is of" },
+        uniqueness: "role1",
+        isPreferred: true,
+      })
+      .withBinaryFactType("Order has OrderNumber", {
+        role1: { player: "Order", name: "has" },
+        role2: { player: "OrderNumber", name: "is of" },
+        uniqueness: "role1",
+        isPreferred: true,
       })
       .withBinaryFactType("Customer places Order", {
         role1: { player: "Customer", name: "places" },
@@ -179,6 +201,198 @@ describe("completenessWarnings", () => {
         (d) => d.ruleId === "completeness/isolated-object-type",
       );
       expect(isolated).toHaveLength(0);
+    });
+  });
+
+  describe("missing value type data type", () => {
+    it("reports value types without a data type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("Name", { definition: "A name." })
+        .withBinaryFactType("Customer has Name", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Name", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const missing = diagnostics.filter(
+        (d) => d.ruleId === "completeness/missing-value-type-data-type",
+      );
+      expect(missing).toHaveLength(1);
+      expect(missing[0]!.severity).toBe("info");
+      expect(missing[0]!.message).toContain("Name");
+      expect(missing[0]!.message).toContain("TEXT");
+    });
+
+    it("does not report value types that have a data type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("Name", {
+          definition: "A name.",
+          dataType: { name: "text", length: 100 },
+        })
+        .withBinaryFactType("Customer has Name", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Name", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const missing = diagnostics.filter(
+        (d) => d.ruleId === "completeness/missing-value-type-data-type",
+      );
+      expect(missing).toHaveLength(0);
+    });
+
+    it("does not flag entity types without data type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withEntityType("Order", {
+          referenceMode: "order_number",
+          definition: "An order.",
+        })
+        .withBinaryFactType("Customer places Order", {
+          role1: { player: "Customer", name: "places" },
+          role2: { player: "Order", name: "is placed by" },
+          uniqueness: "role2",
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const missing = diagnostics.filter(
+        (d) => d.ruleId === "completeness/missing-value-type-data-type",
+      );
+      expect(missing).toHaveLength(0);
+    });
+  });
+
+  describe("preferred identifiers", () => {
+    it("reports entity types with no preferred identifier", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("Name", {
+          definition: "A name.",
+          dataType: { name: "text" },
+        })
+        .withBinaryFactType("Customer has Name", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Name", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const missing = diagnostics.filter(
+        (d) => d.ruleId === "completeness/missing-preferred-identifier",
+      );
+      expect(missing).toHaveLength(1);
+      expect(missing[0]!.severity).toBe("info");
+      expect(missing[0]!.message).toContain("Customer");
+      expect(missing[0]!.message).toContain("heuristic");
+    });
+
+    it("does not report entity types with a preferred identifier", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("CustomerId", {
+          definition: "Customer identifier.",
+          dataType: { name: "integer" },
+        })
+        .withBinaryFactType("Customer has CustomerId", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "CustomerId", name: "is of" },
+          uniqueness: "role1",
+          isPreferred: true,
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const missing = diagnostics.filter(
+        (d) => d.ruleId === "completeness/missing-preferred-identifier",
+      );
+      expect(missing).toHaveLength(0);
+    });
+
+    it("warns when entity type has multiple preferred identifiers", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("CustomerId", {
+          definition: "Internal identifier.",
+          dataType: { name: "integer" },
+        })
+        .withValueType("ExternalCode", {
+          definition: "External code.",
+          dataType: { name: "text", length: 10 },
+        })
+        .withBinaryFactType("Customer has CustomerId", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "CustomerId", name: "is of" },
+          uniqueness: "role1",
+          isPreferred: true,
+        })
+        .withBinaryFactType("Customer has ExternalCode", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "ExternalCode", name: "is of" },
+          uniqueness: "role1",
+          isPreferred: true,
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      const multiple = diagnostics.filter(
+        (d) => d.ruleId === "completeness/multiple-preferred-identifiers",
+      );
+      expect(multiple).toHaveLength(1);
+      expect(multiple[0]!.severity).toBe("warning");
+      expect(multiple[0]!.message).toContain("Customer");
+      expect(multiple[0]!.message).toContain("2");
+    });
+
+    it("does not check value types for preferred identifiers", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A customer.",
+        })
+        .withValueType("Name", { definition: "A name." })
+        .withBinaryFactType("Customer has Name", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Name", name: "is of" },
+          uniqueness: "role1",
+          isPreferred: true,
+        })
+        .build();
+
+      const diagnostics = completenessWarnings(model);
+      // Value type "Name" should not be checked for preferred identifiers --
+      // only entity types are checked.
+      const valuePrefWarning = diagnostics.filter(
+        (d) =>
+          d.ruleId === "completeness/missing-preferred-identifier" &&
+          d.message.includes("Name"),
+      );
+      expect(valuePrefWarning).toHaveLength(0);
     });
   });
 });
