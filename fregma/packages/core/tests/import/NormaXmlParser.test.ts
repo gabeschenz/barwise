@@ -32,6 +32,7 @@ describe("NormaXmlParser", () => {
       expect(doc.factTypes).toHaveLength(0);
       expect(doc.subtypeFacts).toHaveLength(0);
       expect(doc.constraints).toHaveLength(0);
+      expect(doc.dataTypes).toHaveLength(0);
     });
 
     it("throws NormaParseError for malformed XML", () => {
@@ -127,6 +128,37 @@ describe("NormaXmlParser", () => {
       expect(doc.valueTypes[0]!.id).toBe("_vt1");
       expect(doc.valueTypes[0]!.name).toBe("CustomerName");
       expect(doc.valueTypes[0]!.playedRoleRefs).toEqual(["_role2"]);
+    });
+
+    it("parses value type with ConceptualDataType reference", () => {
+      const xml = wrap(`
+        <orm:Objects>
+          <orm:ValueType id="_vt1" Name="FirstName">
+            <orm:PlayedRoles />
+            <orm:ConceptualDataType id="_cdt1" ref="_dt1" Length="30" Scale="0" />
+          </orm:ValueType>
+        </orm:Objects>
+      `);
+      const doc = parseNormaXml(xml);
+
+      expect(doc.valueTypes[0]!.dataTypeRef).toBe("_dt1");
+      expect(doc.valueTypes[0]!.dataTypeLength).toBe(30);
+      expect(doc.valueTypes[0]!.dataTypeScale).toBe(0);
+    });
+
+    it("parses value type without ConceptualDataType gracefully", () => {
+      const xml = wrap(`
+        <orm:Objects>
+          <orm:ValueType id="_vt1" Name="Name">
+            <orm:PlayedRoles />
+          </orm:ValueType>
+        </orm:Objects>
+      `);
+      const doc = parseNormaXml(xml);
+
+      expect(doc.valueTypes[0]!.dataTypeRef).toBeUndefined();
+      expect(doc.valueTypes[0]!.dataTypeLength).toBeUndefined();
+      expect(doc.valueTypes[0]!.dataTypeScale).toBeUndefined();
     });
 
     it("parses value type with inline value constraint", () => {
@@ -235,6 +267,47 @@ describe("NormaXmlParser", () => {
       expect(ft.readingOrders[0]!.roleSequence).toEqual(["_r1", "_r2"]);
 
       expect(ft.internalConstraintRefs).toEqual(["_uc1"]);
+    });
+
+    it("parses role multiplicity", () => {
+      const xml = wrap(`
+        <orm:Facts>
+          <orm:Fact id="_ft1" _Name="Test">
+            <orm:FactRoles>
+              <orm:Role id="_r1" Name="places" _IsMandatory="true" _Multiplicity="ExactlyOne">
+                <orm:RolePlayer ref="_et1" />
+              </orm:Role>
+              <orm:Role id="_r2" Name="is placed by" _IsMandatory="false" _Multiplicity="ZeroToMany">
+                <orm:RolePlayer ref="_et2" />
+              </orm:Role>
+            </orm:FactRoles>
+            <orm:ReadingOrders />
+          </orm:Fact>
+        </orm:Facts>
+      `);
+      const doc = parseNormaXml(xml);
+      const ft = doc.factTypes[0]!;
+
+      expect(ft.roles[0]!.multiplicity).toBe("ExactlyOne");
+      expect(ft.roles[1]!.multiplicity).toBe("ZeroToMany");
+    });
+
+    it("defaults role multiplicity to Unspecified when absent", () => {
+      const xml = wrap(`
+        <orm:Facts>
+          <orm:Fact id="_ft1" _Name="Test">
+            <orm:FactRoles>
+              <orm:Role id="_r1" Name="role1">
+                <orm:RolePlayer ref="_et1" />
+              </orm:Role>
+            </orm:FactRoles>
+            <orm:ReadingOrders />
+          </orm:Fact>
+        </orm:Facts>
+      `);
+      const doc = parseNormaXml(xml);
+
+      expect(doc.factTypes[0]!.roles[0]!.multiplicity).toBe("Unspecified");
     });
 
     it("parses fact type with multiple reading orders", () => {
@@ -375,7 +448,28 @@ describe("NormaXmlParser", () => {
       expect(c.type).toBe("mandatory");
       if (c.type === "mandatory") {
         expect(c.isSimple).toBe(true);
+        expect(c.isImplied).toBe(false);
         expect(c.roleRefs).toEqual(["_r1"]);
+      }
+    });
+
+    it("parses implied mandatory constraints with IsImplied flag", () => {
+      const xml = wrap(`
+        <orm:Constraints>
+          <orm:MandatoryConstraint id="_imc1" Name="IMC1" IsSimple="true" IsImplied="true">
+            <orm:RoleSequence>
+              <orm:Role ref="_r1" />
+            </orm:RoleSequence>
+          </orm:MandatoryConstraint>
+        </orm:Constraints>
+      `);
+      const doc = parseNormaXml(xml);
+
+      expect(doc.constraints).toHaveLength(1);
+      const c = doc.constraints[0]!;
+      expect(c.type).toBe("mandatory");
+      if (c.type === "mandatory") {
+        expect(c.isImplied).toBe(true);
       }
     });
 
@@ -518,6 +612,24 @@ describe("NormaXmlParser", () => {
       }
     });
 
+    it("parses mandatory constraint without IsImplied defaults to false", () => {
+      const xml = wrap(`
+        <orm:Constraints>
+          <orm:MandatoryConstraint id="_mc1" Name="MC1" IsSimple="false">
+            <orm:RoleSequence>
+              <orm:Role ref="_r1" />
+              <orm:Role ref="_r2" />
+            </orm:RoleSequence>
+          </orm:MandatoryConstraint>
+        </orm:Constraints>
+      `);
+      const doc = parseNormaXml(xml);
+      const c = doc.constraints[0]!;
+      if (c.type === "mandatory") {
+        expect(c.isImplied).toBe(false);
+      }
+    });
+
     it("normalizes ring type variants", () => {
       const xml = wrap(`
         <orm:Constraints>
@@ -564,6 +676,36 @@ describe("NormaXmlParser", () => {
       expect(types).toContain("uniqueness");
       expect(types).toContain("mandatory");
       expect(types).toContain("ring");
+    });
+  });
+
+  describe("data types", () => {
+    it("parses DataTypes section", () => {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>
+<orm:ORM2 xmlns:orm="http://schemas.neumont.edu/ORM/2006-04/ORMCore">
+  <orm:ORMModel id="_model1" Name="TestModel">
+    <orm:DataTypes>
+      <orm:VariableLengthTextDataType id="_dt1" />
+      <orm:AutoCounterNumericDataType id="_dt2" />
+      <orm:SignedIntegerNumericDataType id="_dt3" />
+    </orm:DataTypes>
+  </orm:ORMModel>
+</orm:ORM2>`;
+      const doc = parseNormaXml(xml);
+
+      expect(doc.dataTypes).toHaveLength(3);
+      expect(doc.dataTypes[0]!.id).toBe("_dt1");
+      expect(doc.dataTypes[0]!.kind).toBe("variable_length_text");
+      expect(doc.dataTypes[1]!.id).toBe("_dt2");
+      expect(doc.dataTypes[1]!.kind).toBe("auto_counter_numeric");
+      expect(doc.dataTypes[2]!.id).toBe("_dt3");
+      expect(doc.dataTypes[2]!.kind).toBe("signed_integer_numeric");
+    });
+
+    it("returns empty dataTypes when DataTypes section is absent", () => {
+      const xml = wrap("");
+      const doc = parseNormaXml(xml);
+      expect(doc.dataTypes).toHaveLength(0);
     });
   });
 });

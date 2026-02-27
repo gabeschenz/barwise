@@ -73,6 +73,83 @@ describe("OrmYamlSerializer", () => {
       expect(yaml).toContain("- C");
     });
 
+    it("serializes value types with data type", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addObjectType({
+        name: "FirstName",
+        kind: "value",
+        dataType: { name: "text", length: 50 },
+      });
+
+      const yaml = serializer.serialize(model);
+
+      expect(yaml).toContain("data_type:");
+      expect(yaml).toContain("name: text");
+      expect(yaml).toContain("length: 50");
+    });
+
+    it("serializes data type with scale", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addObjectType({
+        name: "Price",
+        kind: "value",
+        dataType: { name: "decimal", length: 10, scale: 2 },
+      });
+
+      const yaml = serializer.serialize(model);
+
+      expect(yaml).toContain("name: decimal");
+      expect(yaml).toContain("scale: 2");
+    });
+
+    it("omits data_type when not set", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addObjectType({ name: "Name", kind: "value" });
+
+      const yaml = serializer.serialize(model);
+      expect(yaml).not.toContain("data_type");
+    });
+
+    it("serializes isPreferred on internal_uniqueness constraint", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addFactType({
+        name: "Customer has id",
+        roles: [{ id: "r1", name: "has", playerId: customer.id }],
+        readings: ["{0} has id"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"], isPreferred: true },
+        ],
+      });
+
+      const yaml = serializer.serialize(model);
+      expect(yaml).toContain("is_preferred: true");
+    });
+
+    it("omits is_preferred when false or undefined", () => {
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addFactType({
+        name: "Customer has id",
+        roles: [{ id: "r1", name: "has", playerId: customer.id }],
+        readings: ["{0} has id"],
+        constraints: [
+          { type: "internal_uniqueness", roleIds: ["r1"] },
+        ],
+      });
+
+      const yaml = serializer.serialize(model);
+      expect(yaml).not.toContain("is_preferred");
+    });
+
     it("serializes fact types with roles, readings, and constraints", () => {
       const model = new ModelBuilder("Test")
         .withEntityType("Customer", { referenceMode: "customer_id" })
@@ -189,6 +266,121 @@ model:
       const ot = model.objectTypes[0]!;
       expect(ot.kind).toBe("value");
       expect(ot.valueConstraint?.values).toEqual(["A", "B", "C"]);
+    });
+
+    it("deserializes value types with data type", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "FirstName"
+      kind: "value"
+      data_type:
+        name: "text"
+        length: 50
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ot = model.objectTypes[0]!;
+      expect(ot.dataType).toBeDefined();
+      expect(ot.dataType!.name).toBe("text");
+      expect(ot.dataType!.length).toBe(50);
+      expect(ot.dataType!.scale).toBeUndefined();
+    });
+
+    it("deserializes data type with scale", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "Price"
+      kind: "value"
+      data_type:
+        name: "decimal"
+        length: 10
+        scale: 2
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ot = model.objectTypes[0]!;
+      expect(ot.dataType!.name).toBe("decimal");
+      expect(ot.dataType!.length).toBe(10);
+      expect(ot.dataType!.scale).toBe(2);
+    });
+
+    it("deserializes isPreferred on internal_uniqueness constraint", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+  fact_types:
+    - id: "ft-001"
+      name: "Customer has id"
+      roles:
+        - id: "r-001"
+          player: "ot-001"
+          role_name: "has"
+      readings:
+        - "{0} has id"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-001"]
+          is_preferred: true
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ft = model.factTypes[0]!;
+      const uc = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      );
+      expect(uc).toBeDefined();
+      if (uc?.type === "internal_uniqueness") {
+        expect(uc.isPreferred).toBe(true);
+      }
+    });
+
+    it("deserializes internal_uniqueness without is_preferred", () => {
+      const yaml = `
+orm_version: "1.0"
+model:
+  name: "Test"
+  object_types:
+    - id: "ot-001"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+  fact_types:
+    - id: "ft-001"
+      name: "Customer has id"
+      roles:
+        - id: "r-001"
+          player: "ot-001"
+          role_name: "has"
+      readings:
+        - "{0} has id"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-001"]
+`;
+      const model = serializer.deserialize(yaml);
+
+      const ft = model.factTypes[0]!;
+      const uc = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      );
+      expect(uc).toBeDefined();
+      if (uc?.type === "internal_uniqueness") {
+        expect(uc.isPreferred).toBeUndefined();
+      }
     });
 
     it("deserializes fact types with roles, readings, and constraints", () => {
@@ -417,6 +609,9 @@ model:
         .withValueType("Rating", {
           valueConstraint: { values: ["A", "B", "C", "D", "F"] },
         })
+        .withValueType("CustomerName", {
+          dataType: { name: "text", length: 50 },
+        })
         .withBinaryFactType("Customer places Order", {
           role1: { player: "Customer", name: "places" },
           role2: { player: "Order", name: "is placed by" },
@@ -454,6 +649,12 @@ model:
           expect(rest!.valueConstraint?.values).toEqual(
             orig.valueConstraint.values,
           );
+        }
+        if (orig.dataType) {
+          expect(rest!.dataType).toBeDefined();
+          expect(rest!.dataType!.name).toBe(orig.dataType.name);
+          expect(rest!.dataType!.length).toBe(orig.dataType.length);
+          expect(rest!.dataType!.scale).toBe(orig.dataType.scale);
         }
       }
 

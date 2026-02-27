@@ -69,6 +69,7 @@ export function mergeModels(
         definition: ot.definition,
         sourceContext: ot.sourceContext,
         valueConstraint: ot.valueConstraint,
+        dataType: ot.dataType,
       });
       if (delta.incoming) {
         incomingIdToMergedId.set(delta.incoming.id, ot.id);
@@ -84,6 +85,7 @@ export function mergeModels(
           definition: ot.definition,
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
+          dataType: ot.dataType,
         });
         incomingIdToMergedId.set(ot.id, ot.id);
       }
@@ -100,6 +102,7 @@ export function mergeModels(
           definition: ot.definition,
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
+          dataType: ot.dataType,
         });
       }
       // If accepted: omit (remove).
@@ -116,6 +119,7 @@ export function mergeModels(
           definition: incomingOt.definition,
           sourceContext: incomingOt.sourceContext,
           valueConstraint: incomingOt.valueConstraint,
+          dataType: incomingOt.dataType,
         });
         incomingIdToMergedId.set(incomingOt.id, existingOt.id);
       } else {
@@ -129,6 +133,7 @@ export function mergeModels(
           definition: ot.definition,
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
+          dataType: ot.dataType,
         });
         if (delta.incoming) {
           incomingIdToMergedId.set(delta.incoming.id, ot.id);

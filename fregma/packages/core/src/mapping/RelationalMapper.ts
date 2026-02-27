@@ -23,7 +23,7 @@
 
 import type { OrmModel } from "../model/OrmModel.js";
 import type { FactType } from "../model/FactType.js";
-import type { ObjectType } from "../model/ObjectType.js";
+import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type {
@@ -46,9 +46,11 @@ export class RelationalMapper {
     for (const ot of model.objectTypes) {
       if (ot.kind === "entity") {
         const pkColName = ot.referenceMode ?? `${toSnake(ot.name)}_id`;
+        // Resolve the PK data type from the reference-mode value type.
+        const pkDataType = resolveEntityPkType(ot, model);
         const table: MutableTable = {
           name: toSnake(ot.name),
-          columns: [{ name: pkColName, dataType: "TEXT", nullable: false }],
+          columns: [{ name: pkColName, dataType: pkDataType, nullable: false }],
           primaryKey: { columnNames: [pkColName] },
           foreignKeys: [],
           sourceElementId: ot.id,
@@ -247,7 +249,7 @@ export class RelationalMapper {
     const colName = toSnake(valuePlayer.name);
     table.columns.push({
       name: colName,
-      dataType: "TEXT",
+      dataType: conceptualTypeToSql(valuePlayer.dataType),
       nullable: !isMandatory,
       sourceRoleId: entityRole.id,
     });
@@ -269,6 +271,9 @@ export class RelationalMapper {
     if (!sourceTable || !targetTable) return;
 
     const fkColName = targetTable.primaryKey.columnNames[0]!;
+    // FK column type should match the PK column type of the referenced table.
+    const pkCol = targetTable.columns.find((c) => c.name === fkColName);
+    const fkDataType = pkCol?.dataType ?? "TEXT";
     // Avoid duplicate column names.
     const existingNames = new Set(sourceTable.columns.map((c) => c.name));
     const finalColName = existingNames.has(fkColName)
@@ -277,7 +282,7 @@ export class RelationalMapper {
 
     sourceTable.columns.push({
       name: finalColName,
-      dataType: "TEXT",
+      dataType: fkDataType,
       nullable: !isMandatory,
       sourceRoleId,
     });
@@ -310,6 +315,8 @@ export class RelationalMapper {
       if (!targetTable) continue;
 
       const refCol = targetTable.primaryKey.columnNames[0]!;
+      const pkCol = targetTable.columns.find((c) => c.name === refCol);
+      const colDataType = pkCol?.dataType ?? "TEXT";
       // Disambiguate if the same entity appears in multiple roles.
       const usedNames = new Set(columns.map((c) => c.name));
       const colName = usedNames.has(refCol)
@@ -318,7 +325,7 @@ export class RelationalMapper {
 
       columns.push({
         name: colName,
-        dataType: "TEXT",
+        dataType: colDataType,
         nullable: false,
         sourceRoleId: role.id,
       });
@@ -373,10 +380,12 @@ export class RelationalMapper {
       const fkColName = existingNames.has(supertypePkCol)
         ? `fk_${supertypePkCol}`
         : supertypePkCol;
+      const pkCol = supertypeTable.columns.find((c) => c.name === supertypePkCol);
+      const fkDataType = pkCol?.dataType ?? "TEXT";
 
       subtypeTable.columns.push({
         name: fkColName,
-        dataType: "TEXT",
+        dataType: fkDataType,
         nullable: false,
       });
       subtypeTable.foreignKeys.push({
@@ -417,9 +426,12 @@ export class RelationalMapper {
         ? `${toSnake(role.name)}_${refCol}`
         : refCol;
 
+      const pkCol = targetTable.columns.find((c) => c.name === refCol);
+      const colDataType = pkCol?.dataType ?? "TEXT";
+
       entityTable.columns.push({
         name: colName,
-        dataType: "TEXT",
+        dataType: colDataType,
         nullable: false,
         sourceRoleId: role.id,
       });
@@ -512,4 +524,110 @@ function toSnake(name: string): string {
     .replace(/([a-z])([A-Z])/g, "$1_$2")
     .replace(/[\s-]+/g, "_")
     .toLowerCase();
+}
+
+/**
+ * Convert a portable DataTypeDef to a SQL type string.
+ *
+ * Returns parameterized types where applicable (e.g. VARCHAR(50),
+ * DECIMAL(10,2)). Falls back to "TEXT" when no DataTypeDef is given.
+ */
+function conceptualTypeToSql(dataType: DataTypeDef | undefined): string {
+  if (!dataType) return "TEXT";
+
+  switch (dataType.name) {
+    case "text":
+      return dataType.length ? `VARCHAR(${dataType.length})` : "TEXT";
+    case "integer":
+      return "INTEGER";
+    case "decimal":
+      if (dataType.length && dataType.scale !== undefined) {
+        return `DECIMAL(${dataType.length},${dataType.scale})`;
+      }
+      if (dataType.length) {
+        return `DECIMAL(${dataType.length})`;
+      }
+      return "DECIMAL";
+    case "money":
+      return dataType.length ? `DECIMAL(${dataType.length},${dataType.scale ?? 2})` : "DECIMAL(19,2)";
+    case "float":
+      return "FLOAT";
+    case "boolean":
+      return "BOOLEAN";
+    case "date":
+      return "DATE";
+    case "time":
+      return "TIME";
+    case "datetime":
+      return "DATETIME";
+    case "timestamp":
+      return "TIMESTAMP";
+    case "auto_counter":
+      return "INTEGER";
+    case "binary":
+      return dataType.length ? `BINARY(${dataType.length})` : "BLOB";
+    case "uuid":
+      return "UUID";
+    case "other":
+      return "TEXT";
+    default:
+      return "TEXT";
+  }
+}
+
+/**
+ * Resolve the SQL type for an entity type's primary key column.
+ *
+ * Strategy:
+ * 1. If any fact type has an internal uniqueness constraint with
+ *    isPreferred: true that references a role played by this entity,
+ *    use the value type from that fact type.
+ * 2. Otherwise fall back to the first binary fact type linking this
+ *    entity to a value type (the reference-mode heuristic).
+ * 3. Falls back to "TEXT" if no value type is found.
+ */
+function resolveEntityPkType(ot: ObjectType, model: OrmModel): string {
+  // Pass 1: look for fact type with isPreferred uniqueness constraint.
+  for (const ft of model.factTypes) {
+    if (ft.arity !== 2) continue;
+
+    const hasPreferred = ft.constraints.some(
+      (c) => c.type === "internal_uniqueness" && c.isPreferred,
+    );
+    if (!hasPreferred) continue;
+
+    const vp = findValuePlayer(ft, ot, model);
+    if (vp) return conceptualTypeToSql(vp.dataType);
+  }
+
+  // Pass 2: heuristic -- first binary fact type with a value type.
+  for (const ft of model.factTypes) {
+    if (ft.arity !== 2) continue;
+    const vp = findValuePlayer(ft, ot, model);
+    if (vp) return conceptualTypeToSql(vp.dataType);
+  }
+
+  return "TEXT";
+}
+
+/**
+ * Given a binary fact type and an entity, return the value type on
+ * the other side of the relationship (if any).
+ */
+function findValuePlayer(
+  ft: { roles: readonly { playerId: string }[] },
+  ot: ObjectType,
+  model: OrmModel,
+): ObjectType | undefined {
+  const role1 = ft.roles[0]!;
+  const role2 = ft.roles[1]!;
+
+  if (role1.playerId === ot.id) {
+    const other = model.getObjectType(role2.playerId);
+    if (other?.kind === "value") return other;
+  } else if (role2.playerId === ot.id) {
+    const other = model.getObjectType(role1.playerId);
+    if (other?.kind === "value") return other;
+  }
+  return undefined;
 }

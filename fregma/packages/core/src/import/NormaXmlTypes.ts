@@ -19,6 +19,18 @@ export interface NormaDocument {
   readonly factTypes: NormaFactType[];
   readonly subtypeFacts: NormaSubtypeFact[];
   readonly constraints: NormaConstraint[];
+  /** Data type definitions from the DataTypes section (id -> tag-derived kind). */
+  readonly dataTypes: NormaDataType[];
+}
+
+/**
+ * A data type definition from NORMA's DataTypes section.
+ * The kind is derived from the XML tag name (e.g. "VariableLengthTextDataType"
+ * becomes "variable_length_text").
+ */
+export interface NormaDataType {
+  readonly id: string;
+  readonly kind: string;
 }
 
 /** A NORMA EntityType element. */
@@ -38,6 +50,12 @@ export interface NormaValueType {
   readonly playedRoleRefs: readonly string[];
   readonly definition?: string;
   readonly valueConstraint?: NormaValueConstraintInline;
+  /** Reference to a NormaDataType id from the DataTypes section. */
+  readonly dataTypeRef?: string;
+  /** Length parameter from ConceptualDataType (e.g. VARCHAR length). */
+  readonly dataTypeLength?: number;
+  /** Scale parameter from ConceptualDataType (e.g. decimal scale). */
+  readonly dataTypeScale?: number;
 }
 
 /** Inline value constraint on a ValueType (ValueRestriction). */
@@ -66,12 +84,25 @@ export interface NormaFactType {
   readonly definition?: string;
 }
 
+/**
+ * NORMA multiplicity annotation on a role.
+ * This is derived from uniqueness + mandatory constraints but NORMA
+ * stores it as an explicit attribute for convenience.
+ */
+export type NormaMultiplicity =
+  | "ZeroToOne"
+  | "ZeroToMany"
+  | "ExactlyOne"
+  | "OneToMany"
+  | "Unspecified";
+
 /** A role within a NORMA fact type. */
 export interface NormaRole {
   readonly id: string;
   readonly name: string;
   readonly playerRef: string; // ref to ObjectType id
   readonly isMandatory: boolean;
+  readonly multiplicity: NormaMultiplicity;
 }
 
 /** A reading order within a NORMA fact type. */
@@ -124,6 +155,8 @@ export interface NormaMandatoryConstraint {
   readonly id: string;
   readonly name: string;
   readonly isSimple: boolean;
+  /** True if NORMA auto-generated this constraint (should not be imported). */
+  readonly isImplied: boolean;
   readonly roleRefs: readonly string[];
 }
 

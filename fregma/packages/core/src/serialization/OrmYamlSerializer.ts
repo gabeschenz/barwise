@@ -1,6 +1,6 @@
 import { stringify, parse } from "yaml";
 import { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType } from "../model/ObjectType.js";
+import type { ObjectType, ConceptualDataTypeName } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
@@ -40,6 +40,7 @@ interface OrmYamlObjectType {
   definition?: string;
   source_context?: string;
   value_constraint?: { values: string[] };
+  data_type?: { name: string; length?: number; scale?: number };
 }
 
 interface OrmYamlFactType {
@@ -58,7 +59,7 @@ interface OrmYamlRole {
 }
 
 type OrmYamlConstraint =
-  | { type: "internal_uniqueness"; roles: string[] }
+  | { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }
   | { type: "mandatory"; role: string }
   | { type: "external_uniqueness"; roles: string[] }
   | { type: "value_constraint"; role?: string; values: string[] }
@@ -240,6 +241,12 @@ export class OrmYamlSerializer {
     if (ot.valueConstraint) {
       result.value_constraint = { values: [...ot.valueConstraint.values] };
     }
+    if (ot.dataType) {
+      const dt: { name: string; length?: number; scale?: number } = { name: ot.dataType.name };
+      if (ot.dataType.length !== undefined) dt.length = ot.dataType.length;
+      if (ot.dataType.scale !== undefined) dt.scale = ot.dataType.scale;
+      result.data_type = dt;
+    }
 
     return result;
   }
@@ -275,8 +282,13 @@ export class OrmYamlSerializer {
 
   private serializeConstraint(c: Constraint): OrmYamlConstraint {
     switch (c.type) {
-      case "internal_uniqueness":
-        return { type: "internal_uniqueness", roles: [...c.roleIds] };
+      case "internal_uniqueness": {
+        const iuc: OrmYamlConstraint = { type: "internal_uniqueness", roles: [...c.roleIds] };
+        if (c.isPreferred) {
+          (iuc as { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }).is_preferred = true;
+        }
+        return iuc;
+      }
       case "mandatory":
         return { type: "mandatory", role: c.roleId };
       case "external_uniqueness":
@@ -380,6 +392,13 @@ export class OrmYamlSerializer {
         valueConstraint: otDoc.value_constraint
           ? { values: otDoc.value_constraint.values }
           : undefined,
+        dataType: otDoc.data_type
+          ? {
+              name: otDoc.data_type.name as ConceptualDataTypeName,
+              length: otDoc.data_type.length,
+              scale: otDoc.data_type.scale,
+            }
+          : undefined,
       });
     }
 
@@ -451,8 +470,13 @@ export class OrmYamlSerializer {
 
   private deserializeConstraint(c: OrmYamlConstraint): Constraint {
     switch (c.type) {
-      case "internal_uniqueness":
-        return { type: "internal_uniqueness", roleIds: c.roles };
+      case "internal_uniqueness": {
+        const result: Constraint = { type: "internal_uniqueness", roleIds: c.roles };
+        if (c.is_preferred) {
+          return { ...result, isPreferred: true } as Constraint;
+        }
+        return result;
+      }
       case "mandatory":
         return { type: "mandatory", roleId: c.role };
       case "external_uniqueness":

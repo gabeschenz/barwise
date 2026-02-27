@@ -15,6 +15,43 @@ export interface ValueConstraintDef {
 }
 
 /**
+ * Portable conceptual data type names, independent of any specific tool
+ * (NORMA, SQL dialect, etc.). These describe the abstract nature of a
+ * value type's data, not its storage representation.
+ *
+ * The relational mapper and DDL renderer translate these into concrete
+ * SQL types (e.g. "text" -> VARCHAR, "auto_counter" -> SERIAL).
+ */
+export type ConceptualDataTypeName =
+  | "text"
+  | "integer"
+  | "decimal"
+  | "money"
+  | "float"
+  | "boolean"
+  | "date"
+  | "time"
+  | "datetime"
+  | "timestamp"
+  | "auto_counter"
+  | "binary"
+  | "uuid"
+  | "other";
+
+/**
+ * A conceptual data type definition on a value type.
+ *
+ * This describes the abstract nature of a value type's data, not its
+ * physical storage. The optional `length` and `scale` parameters carry
+ * sizing information where relevant (e.g. VARCHAR(50) or DECIMAL(10,2)).
+ */
+export interface DataTypeDef {
+  readonly name: ConceptualDataTypeName;
+  readonly length?: number;
+  readonly scale?: number;
+}
+
+/**
  * Configuration for creating a new ObjectType.
  */
 export interface ObjectTypeConfig {
@@ -29,6 +66,8 @@ export interface ObjectTypeConfig {
   readonly sourceContext?: string;
   /** Value constraint for value types. */
   readonly valueConstraint?: ValueConstraintDef;
+  /** Conceptual data type for value types (e.g. text, integer, decimal). */
+  readonly dataType?: DataTypeDef;
 }
 
 /**
@@ -44,6 +83,7 @@ export class ObjectType extends ModelElement {
   private _definition: string | undefined;
   private _sourceContext: string | undefined;
   private _valueConstraint: ValueConstraintDef | undefined;
+  private _dataType: DataTypeDef | undefined;
 
   constructor(config: ObjectTypeConfig) {
     super(config.name, config.id);
@@ -52,6 +92,7 @@ export class ObjectType extends ModelElement {
     this._definition = config.definition;
     this._sourceContext = config.sourceContext;
     this._valueConstraint = config.valueConstraint;
+    this._dataType = config.dataType;
 
     if (this.kind === "entity" && !this._referenceMode) {
       throw new Error(
@@ -97,6 +138,10 @@ export class ObjectType extends ModelElement {
 
   get valueConstraint(): ValueConstraintDef | undefined {
     return this._valueConstraint;
+  }
+
+  get dataType(): DataTypeDef | undefined {
+    return this._dataType;
   }
 
   get isEntity(): boolean {

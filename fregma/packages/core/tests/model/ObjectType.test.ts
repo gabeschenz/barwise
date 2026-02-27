@@ -86,6 +86,34 @@ describe("ObjectType", () => {
       expect(ot.valueConstraint!.values).toEqual(["A", "B", "C", "D", "F"]);
     });
 
+    it("accepts a data type definition", () => {
+      const ot = new ObjectType({
+        name: "FirstName",
+        kind: "value",
+        dataType: { name: "text", length: 50 },
+      });
+      expect(ot.dataType).toBeDefined();
+      expect(ot.dataType!.name).toBe("text");
+      expect(ot.dataType!.length).toBe(50);
+      expect(ot.dataType!.scale).toBeUndefined();
+    });
+
+    it("accepts a data type with scale", () => {
+      const ot = new ObjectType({
+        name: "Price",
+        kind: "value",
+        dataType: { name: "decimal", length: 10, scale: 2 },
+      });
+      expect(ot.dataType!.name).toBe("decimal");
+      expect(ot.dataType!.length).toBe(10);
+      expect(ot.dataType!.scale).toBe(2);
+    });
+
+    it("allows value type without data type", () => {
+      const ot = new ObjectType({ name: "Name", kind: "value" });
+      expect(ot.dataType).toBeUndefined();
+    });
+
     it("throws on empty value constraint", () => {
       expect(
         () =>

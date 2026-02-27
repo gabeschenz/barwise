@@ -26,6 +26,7 @@ function makeDoc(overrides?: Partial<NormaDocument>): NormaDocument {
     factTypes: [],
     subtypeFacts: [],
     constraints: [],
+    dataTypes: [],
     ...overrides,
   };
 }
@@ -65,8 +66,8 @@ function makeBinaryFactType(
     id,
     name,
     roles: [
-      { id: r1, name: "role1", playerRef: role1Player, isMandatory: false },
-      { id: r2, name: "role2", playerRef: role2Player, isMandatory: false },
+      { id: r1, name: "role1", playerRef: role1Player, isMandatory: false, multiplicity: "Unspecified" as const },
+      { id: r2, name: "role2", playerRef: role2Player, isMandatory: false, multiplicity: "Unspecified" as const },
     ],
     readingOrders: [
       {
@@ -273,12 +274,73 @@ describe("NormaToOrmMapper", () => {
       }
     });
 
+    it("maps isPreferred from uniqueness constraint", () => {
+      const uc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc1",
+        name: "UC1",
+        isInternal: true,
+        isPreferred: true,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_uc1"],
+          }),
+        ],
+        constraints: [uc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const iuc = ft.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(iuc).toBeDefined();
+      if (iuc?.type === "internal_uniqueness") {
+        expect(iuc.isPreferred).toBe(true);
+      }
+    });
+
+    it("does not set isPreferred when constraint is not preferred", () => {
+      const uc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc1",
+        name: "UC1",
+        isInternal: true,
+        isPreferred: false,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_uc1"],
+          }),
+        ],
+        constraints: [uc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const iuc = ft.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(iuc).toBeDefined();
+      if (iuc?.type === "internal_uniqueness") {
+        expect(iuc.isPreferred).toBeUndefined();
+      }
+    });
+
     it("maps simple mandatory constraint from internalConstraintRefs", () => {
       const mc: NormaConstraint = {
         type: "mandatory",
         id: "_mc1",
         name: "MC1",
         isSimple: true,
+        isImplied: false,
         roleRefs: ["_ft1_r1"],
       };
       const doc = makeDoc({
@@ -390,6 +452,72 @@ describe("NormaToOrmMapper", () => {
         expect(subset.subsetRoleIds).toEqual(["_ft1_r1"]);
         expect(subset.supersetRoleIds).toEqual(["_ft2_r1"]);
       }
+    });
+
+    it("filters out implied mandatory constraints", () => {
+      const simpleMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc1",
+        name: "MC1",
+        isSimple: true,
+        isImplied: false,
+        roleRefs: ["_ft1_r1"],
+      };
+      const impliedMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc2",
+        name: "ImpliedMC",
+        isSimple: true,
+        isImplied: true,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2", {
+            internalConstraintRefs: ["_mc1", "_mc2"],
+          }),
+        ],
+        constraints: [simpleMc, impliedMc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const mandatories = ft.constraints.filter((c) => c.type === "mandatory");
+      // Only the non-implied one should be mapped.
+      expect(mandatories).toHaveLength(1);
+      if (mandatories[0]?.type === "mandatory") {
+        expect(mandatories[0].roleId).toBe("_ft1_r1");
+      }
+    });
+
+    it("filters out implied mandatory in addSimpleMandatoryConstraints path", () => {
+      // Implied mandatory NOT referenced by internalConstraintRefs
+      // but present in top-level constraints -- should still be filtered.
+      const impliedMc: NormaConstraint = {
+        type: "mandatory",
+        id: "_mc_implied",
+        name: "ImpliedMC",
+        isSimple: true,
+        isImplied: true,
+        roleRefs: ["_ft1_r1"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Customer", "Id"),
+          makeEntity("_et2", "Order", "Number"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "CustomerPlacesOrder", "_et1", "_et2"),
+        ],
+        constraints: [impliedMc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const mandatories = ft.constraints.filter((c) => c.type === "mandatory");
+      expect(mandatories).toHaveLength(0);
     });
 
     it("maps value constraint on a role", () => {
@@ -536,6 +664,95 @@ describe("NormaToOrmMapper", () => {
     });
   });
 
+  describe("data type resolution", () => {
+    it("resolves NORMA data type to conceptual data type", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "FirstName",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+            dataTypeLength: 30,
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "variable_length_text" }],
+      });
+      const model = mapNormaToOrm(doc);
+      const ot = model.getObjectTypeByName("FirstName")!;
+      expect(ot.dataType).toBeDefined();
+      expect(ot.dataType!.name).toBe("text");
+      expect(ot.dataType!.length).toBe(30);
+    });
+
+    it("resolves auto_counter_numeric to auto_counter", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "PersonId",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "auto_counter_numeric" }],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("PersonId")!.dataType!.name).toBe("auto_counter");
+    });
+
+    it("resolves unknown data type kind to 'other'", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Weird",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "some_future_norma_type" }],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("Weird")!.dataType!.name).toBe("other");
+    });
+
+    it("returns undefined dataType when no dataTypeRef", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Name",
+            playedRoleRefs: [],
+          },
+        ],
+      });
+      const model = mapNormaToOrm(doc);
+      expect(model.getObjectTypeByName("Name")!.dataType).toBeUndefined();
+    });
+
+    it("resolves decimal with length and scale", () => {
+      const doc = makeDoc({
+        valueTypes: [
+          {
+            id: "_vt1",
+            name: "Price",
+            playedRoleRefs: [],
+            dataTypeRef: "_dt1",
+            dataTypeLength: 10,
+            dataTypeScale: 2,
+          },
+        ],
+        dataTypes: [{ id: "_dt1", kind: "decimal_numeric" }],
+      });
+      const model = mapNormaToOrm(doc);
+      const dt = model.getObjectTypeByName("Price")!.dataType!;
+      expect(dt.name).toBe("decimal");
+      expect(dt.length).toBe(10);
+      expect(dt.scale).toBe(2);
+    });
+  });
+
   describe("complete model mapping", () => {
     it("maps a model with entities, values, facts, and constraints", () => {
       const uc: NormaConstraint = {
@@ -551,6 +768,7 @@ describe("NormaToOrmMapper", () => {
         id: "_mc1",
         name: "MC1",
         isSimple: true,
+        isImplied: false,
         roleRefs: ["_ft1_r2"],
       };
       const doc = makeDoc({

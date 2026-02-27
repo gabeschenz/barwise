@@ -1,5 +1,5 @@
 import { OrmModel } from "../../src/model/OrmModel.js";
-import type { ObjectTypeKind, ValueConstraintDef } from "../../src/model/ObjectType.js";
+import type { ObjectTypeKind, ValueConstraintDef, DataTypeDef } from "../../src/model/ObjectType.js";
 import type { Constraint } from "../../src/model/Constraint.js";
 import type { FactInstanceConfig } from "../../src/model/Population.js";
 
@@ -12,6 +12,7 @@ interface ObjectTypeOptions {
   definition?: string;
   sourceContext?: string;
   valueConstraint?: ValueConstraintDef;
+  dataType?: DataTypeDef;
 }
 
 /**
@@ -214,6 +215,7 @@ export class ModelBuilder {
         definition: options.definition,
         sourceContext: options.sourceContext,
         valueConstraint: options.valueConstraint,
+        dataType: options.dataType,
       });
     }
 

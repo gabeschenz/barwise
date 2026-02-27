@@ -9,11 +9,13 @@
 import { XMLParser } from "fast-xml-parser";
 import type {
   NormaDocument,
+  NormaDataType,
   NormaEntityType,
   NormaValueType,
   NormaObjectifiedType,
   NormaFactType,
   NormaRole,
+  NormaMultiplicity,
   NormaReadingOrder,
   NormaReading,
   NormaSubtypeFact,
@@ -79,6 +81,7 @@ export function parseNormaXml(xml: string): NormaDocument {
   const objects = child(ormModel, "Objects") as Record<string, unknown> | undefined;
   const facts = child(ormModel, "Facts") as Record<string, unknown> | undefined;
   const constraints = child(ormModel, "Constraints") as Record<string, unknown> | undefined;
+  const dataTypesSection = child(ormModel, "DataTypes") as Record<string, unknown> | undefined;
 
   const entityTypes = parseEntityTypes(objects);
   const valueTypes = parseValueTypes(objects);
@@ -86,6 +89,7 @@ export function parseNormaXml(xml: string): NormaDocument {
   const factTypes = parseFactTypes(facts);
   const subtypeFacts = parseSubtypeFacts(facts);
   const parsedConstraints = parseConstraints(constraints);
+  const dataTypes = parseDataTypes(dataTypesSection);
 
   return {
     modelId,
@@ -96,6 +100,7 @@ export function parseNormaXml(xml: string): NormaDocument {
     factTypes,
     subtypeFacts,
     constraints: parsedConstraints,
+    dataTypes,
   };
 }
 
@@ -175,6 +180,12 @@ function parseValueTypes(
     const playedRoles = child(vt, "PlayedRoles") as Record<string, unknown> | undefined;
     const defs = parseDefinitionText(vt);
     const valueRestriction = child(vt, "ValueRestriction") as Record<string, unknown> | undefined;
+    const cdt = child(vt, "ConceptualDataType") as Record<string, unknown> | undefined;
+
+    const lengthStr = cdt ? attr(cdt, "Length") : undefined;
+    const scaleStr = cdt ? attr(cdt, "Scale") : undefined;
+    const dtLength = lengthStr ? parseInt(lengthStr, 10) : undefined;
+    const dtScale = scaleStr ? parseInt(scaleStr, 10) : undefined;
 
     return {
       id: attr(vt, "id") ?? "",
@@ -184,6 +195,9 @@ function parseValueTypes(
       valueConstraint: valueRestriction
         ? parseValueRestriction(valueRestriction)
         : undefined,
+      dataTypeRef: cdt ? attr(cdt, "ref") : undefined,
+      dataTypeLength: dtLength !== undefined && !isNaN(dtLength) ? dtLength : undefined,
+      dataTypeScale: dtScale !== undefined && !isNaN(dtScale) ? dtScale : undefined,
     };
   });
 }
@@ -287,8 +301,19 @@ function parseRoles(
       name: attr(r, "Name") ?? "",
       playerRef: playerEl ? (attr(playerEl, "ref") ?? "") : "",
       isMandatory: attr(r, "_IsMandatory") === "true",
+      multiplicity: parseMultiplicity(attr(r, "_Multiplicity")),
     };
   });
+}
+
+function parseMultiplicity(raw: string | undefined): NormaMultiplicity {
+  switch (raw) {
+    case "ZeroToOne": return "ZeroToOne";
+    case "ZeroToMany": return "ZeroToMany";
+    case "ExactlyOne": return "ExactlyOne";
+    case "OneToMany": return "OneToMany";
+    default: return "Unspecified";
+  }
 }
 
 function parseReadingOrders(
@@ -423,7 +448,9 @@ function parseConstraints(
       id: attr(uc, "id") ?? "",
       name: attr(uc, "Name") ?? "",
       isInternal: attr(uc, "IsInternal") === "true",
-      isPreferred: attr(uc, "IsPreferred") === "true",
+      isPreferred:
+        attr(uc, "IsPreferred") === "true" ||
+        asArray(uc["PreferredIdentifierFor"]).length > 0,
       roleRefs,
     });
   }
@@ -436,6 +463,7 @@ function parseConstraints(
       id: attr(mc, "id") ?? "",
       name: attr(mc, "Name") ?? "",
       isSimple: attr(mc, "IsSimple") === "true",
+      isImplied: attr(mc, "IsImplied") === "true",
       roleRefs: roleSeq ? parseRoleSequenceRefs(roleSeq) : [],
     });
   }
@@ -534,6 +562,80 @@ function parseMultipleRoleSequences(
     sequences.push(asArray(seq["Role"]).map((r) => attr(r, "ref") ?? ""));
   }
   return sequences;
+}
+
+// ---- Data Type Parsing ----
+
+/**
+ * Known NORMA data type tag suffixes. The parser scans the DataTypes
+ * section for any child element whose tag ends with "DataType" and
+ * derives a kind string from the tag name.
+ */
+const knownDataTypeTags = [
+  "FixedLengthTextDataType",
+  "VariableLengthTextDataType",
+  "LargeLengthTextDataType",
+  "AutoCounterNumericDataType",
+  "SignedIntegerNumericDataType",
+  "UnsignedIntegerNumericDataType",
+  "FloatingPointNumericDataType",
+  "DecimalNumericDataType",
+  "MoneyNumericDataType",
+  "DateTemporalDataType",
+  "DateAndTimeTemporalDataType",
+  "TimeTemporalDataType",
+  "TrueOrFalseLogicalDataType",
+  "YesOrNoLogicalDataType",
+  "RowIdOtherDataType",
+  "OleObjectRawDataDataType",
+  "PictureRawDataDataType",
+  "AutoTimestampTemporalDataType",
+  "UnsignedTinyIntegerNumericDataType",
+  "UnsignedSmallIntegerNumericDataType",
+  "SignedSmallIntegerNumericDataType",
+  "SignedLargeIntegerNumericDataType",
+  "UnsignedLargeIntegerNumericDataType",
+  "DoublePrecisionFloatingPointNumericDataType",
+  "SinglePrecisionFloatingPointNumericDataType",
+];
+
+/**
+ * Derive a normalized kind string from a NORMA DataType tag name.
+ * "VariableLengthTextDataType" -> "variable_length_text"
+ */
+function dataTypeTagToKind(tag: string): string {
+  return tag
+    .replace(/DataType$/, "")
+    .replace(/([A-Z])/g, "_$1")
+    .toLowerCase()
+    .replace(/^_/, "")
+    .replace(/_+/g, "_");
+}
+
+function parseDataTypes(
+  section: Record<string, unknown> | undefined,
+): NormaDataType[] {
+  if (!section) return [];
+  const result: NormaDataType[] = [];
+
+  // Iterate over known data type tags. Each tag may appear once
+  // (not in arrayTags) as a single element or not at all.
+  for (const tag of knownDataTypeTags) {
+    const el = section[tag];
+    if (el == null) continue;
+    // Could be a single object or array if multiple of same type.
+    const elements = Array.isArray(el)
+      ? (el as Record<string, unknown>[])
+      : [el as Record<string, unknown>];
+    for (const dt of elements) {
+      const id = attr(dt, "id");
+      if (id) {
+        result.push({ id, kind: dataTypeTagToKind(tag) });
+      }
+    }
+  }
+
+  return result;
 }
 
 function normalizeRingType(raw: string): NormaRingType {

@@ -21,6 +21,7 @@ working in a package:
 - `fregma/packages/diagram/CLAUDE.md` -- diagram layout and SVG rendering
 - `fregma/packages/llm/CLAUDE.md` -- LLM transcript extraction
 - `fregma/packages/vscode/CLAUDE.md` -- VS Code extension integration
+- `AGENTS.md` -- General guidance on development practices.
 
 ## Dependency Graph
 
@@ -37,17 +38,40 @@ full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
-Milestone 1 (project scaffold and metamodel types) is in progress.
-The core metamodel classes are implemented in `fregma/packages/core/src/model/`.
-Tests are in `fregma/packages/core/tests/`.
+All Phase 1 milestones and core Phase 2 work are complete. The project
+has 671+ passing tests across 4 packages. The VS Code extension is
+functional but lacks integration tests. NORMA XML import is functional
+with data type resolution and preferred identifier support.
 
-## Milestones (Phase 1)
+## Milestones
+
+### Phase 1 -- COMPLETE
 
 1. Project scaffolding and metamodel types -- DONE
 2. Phase 1 constraints -- DONE (integrated into metamodel)
-3. JSON Schema and YAML serialization (round-trip .orm.yaml files)
-4. Validation engine with structural rules
-5. Verbalization engine (fact types and Phase 1 constraints)
+3. JSON Schema and YAML serialization (round-trip .orm.yaml files) -- DONE
+4. Validation engine with structural rules -- DONE
+5. Verbalization engine (fact types and Phase 1 constraints) -- DONE
+
+### Phase 2 -- COMPLETE
+
+6. Phase 2 constraints (exclusion, ring, frequency, subset, equality, etc.) -- DONE
+7. Subtype relationships (SubtypeFact) -- DONE
+8. Multi-file models and context mapping -- DONE
+9. Relational mapping (Rmap) and DDL rendering -- DONE
+10. Model diffing and merging -- DONE
+
+### Phase 3 -- COMPLETE
+
+11. LLM transcript processing (@fregma/llm) -- DONE
+12. Diagram visualization (@fregma/diagram) -- DONE
+13. VS Code extension (LSP, commands, webview) -- DONE
+
+### Remaining Work
+
+- VS Code integration tests (packages/vscode/tests/ is empty) -- HIGH
+- NORMA XML import enhancements (role-level value constraints, external uniqueness import) -- LOW
+- Integration exports (dbt, CI/CD validator, MCP server) -- LOW
 
 ## Monorepo Commands (run from `fregma/`)
 

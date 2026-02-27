@@ -257,6 +257,20 @@ describe("NORMA XML Import integration", () => {
       expect(regionCode!.kind).toBe("value");
     });
 
+    it("resolves data types from NORMA DataTypes section", () => {
+      // PersonCountryDemo value types have ConceptualDataType refs.
+      // Person_id should be auto_counter, FirstName should be text, etc.
+      const personId = model.getObjectTypeByName("Person_id")!;
+      expect(personId.dataType).toBeDefined();
+      expect(personId.dataType!.name).toBe("auto_counter");
+
+      const firstName = model.getObjectTypeByName("FirstName")!;
+      expect(firstName.dataType).toBeDefined();
+      expect(firstName.dataType!.name).toBe("text");
+      // FirstName has Length=30 in the NORMA file
+      expect(firstName.dataType!.length).toBe(30);
+    });
+
     it("imports value type with value constraint (Title)", () => {
       const title = model.getObjectTypeByName("Title")!;
       expect(title.valueConstraint).toBeDefined();
@@ -298,6 +312,15 @@ describe("NORMA XML Import integration", () => {
         (c) => c.type === "mandatory",
       );
       expect(mcs.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("imports preferred identifier flag on uniqueness constraints", () => {
+      // PersonHasPersonId should have a uniqueness constraint marked as preferred.
+      const personHasId = model.getFactTypeByName("PersonHasPersonId")!;
+      const preferredUcs = personHasId.constraints.filter(
+        (c) => c.type === "internal_uniqueness" && c.isPreferred,
+      );
+      expect(preferredUcs.length).toBeGreaterThanOrEqual(1);
     });
 
     it("does not import implied mandatory constraints as explicit constraints", () => {
