@@ -239,3 +239,23 @@ export {
   annotateDbtYaml,
   type AnnotationOptions,
 } from "./import/DbtYamlAnnotator.js";
+
+// Annotation (shared helpers + ORM YAML annotator)
+export {
+  stripFregmaComments,
+  formatFregmaComment,
+  truncate,
+  type AnnotationSeverity,
+} from "./annotation/helpers.js";
+export {
+  annotateOrmYaml,
+  collectAnnotations,
+  type TranscriptProvenance,
+  type TranscriptReference,
+  type ProvenanceAmbiguity,
+  type ProvenanceConstraint,
+  type ProvenanceSubtype,
+  type OrmAnnotation,
+  type OrmAnnotationOptions,
+  type OrmAnnotationResult,
+} from "./annotation/OrmYamlAnnotator.js";
