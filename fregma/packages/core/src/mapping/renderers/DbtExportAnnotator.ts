@@ -16,6 +16,11 @@
 
 import type { OrmModel } from "../../model/OrmModel.js";
 import type { RelationalSchema } from "../RelationalSchema.js";
+import {
+  formatFregmaComment,
+  stripFregmaComments,
+  truncate,
+} from "../../annotation/helpers.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -96,7 +101,7 @@ export function annotateDbtExport(
       const mAnnotations = modelAnnotations.get(currentModelName!);
       if (mAnnotations) {
         for (const a of mAnnotations) {
-          result.push(`${indent}${formatComment(a)}`);
+          result.push(`${indent}${formatAnnotationComment(a)}`);
         }
       }
       continue;
@@ -112,7 +117,7 @@ export function annotateDbtExport(
       const cAnnotations = columnAnnotations.get(key);
       if (cAnnotations) {
         for (const a of cAnnotations) {
-          result.push(`${indent}${formatComment(a)}`);
+          result.push(`${indent}${formatAnnotationComment(a)}`);
         }
       }
     }
@@ -247,20 +252,6 @@ function findValueTypeForRole(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatComment(annotation: ExportAnnotation): string {
-  const prefix =
-    annotation.severity === "note" ? "# NOTE(fregma):" : "# TODO(fregma):";
-  return `${prefix} ${annotation.message}`;
-}
-
-function stripFregmaComments(yaml: string): string {
-  return yaml
-    .split("\n")
-    .filter((line) => !line.match(/^\s*# (?:TODO|NOTE)\(fregma\):/))
-    .join("\n");
-}
-
-function truncate(s: string, maxLen: number): string {
-  if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen - 3) + "...";
+function formatAnnotationComment(annotation: ExportAnnotation): string {
+  return formatFregmaComment(annotation.severity, annotation.message);
 }

@@ -4,6 +4,7 @@ import {
   OrmYamlSerializer,
   diffModels,
   mergeModels,
+  annotateOrmYaml,
 } from "@fregma/core";
 import type { OrmModel, ModelDelta, DeltaKind } from "@fregma/core";
 import { processTranscript, AnthropicLlmClient } from "@fregma/llm";
@@ -85,11 +86,12 @@ export class ImportTranscriptCommand {
     );
     if (!finalModel) return; // User cancelled during review.
 
-    // Step 6: Serialize and write.
-    const yaml = serializer.serialize(finalModel);
+    // Step 6: Serialize and annotate.
+    const rawYaml = serializer.serialize(finalModel);
+    const annotated = annotateOrmYaml(rawYaml, result);
     await vscode.workspace.fs.writeFile(
       outputUri,
-      Buffer.from(yaml, "utf-8"),
+      Buffer.from(annotated.yaml, "utf-8"),
     );
 
     // Step 7: Open the generated file.
@@ -97,7 +99,7 @@ export class ImportTranscriptCommand {
     await vscode.window.showTextDocument(doc);
 
     // Step 8: Report results.
-    const summary = buildSummary(result);
+    const summary = buildSummary(result, annotated.todoCount, annotated.noteCount);
     vscode.window.showInformationMessage(summary);
 
     // Show warnings in output channel if any.
@@ -269,15 +271,18 @@ function buildLlmClient(
   return new CopilotLlmClient({ family });
 }
 
-function buildSummary(result: DraftModelResult): string {
+function buildSummary(
+  result: DraftModelResult,
+  todoCount: number = 0,
+  noteCount: number = 0,
+): string {
   const ots = result.model.objectTypes.length;
   const fts = result.model.factTypes.length;
   const applied = result.constraintProvenance.filter((c) => c.applied).length;
-  const ambiguities = result.ambiguities.length;
-  const warnings = result.warnings.length;
 
   let msg = `Extracted ${ots} object types, ${fts} fact types, ${applied} constraints.`;
-  if (ambiguities > 0) msg += ` ${ambiguities} ambiguity(ies) flagged.`;
-  if (warnings > 0) msg += ` ${warnings} warning(s).`;
+  if (todoCount > 0 || noteCount > 0) {
+    msg += ` ${todoCount} TODO(s), ${noteCount} NOTE(s) annotated.`;
+  }
   return msg;
 }

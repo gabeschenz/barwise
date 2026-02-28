@@ -15,6 +15,10 @@
  */
 
 import type { ReportEntry, DbtImportReport } from "./DbtImportReport.js";
+import {
+  formatFregmaComment,
+  stripFregmaComments,
+} from "../annotation/helpers.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -95,7 +99,7 @@ export function annotateDbtYaml(
       const mEntries = modelEntries.get(currentModelName!);
       if (mEntries) {
         for (const e of mEntries) {
-          result.push(`${indent}${formatComment(e)}`);
+          result.push(`${indent}${formatEntryComment(e)}`);
         }
       }
       continue;
@@ -111,7 +115,7 @@ export function annotateDbtYaml(
       const cEntries = columnEntries.get(key);
       if (cEntries) {
         for (const e of cEntries) {
-          result.push(`${indent}${formatComment(e)}`);
+          result.push(`${indent}${formatEntryComment(e)}`);
         }
       }
     }
@@ -124,20 +128,7 @@ export function annotateDbtYaml(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatComment(entry: ReportEntry): string {
-  const prefix =
-    entry.severity === "info" ? "# NOTE(fregma):" : "# TODO(fregma):";
-  return `${prefix} ${entry.message}`;
-}
-
-/**
- * Remove all lines that are fregma-injected comments (TODO or NOTE).
- * This makes the annotator idempotent -- re-running it on already-annotated
- * YAML produces the same result as running on the original.
- */
-function stripFregmaComments(yaml: string): string {
-  return yaml
-    .split("\n")
-    .filter((line) => !line.match(/^\s*# (?:TODO|NOTE)\(fregma\):/))
-    .join("\n");
+function formatEntryComment(entry: ReportEntry): string {
+  const severity = entry.severity === "info" ? "note" : "todo";
+  return formatFregmaComment(severity, entry.message);
 }
