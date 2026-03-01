@@ -16,6 +16,8 @@ import { OrmModel } from "../model/OrmModel.js";
 import type { ObjectType } from "../model/ObjectType.js";
 import type { FactTypeConfig } from "../model/FactType.js";
 import type { RoleConfig } from "../model/Role.js";
+import type { Diagnostic } from "../validation/Diagnostic.js";
+import { structuralRules } from "../validation/rules/structural.js";
 import type {
   ModelDelta,
   ObjectTypeDelta,
@@ -303,4 +305,75 @@ function unionAliases(
 
   const combined = new Set([...existingAliases, ...incomingAliases]);
   return [...combined];
+}
+
+// ---------------------------------------------------------------------------
+// Post-merge validation
+// ---------------------------------------------------------------------------
+
+export interface MergeValidationResult {
+  /** The merged model, or null if the merge threw an error. */
+  readonly model: OrmModel | null;
+  /** Structural errors found in the merged model. Empty if valid. */
+  readonly errors: readonly Diagnostic[];
+  /** True when the merged model has no structural errors. */
+  readonly isValid: boolean;
+}
+
+/**
+ * Run structural validation on a merged model, returning only errors.
+ *
+ * This runs the structural rules (dangling role references, duplicate
+ * names, broken subtype/objectification references, subtype cycles)
+ * but NOT completeness warnings or constraint consistency checks.
+ * A merged model that is structurally valid is safe to write to disk.
+ */
+export function validateMergeResult(model: OrmModel): readonly Diagnostic[] {
+  return structuralRules(model).filter((d) => d.severity === "error");
+}
+
+/**
+ * Merge two models and validate the result in a single call.
+ *
+ * If `mergeModels()` throws (e.g. due to a dangling player reference
+ * that OrmModel.addFactType rejects), the error is captured as a
+ * diagnostic rather than propagating as an exception.
+ *
+ * If `mergeModels()` succeeds, structural validation runs on the
+ * result to catch subtler issues (broken subtype facts, broken
+ * objectification references, etc.).
+ */
+export function mergeAndValidate(
+  existing: OrmModel,
+  incoming: OrmModel,
+  deltas: readonly ModelDelta[],
+  accepted: ReadonlySet<number>,
+): MergeValidationResult {
+  let model: OrmModel;
+
+  try {
+    model = mergeModels(existing, incoming, deltas, accepted);
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : String(err);
+    return {
+      model: null,
+      errors: [
+        {
+          severity: "error",
+          message: `Merge failed: ${message}`,
+          elementId: "",
+          ruleId: "merge-error",
+        },
+      ],
+      isValid: false,
+    };
+  }
+
+  const errors = validateMergeResult(model);
+  return {
+    model,
+    errors,
+    isValid: errors.length === 0,
+  };
 }

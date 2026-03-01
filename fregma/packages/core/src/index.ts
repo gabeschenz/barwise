@@ -163,7 +163,12 @@ export {
   type BreakingLevel,
   type SynonymCandidate,
 } from "./diff/ModelDiff.js";
-export { mergeModels } from "./diff/ModelMerge.js";
+export {
+  mergeModels,
+  mergeAndValidate,
+  validateMergeResult,
+  type MergeValidationResult,
+} from "./diff/ModelMerge.js";
 
 // Verbalization
 export {
