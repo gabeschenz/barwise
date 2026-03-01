@@ -1,0 +1,23 @@
+orm_version: "1.0"
+
+model:
+  name: "Invalid Test"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+
+  fact_types:
+    - id: "ft-broken"
+      name: "Customer has Widget"
+      roles:
+        - id: "r-customer"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-widget"
+          player: "ot-nonexistent"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
