@@ -54,8 +54,8 @@ describe("Population", () => {
       const pop = new Population({
         factTypeId: "ft-1",
         instances: [
-          { values: { r1: "C001", r2: "O123" } },
-          { values: { r1: "C002", r2: "O124" } },
+          { roleValues: { r1: "C001", r2: "O123" } },
+          { roleValues: { r1: "C002", r2: "O124" } },
         ],
       });
       expect(pop.instances).toHaveLength(2);
@@ -74,10 +74,10 @@ describe("Population", () => {
   describe("instance management", () => {
     it("adds instances and returns them", () => {
       const pop = new Population({ factTypeId: "ft-1" });
-      const inst = pop.addInstance({ values: { r1: "C001", r2: "O123" } });
+      const inst = pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
 
       expect(inst.id).toBeDefined();
-      expect(inst.values).toEqual({ r1: "C001", r2: "O123" });
+      expect(inst.roleValues).toEqual({ r1: "C001", r2: "O123" });
       expect(pop.instances).toHaveLength(1);
     });
 
@@ -118,11 +118,11 @@ describe("Population", () => {
 
     it("does not expose internal array for mutation", () => {
       const pop = new Population({ factTypeId: "ft-1" });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
       const instances = pop.instances;
       expect(instances).toHaveLength(1);
       // Mutating the returned array should not affect the population.
-      (instances as unknown[]).push({ id: "fake", values: {} });
+      (instances as unknown[]).push({ id: "fake", roleValues: {} });
       expect(pop.instances).toHaveLength(1);
     });
   });

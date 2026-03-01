@@ -71,15 +71,15 @@ model:
       description: "Sample customer orders"
       instances:
         - id: "inst-1"
-          values:
+          role_values:
             r-cust-places: "C001"
             r-order-placed-by: "O100"
         - id: "inst-2"
-          values:
+          role_values:
             r-cust-places: "C001"
             r-order-placed-by: "O101"
         - id: "inst-3"
-          values:
+          role_values:
             r-cust-places: "C002"
             r-order-placed-by: "O102"
 
@@ -88,14 +88,14 @@ model:
       description: "Sample product ratings"
       instances:
         - id: "inst-r1"
-          values:
+          role_values:
             r-cust-rates: "C001"
             r-product-rated: "P001"
         - id: "inst-r2"
-          values:
+          role_values:
             r-cust-rates: "C001"
             r-product-rated: "P002"
         - id: "inst-r3"
-          values:
+          role_values:
             r-cust-rates: "C002"
             r-product-rated: "P001"

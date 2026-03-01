@@ -49,8 +49,8 @@ describe("Full pipeline integration: load -> validate -> verbalize -> map -> DDL
       expect(ordersPop!.instances).toHaveLength(3);
 
       const inst1 = ordersPop!.getInstance("inst-1")!;
-      expect(inst1.values["r-cust-places"]).toBe("C001");
-      expect(inst1.values["r-order-placed-by"]).toBe("O100");
+      expect(inst1.roleValues["r-cust-places"]).toBe("C001");
+      expect(inst1.roleValues["r-order-placed-by"]).toBe("O100");
     });
 
     it("passes validation with valid populations (no constraint violations)", () => {

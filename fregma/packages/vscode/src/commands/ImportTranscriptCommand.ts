@@ -238,13 +238,13 @@ export class ImportTranscriptCommand {
       if (result.model === null) {
         // Merge threw -- unrecoverable without different selections.
         vscode.window.showErrorMessage(
-          `Merge failed: ${result.errors.map((e) => e.message).join("; ")}`,
+          `Merge failed: ${result.diagnostics.map((e) => e.message).join("; ")}`,
         );
         return undefined;
       }
 
       if (!result.isValid) {
-        const errorSummary = result.errors
+        const errorSummary = result.diagnostics
           .map((e) => e.message)
           .join("\n");
         const choice = await vscode.window.showWarningMessage(
@@ -319,8 +319,8 @@ export class ImportTranscriptCommand {
         const icon = breakingIcon(delta.breakingLevel);
         const label = deltaLabel(delta);
         const synonymNote = synonymNotes.get(index);
-        const changeSummary = delta.changes.length > 0
-          ? delta.changes.join("; ")
+        const changeSummary = delta.changeDescriptions.length > 0
+          ? delta.changeDescriptions.join("; ")
           : undefined;
         const detail = synonymNote
           ? [changeSummary, synonymNote].filter(Boolean).join(" | ")

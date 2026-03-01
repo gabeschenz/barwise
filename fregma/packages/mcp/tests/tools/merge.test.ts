@@ -32,14 +32,14 @@ describe("merge_models tool", () => {
     expect(parsed.yaml).toContain("Email");
   });
 
-  it("includes structural errors array", () => {
+  it("includes structural diagnostics array", () => {
     const result = executeMerge(
       `${fixtures}/simple.orm.yaml`,
       `${fixtures}/simple-modified.orm.yaml`,
     );
     const parsed = JSON.parse(result.content[0]!.text);
-    expect(parsed).toHaveProperty("errors");
-    expect(Array.isArray(parsed.errors)).toBe(true);
+    expect(parsed).toHaveProperty("diagnostics");
+    expect(Array.isArray(parsed.diagnostics)).toBe(true);
     expect(parsed).toHaveProperty("errorCount");
   });
 

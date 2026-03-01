@@ -314,8 +314,8 @@ function unionAliases(
 export interface MergeValidationResult {
   /** The merged model, or null if the merge threw an error. */
   readonly model: OrmModel | null;
-  /** Structural errors found in the merged model. Empty if valid. */
-  readonly errors: readonly Diagnostic[];
+  /** Structural diagnostics found in the merged model. Empty if valid. */
+  readonly diagnostics: readonly Diagnostic[];
   /** True when the merged model has no structural errors. */
   readonly isValid: boolean;
 }
@@ -328,7 +328,7 @@ export interface MergeValidationResult {
  * but NOT completeness warnings or constraint consistency checks.
  * A merged model that is structurally valid is safe to write to disk.
  */
-export function validateMergeResult(model: OrmModel): readonly Diagnostic[] {
+export function getStructuralErrors(model: OrmModel): readonly Diagnostic[] {
   return structuralRules(model).filter((d) => d.severity === "error");
 }
 
@@ -358,7 +358,7 @@ export function mergeAndValidate(
       err instanceof Error ? err.message : String(err);
     return {
       model: null,
-      errors: [
+      diagnostics: [
         {
           severity: "error",
           message: `Merge failed: ${message}`,
@@ -370,10 +370,10 @@ export function mergeAndValidate(
     };
   }
 
-  const errors = validateMergeResult(model);
+  const diagnostics = getStructuralErrors(model);
   return {
     model,
-    errors,
-    isValid: errors.length === 0,
+    diagnostics,
+    isValid: diagnostics.length === 0,
   };
 }

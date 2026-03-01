@@ -10,7 +10,7 @@ import type { Definition } from "../model/Definition.js";
 import type { Constraint, RingType } from "../model/Constraint.js";
 import {
   SchemaValidator,
-  type ValidationResult,
+  type SchemaValidationResult,
 } from "./SchemaValidator.js";
 
 /**
@@ -94,7 +94,7 @@ interface OrmYamlPopulation {
 
 interface OrmYamlFactInstance {
   id: string;
-  values: Record<string, string>;
+  role_values: Record<string, string>;
 }
 
 interface OrmYamlDefinition {
@@ -110,7 +110,7 @@ interface OrmYamlDefinition {
 export class DeserializationError extends Error {
   constructor(
     message: string,
-    readonly validationResult?: ValidationResult,
+    readonly validationResult?: SchemaValidationResult,
   ) {
     super(message);
     this.name = "DeserializationError";
@@ -361,7 +361,7 @@ export class OrmYamlSerializer {
   private serializeFactInstance(inst: FactInstance): OrmYamlFactInstance {
     return {
       id: inst.id,
-      values: { ...inst.values },
+      role_values: { ...inst.roleValues },
     };
   }
 
@@ -456,7 +456,7 @@ export class OrmYamlSerializer {
       for (const instDoc of popDoc.instances) {
         pop.addInstance({
           id: instDoc.id,
-          values: instDoc.values,
+          roleValues: instDoc.role_values,
         });
       }
     }

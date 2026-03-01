@@ -476,7 +476,7 @@
     },
     "fact_instance": {
       "type": "object",
-      "required": ["id", "values"],
+      "required": ["id", "role_values"],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -484,7 +484,7 @@
           "minLength": 1,
           "description": "Stable unique identifier for this instance."
         },
-        "values": {
+        "role_values": {
           "type": "object",
           "additionalProperties": { "type": "string" },
           "description": "Mapping of role id to concrete value."

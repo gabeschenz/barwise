@@ -110,7 +110,7 @@ describe("diffModels", () => {
     expect(modified.length).toBeGreaterThanOrEqual(1);
     const nameDelta = modified.find((d) => d.name === "Name");
     expect(nameDelta).toBeDefined();
-    expect(nameDelta!.changes).toContain("kind: value -> entity");
+    expect(nameDelta!.changeDescriptions).toContain("kind: value -> entity");
   });
 
   it("detects an added fact type", () => {
@@ -183,7 +183,7 @@ describe("diffModels", () => {
       (d) => d.kind === "modified" && d.elementType === "fact_type",
     );
     expect(modified).toBeDefined();
-    expect(modified!.changes).toContain("readings changed");
+    expect(modified!.changeDescriptions).toContain("readings changed");
   });
 
   it("detects added and removed definitions", () => {
@@ -235,7 +235,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Customer");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes).toContain('source context: "CRM" -> "Sales"');
+    expect(delta!.changeDescriptions).toContain('source context: "CRM" -> "Sales"');
   });
 
   it("detects modified value constraint", () => {
@@ -249,7 +249,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Rating");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes).toContain("value constraint changed");
+    expect(delta!.changeDescriptions).toContain("value constraint changed");
   });
 
   it("detects fact type definition change", () => {
@@ -277,7 +277,7 @@ describe("diffModels", () => {
       (d) => d.elementType === "fact_type" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changes).toContain("definition changed");
+    expect(delta!.changeDescriptions).toContain("definition changed");
   });
 
   it("detects fact type role player changes", () => {
@@ -305,7 +305,7 @@ describe("diffModels", () => {
       (d) => d.elementType === "fact_type" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changes.some((c) => c.includes("player Customer -> Agent"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("player Customer -> Agent"))).toBe(true);
   });
 
   it("detects fact type role name changes", () => {
@@ -331,8 +331,8 @@ describe("diffModels", () => {
       (d) => d.elementType === "fact_type" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changes.some((c) => c.includes('"places" -> "submits"'))).toBe(true);
-    expect(delta!.changes.some((c) => c.includes('"is placed by" -> "is submitted by"'))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes('"places" -> "submits"'))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes('"is placed by" -> "is submitted by"'))).toBe(true);
   });
 
   it("detects constraint additions and removals on fact types", () => {
@@ -360,8 +360,8 @@ describe("diffModels", () => {
       (d) => d.elementType === "fact_type" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changes.some((c) => c.includes("constraints added"))).toBe(true);
-    expect(delta!.changes.some((c) => c.includes("constraints removed"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("constraints added"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("constraints removed"))).toBe(true);
   });
 
   it("detects definition context change", () => {
@@ -377,7 +377,7 @@ describe("diffModels", () => {
       (d) => d.elementType === "definition" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changes).toContain('context: "CRM" -> "Sales"');
+    expect(delta!.changeDescriptions).toContain('context: "CRM" -> "Sales"');
   });
 
   it("detects added data type on value type", () => {
@@ -391,7 +391,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Price");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("data type added"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("data type added"))).toBe(true);
   });
 
   it("detects changed data type on value type", () => {
@@ -405,7 +405,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Age");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("data type: text -> integer"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("data type: text -> integer"))).toBe(true);
   });
 
   it("detects removed data type on value type", () => {
@@ -419,7 +419,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Code");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("data type removed"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("data type removed"))).toBe(true);
   });
 
   it("reports no change when data types are identical", () => {
@@ -451,7 +451,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Customer");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("aliases"))).toBe(true);
   });
 
   it("detects removed aliases on an object type", () => {
@@ -468,7 +468,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Customer");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("aliases"))).toBe(true);
   });
 
   it("detects changed aliases on an object type", () => {
@@ -488,7 +488,7 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Customer");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("aliases"))).toBe(true);
   });
 
   it("reports no change when aliases are the same but in different order", () => {
@@ -576,7 +576,7 @@ describe("diffModels", () => {
     );
     expect(ftDelta).toBeDefined();
     expect(ftDelta!.kind).toBe("unchanged");
-    expect(ftDelta!.changes).toHaveLength(0);
+    expect(ftDelta!.changeDescriptions).toHaveLength(0);
   });
 
   it("detects real constraint change when uniqueness moves to a different role position", () => {
@@ -625,7 +625,7 @@ describe("diffModels", () => {
     );
     expect(ftDelta).toBeDefined();
     expect(ftDelta!.kind).toBe("modified");
-    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+    expect(ftDelta!.changeDescriptions.some((c) => c.includes("constraints"))).toBe(true);
   });
 
   it("detects isPreferred flip as a real change", () => {
@@ -674,7 +674,7 @@ describe("diffModels", () => {
     );
     expect(ftDelta).toBeDefined();
     expect(ftDelta!.kind).toBe("modified");
-    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+    expect(ftDelta!.changeDescriptions.some((c) => c.includes("constraints"))).toBe(true);
   });
 
   it("reports no diff for Phase 2 constraints with different role IDs", () => {
@@ -725,7 +725,7 @@ describe("diffModels", () => {
     );
     expect(ftDelta).toBeDefined();
     expect(ftDelta!.kind).toBe("unchanged");
-    expect(ftDelta!.changes).toHaveLength(0);
+    expect(ftDelta!.changeDescriptions).toHaveLength(0);
   });
 
   it("detects Phase 2 semantic change (ring type changed)", () => {
@@ -774,7 +774,7 @@ describe("diffModels", () => {
     );
     expect(ftDelta).toBeDefined();
     expect(ftDelta!.kind).toBe("modified");
-    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+    expect(ftDelta!.changeDescriptions.some((c) => c.includes("constraints"))).toBe(true);
   });
 
   it("detects modified definition text", () => {
@@ -797,7 +797,7 @@ describe("diffModels", () => {
       (d) => d.kind === "modified" && d.elementType === "definition",
     );
     expect(modified).toBeDefined();
-    expect(modified!.changes).toContain("definition text changed");
+    expect(modified!.changeDescriptions).toContain("definition text changed");
   });
 
   // --- Synonym candidate detection tests (Stage 3) ---

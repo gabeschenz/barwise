@@ -88,9 +88,9 @@ describe("populationValidationRules", () => {
       const model = makeOrderModel({ uniqueness: "role2" });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C001", r2: "O124" } });
-      pop.addInstance({ values: { r1: "C002", r2: "O125" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C002", r2: "O125" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(0);
@@ -135,11 +135,11 @@ describe("populationValidationRules", () => {
       const pop = model.addPopulation({ factTypeId: ft.id });
       pop.addInstance({
         id: "inst-1",
-        values: { r1: "C001", r2: "O123" },
+        roleValues: { r1: "C001", r2: "O123" },
       });
       pop.addInstance({
         id: "inst-2",
-        values: { r1: "C002", r2: "O123" },
+        roleValues: { r1: "C002", r2: "O123" },
       }); // Duplicate on r2
 
       const diags = populationValidationRules(model);
@@ -155,11 +155,11 @@ describe("populationValidationRules", () => {
       const pop = model.addPopulation({ factTypeId: ft.id });
       pop.addInstance({
         id: "inst-1",
-        values: { r1: "C001", r2: "O123" },
+        roleValues: { r1: "C001", r2: "O123" },
       });
       pop.addInstance({
         id: "inst-2",
-        values: { r1: "C001", r2: "O123" },
+        roleValues: { r1: "C001", r2: "O123" },
       }); // Exact duplicate
 
       const diags = populationValidationRules(model);
@@ -171,9 +171,9 @@ describe("populationValidationRules", () => {
       const model = makeOrderModel({ uniqueness: "spanning" });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C001", r2: "O124" } });
-      pop.addInstance({ values: { r1: "C002", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C002", r2: "O123" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(0);
@@ -183,9 +183,9 @@ describe("populationValidationRules", () => {
       const model = makeOrderModel({ uniqueness: "role1" });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ id: "inst-2", values: { r1: "C001", r2: "O124" } });
-      pop.addInstance({ id: "inst-3", values: { r1: "C001", r2: "O125" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ id: "inst-2", roleValues: { r1: "C001", r2: "O124" } });
+      pop.addInstance({ id: "inst-3", roleValues: { r1: "C001", r2: "O125" } });
 
       const diags = populationValidationRules(model);
       // inst-2 and inst-3 both duplicate inst-1's r1 value
@@ -203,7 +203,7 @@ describe("populationValidationRules", () => {
       const pop = model.addPopulation({ factTypeId: ft.id });
       pop.addInstance({
         id: "inst-1",
-        values: { r1: "C999", r2: "O123" },
+        roleValues: { r1: "C999", r2: "O123" },
       });
 
       const diags = populationValidationRules(model);
@@ -219,8 +219,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C002", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C002", r2: "O124" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(0);
@@ -232,8 +232,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C002", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C003", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C002", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C003", r2: "O124" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(2);
@@ -247,7 +247,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } }); // C001 appears once
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } }); // C001 appears once
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(1);
@@ -262,9 +262,9 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C001", r2: "O124" } });
-      pop.addInstance({ values: { r1: "C001", r2: "O125" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O125" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(1);
@@ -279,8 +279,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "C001", r2: "O123" } });
-      pop.addInstance({ values: { r1: "C001", r2: "O124" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O123" } });
+      pop.addInstance({ roleValues: { r1: "C001", r2: "O124" } });
 
       const diags = populationValidationRules(model);
       expect(diags).toHaveLength(0);
@@ -293,7 +293,7 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Customer places Order")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       for (let i = 0; i < 100; i++) {
-        pop.addInstance({ values: { r1: "C001", r2: `O${i}` } });
+        pop.addInstance({ roleValues: { r1: "C001", r2: `O${i}` } });
       }
 
       const diags = populationValidationRules(model);
@@ -312,11 +312,11 @@ describe("populationValidationRules", () => {
       // Violates value constraint (C999) AND uniqueness (duplicate O123)
       pop.addInstance({
         id: "inst-1",
-        values: { r1: "C001", r2: "O123" },
+        roleValues: { r1: "C001", r2: "O123" },
       });
       pop.addInstance({
         id: "inst-2",
-        values: { r1: "C999", r2: "O123" },
+        roleValues: { r1: "C999", r2: "O123" },
       });
 
       const diags = populationValidationRules(model);
@@ -340,7 +340,7 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       // P001 appears in both r1 and r2 -- violates exclusion.
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const excl = diags.filter(
@@ -356,8 +356,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
-      pop.addInstance({ values: { r1: "P003", r2: "P004" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P003", r2: "P004" } });
 
       const diags = populationValidationRules(model);
       const excl = diags.filter(
@@ -375,7 +375,7 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       // Instance with no values for either role.
-      pop.addInstance({ id: "inst-1", values: {} });
+      pop.addInstance({ id: "inst-1", roleValues: {} });
 
       const diags = populationValidationRules(model);
       const xor = diags.filter(
@@ -391,7 +391,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const xor = diags.filter(
@@ -407,8 +407,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001" } });
-      pop.addInstance({ values: { r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P001" } });
+      pop.addInstance({ roleValues: { r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const xor = diags.filter(
@@ -426,7 +426,7 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       // r1 has "P001" but r2 has "P002" -- P001 not in superset.
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const sub = diags.filter(
@@ -443,8 +443,8 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       // r1="P001", r2="P001" -- subset value P001 exists in superset.
-      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
-      pop.addInstance({ values: { r1: "P002", r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ roleValues: { r1: "P002", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const sub = diags.filter(
@@ -462,7 +462,7 @@ describe("populationValidationRules", () => {
       const pop = model.addPopulation({ factTypeId: ft.id });
       // (r1=A, r2=B): subset tuple = (A, B), superset tuple = (B, A).
       // Does (A, B) appear in superset set? Superset has (B, A). No match.
-      pop.addInstance({ id: "inst-1", values: { r1: "A", r2: "B" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "A", r2: "B" } });
 
       const diags = populationValidationRules(model);
       const sub = diags.filter(
@@ -480,7 +480,7 @@ describe("populationValidationRules", () => {
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
       // r1 has {P001}, r2 has {P002} -- not equal.
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const eq = diags.filter(
@@ -496,8 +496,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
-      pop.addInstance({ values: { r1: "P002", r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ roleValues: { r1: "P002", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const eq = diags.filter(
@@ -514,7 +514,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -528,7 +528,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -541,8 +541,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
-      pop.addInstance({ id: "inst-2", values: { r1: "P002", r2: "P001" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-2", roleValues: { r1: "P002", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -556,7 +556,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -570,8 +570,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
-      pop.addInstance({ id: "inst-2", values: { r1: "P002", r2: "P001" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-2", roleValues: { r1: "P002", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -585,7 +585,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -598,7 +598,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -612,8 +612,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P002" } });
-      pop.addInstance({ values: { r1: "P002", r2: "P001" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ roleValues: { r1: "P002", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -626,9 +626,9 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
-      pop.addInstance({ values: { r1: "A", r2: "C" } }); // violates intransitive
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "C" } }); // violates intransitive
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -642,8 +642,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
       // No (A, C) -- intransitive is satisfied.
 
       const diags = populationValidationRules(model);
@@ -657,8 +657,8 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
       // Missing (A, C) violates transitivity.
 
       const diags = populationValidationRules(model);
@@ -673,9 +673,9 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
-      pop.addInstance({ values: { r1: "A", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "C" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -688,9 +688,9 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
-      pop.addInstance({ values: { r1: "C", r2: "A" } }); // cycle A->B->C->A
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "C", r2: "A" } }); // cycle A->B->C->A
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -705,9 +705,9 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "A", r2: "B" } });
-      pop.addInstance({ values: { r1: "B", r2: "C" } });
-      pop.addInstance({ values: { r1: "A", r2: "C" } }); // DAG, no cycle
+      pop.addInstance({ roleValues: { r1: "A", r2: "B" } });
+      pop.addInstance({ roleValues: { r1: "B", r2: "C" } });
+      pop.addInstance({ roleValues: { r1: "A", r2: "C" } }); // DAG, no cycle
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -720,7 +720,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ id: "inst-1", values: { r1: "P001", r2: "P002" } });
+      pop.addInstance({ id: "inst-1", roleValues: { r1: "P001", r2: "P002" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");
@@ -734,7 +734,7 @@ describe("populationValidationRules", () => {
       });
       const ft = model.getFactTypeByName("Person is parent of Person")!;
       const pop = model.addPopulation({ factTypeId: ft.id });
-      pop.addInstance({ values: { r1: "P001", r2: "P001" } });
+      pop.addInstance({ roleValues: { r1: "P001", r2: "P001" } });
 
       const diags = populationValidationRules(model);
       const ring = diags.filter((d) => d.ruleId === "population/ring-violation");

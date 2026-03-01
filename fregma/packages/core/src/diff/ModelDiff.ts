@@ -32,8 +32,8 @@ export interface ObjectTypeDelta {
   readonly existing?: ObjectType;
   /** Present for added, modified, unchanged. */
   readonly incoming?: ObjectType;
-  /** Human-readable summary of what changed (empty for add/remove). */
-  readonly changes: readonly string[];
+  /** Human-readable descriptions of what changed (empty for add/remove). */
+  readonly changeDescriptions: readonly string[];
   /** How risky this change is for downstream consumers. */
   readonly breakingLevel: BreakingLevel;
 }
@@ -44,7 +44,7 @@ export interface FactTypeDelta {
   readonly name: string;
   readonly existing?: FactType;
   readonly incoming?: FactType;
-  readonly changes: readonly string[];
+  readonly changeDescriptions: readonly string[];
   /** How risky this change is for downstream consumers. */
   readonly breakingLevel: BreakingLevel;
 }
@@ -55,7 +55,7 @@ export interface DefinitionDelta {
   readonly term: string;
   readonly existing?: Definition;
   readonly incoming?: Definition;
-  readonly changes: readonly string[];
+  readonly changeDescriptions: readonly string[];
   /** How risky this change is for downstream consumers. */
   readonly breakingLevel: BreakingLevel;
 }
@@ -118,7 +118,7 @@ export function diffModels(
         elementType: "object_type",
         name,
         existing: ot,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
@@ -130,7 +130,7 @@ export function diffModels(
         name,
         existing: ot,
         incoming: match,
-        changes,
+        changeDescriptions: changes,
         breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
@@ -143,7 +143,7 @@ export function diffModels(
         elementType: "object_type",
         name,
         incoming: ot,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("added", []),
       });
     }
@@ -161,7 +161,7 @@ export function diffModels(
         elementType: "fact_type",
         name,
         existing: ft,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
@@ -173,7 +173,7 @@ export function diffModels(
         name,
         existing: ft,
         incoming: match,
-        changes,
+        changeDescriptions: changes,
         breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
@@ -186,7 +186,7 @@ export function diffModels(
         elementType: "fact_type",
         name,
         incoming: ft,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("added", []),
       });
     }
@@ -208,7 +208,7 @@ export function diffModels(
         elementType: "definition",
         term,
         existing: def,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
@@ -220,7 +220,7 @@ export function diffModels(
         term,
         existing: def,
         incoming: match,
-        changes,
+        changeDescriptions: changes,
         breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
@@ -233,7 +233,7 @@ export function diffModels(
         elementType: "definition",
         term,
         incoming: def,
-        changes: [],
+        changeDescriptions: [],
         breakingLevel: classifyBreakingLevel("added", []),
       });
     }

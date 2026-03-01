@@ -93,7 +93,7 @@ export {
 } from "./serialization/OrmYamlSerializer.js";
 export {
   SchemaValidator,
-  type ValidationResult,
+  type SchemaValidationResult,
   type SchemaError,
 } from "./serialization/SchemaValidator.js";
 export {
@@ -170,7 +170,7 @@ export {
 export {
   mergeModels,
   mergeAndValidate,
-  validateMergeResult,
+  getStructuralErrors,
   type MergeValidationResult,
 } from "./diff/ModelMerge.js";
 
