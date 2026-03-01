@@ -1,0 +1,44 @@
+orm_version: "1.0"
+
+model:
+  name: "Validation Errors"
+  object_types:
+    - id: "ot-person"
+      name: "Person"
+      kind: "entity"
+      reference_mode: "id"
+    - id: "ot-name"
+      name: "Name"
+      kind: "value"
+    - id: "ot-age"
+      name: "Age"
+      kind: "value"
+  fact_types:
+    - id: "ft-has-name"
+      name: "Person has Name"
+      roles:
+        - id: "r-person-name"
+          player: "ot-person"
+          role_name: "has"
+        - id: "r-name"
+          player: "ot-name"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-person-name"]
+    - id: "ft-has-age"
+      name: "Person has Age"
+      roles:
+        - id: "r-person-age"
+          player: "ot-person"
+          role_name: "has"
+        - id: "r-age"
+          player: "ot-age"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-person-name"]

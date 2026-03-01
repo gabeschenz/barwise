@@ -6,10 +6,19 @@ import {
   ValidationEngine,
   type Diagnostic as OrmDiagnostic,
 } from "@fregma/core";
+import { YamlSourceMap } from "./YamlSourceMap.js";
+
+const ZERO_RANGE = {
+  start: { line: 0, character: 0 },
+  end: { line: 0, character: 0 },
+} as const;
 
 /**
  * Provides diagnostics for .orm.yaml files by running the core
  * validation engine and mapping results to LSP diagnostics.
+ *
+ * Diagnostics are positioned at the YAML source location of the
+ * affected model element using a source map built from the YAML AST.
  */
 export class DiagnosticsProvider {
   private readonly connection: Connection;
@@ -28,16 +37,22 @@ export class DiagnosticsProvider {
     const text = document.getText();
 
     try {
+      const sourceMap = new YamlSourceMap(text);
       const model = this.serializer.deserialize(text);
       const ormDiagnostics = this.validationEngine.validate(model);
 
       for (const d of ormDiagnostics) {
+        const pos = sourceMap.getPosition(d.elementId);
+        const range = pos
+          ? {
+              start: { line: pos.line, character: pos.character },
+              end: { line: pos.line, character: pos.character },
+            }
+          : ZERO_RANGE;
+
         diagnostics.push({
           severity: mapSeverity(d.severity),
-          range: {
-            start: { line: 0, character: 0 },
-            end: { line: 0, character: 0 },
-          },
+          range,
           message: d.message,
           source: `fregma (${d.ruleId})`,
         });
@@ -46,10 +61,7 @@ export class DiagnosticsProvider {
       // Deserialization error -- report as a parse error.
       diagnostics.push({
         severity: DiagnosticSeverity.Error,
-        range: {
-          start: { line: 0, character: 0 },
-          end: { line: 0, character: 0 },
-        },
+        range: ZERO_RANGE,
         message: (err as Error).message,
         source: "fregma (parse)",
       });

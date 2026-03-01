@@ -97,4 +97,38 @@ describe("DiagnosticsProvider", () => {
       expect([1, 2, 3]).toContain(d.severity);
     }
   });
+
+  it("positions diagnostics at the affected YAML element, not line 0", () => {
+    // Use a fixture that deserializes successfully but produces
+    // validation errors. The invalid.orm.yaml fixture throws during
+    // deserialization (dangling role player), so it falls to the catch
+    // block and always reports at line 0.
+    const doc = makeDocument(loadFixture("validation-errors.orm.yaml"));
+    provider.validate(doc);
+
+    const call = connection.sendDiagnostics.mock.calls[0]![0]!;
+    const errors = call.diagnostics.filter(
+      (d: { severity: number }) => d.severity === 1,
+    );
+    expect(errors.length).toBeGreaterThan(0);
+
+    // The constraint error references ft-has-age which contains an
+    // internal uniqueness constraint pointing at a role from another
+    // fact type. ft-has-age is at line 30 (0-indexed) in the fixture.
+    const constraintError = errors.find((d: { message: string }) =>
+      d.message.includes("r-person-name"),
+    );
+    expect(constraintError).toBeDefined();
+    expect(constraintError.range.start.line).toBeGreaterThan(0);
+    expect(constraintError.range.start.line).toBe(30);
+  });
+
+  it("falls back to line 0 for parse errors", () => {
+    const doc = makeDocument("{{{{not valid yaml");
+    provider.validate(doc);
+
+    const call = connection.sendDiagnostics.mock.calls[0]![0]!;
+    expect(call.diagnostics[0].range.start.line).toBe(0);
+    expect(call.diagnostics[0].range.start.character).toBe(0);
+  });
 });
