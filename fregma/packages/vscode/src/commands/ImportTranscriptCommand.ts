@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "node:path";
 import {
   OrmYamlSerializer,
+  ProjectSerializer,
   diffModels,
   mergeAndValidate,
   annotateOrmYaml,
@@ -41,10 +42,12 @@ export class ImportTranscriptCommand {
       return;
     }
 
-    // Step 2: Build the LLM client from settings.
+    // Step 2: Pick the LLM model.
     const config = vscode.workspace.getConfiguration("fregma");
     const provider = config.get<string>("llmProvider") ?? "copilot";
-    const client = buildLlmClient(provider, config);
+    const defaultLlmModel = await getDefaultLlmModel();
+    const client = await buildLlmClientWithPicker(provider, config, defaultLlmModel);
+    if (!client) return; // User cancelled model selection.
 
     // Step 3: Ask for a model name.
     const baseName = path.basename(
@@ -106,6 +109,13 @@ export class ImportTranscriptCommand {
     // Step 8: Report results.
     const summary = buildSummary(result, annotated.todoCount, annotated.noteCount);
     vscode.window.showInformationMessage(summary);
+
+    // Log the model used for transparency.
+    if (result.modelUsed) {
+      const channel = vscode.window.createOutputChannel("ORM Transcript Import");
+      channel.appendLine(`Model used: ${result.modelUsed}`);
+      channel.appendLine("");
+    }
 
     // Show warnings in output channel if any.
     if (result.warnings.length > 0 || result.ambiguities.length > 0) {
@@ -387,19 +397,93 @@ function deltaLabel(delta: ModelDelta): string {
   return `${typeLabel}: ${delta.name}`;
 }
 
-function buildLlmClient(
+/**
+ * Build an LLM client, showing a model picker QuickPick for Copilot.
+ * Returns undefined if the user cancels the picker.
+ */
+async function buildLlmClientWithPicker(
   provider: string,
   config: vscode.WorkspaceConfiguration,
-): LlmClient {
+  defaultLlmModel: string | undefined,
+): Promise<LlmClient | undefined> {
   if (provider === "anthropic") {
     const apiKey = config.get<string>("anthropicApiKey") || undefined;
-    const model = config.get<string>("anthropicModel") || undefined;
+    const configModel = config.get<string>("anthropicModel") || undefined;
+    const model = configModel ?? defaultLlmModel;
     return new AnthropicLlmClient({ apiKey, model });
   }
 
-  // Default: copilot
-  const family = config.get<string>("copilotModelFamily") || undefined;
-  return new CopilotLlmClient({ family });
+  // Copilot: list available models and let the user pick.
+  const allModels = await vscode.lm.selectChatModels({});
+  if (allModels.length === 0) {
+    vscode.window.showErrorMessage(
+      "No Copilot language models available. " +
+      "Ensure GitHub Copilot is installed and signed in.",
+    );
+    return undefined;
+  }
+
+  // If only one model, skip the picker.
+  if (allModels.length === 1) {
+    return new CopilotLlmClient({ family: allModels[0]!.family });
+  }
+
+  // Build QuickPick items, pre-selecting the project default.
+  interface ModelQuickPickItem extends vscode.QuickPickItem {
+    family: string;
+  }
+
+  const items: ModelQuickPickItem[] = allModels.map((m) => ({
+    label: m.name || m.family || m.id,
+    description: m.family,
+    detail: m.id,
+    family: m.family,
+    picked: defaultLlmModel
+      ? (m.family === defaultLlmModel || m.id === defaultLlmModel || m.name === defaultLlmModel)
+      : false,
+  }));
+
+  // Move the default to the top if found.
+  if (defaultLlmModel) {
+    const defaultIdx = items.findIndex((i) => i.picked);
+    if (defaultIdx > 0) {
+      const [item] = items.splice(defaultIdx, 1);
+      items.unshift(item!);
+    }
+  }
+
+  const picked = await vscode.window.showQuickPick(items, {
+    title: "Select LLM model for extraction",
+    placeHolder: defaultLlmModel
+      ? `Project default: ${defaultLlmModel}`
+      : "Choose a model",
+  });
+
+  if (!picked) return undefined; // User pressed Escape.
+
+  return new CopilotLlmClient({ family: picked.family });
+}
+
+/**
+ * Read the defaultLlmModel from the project's .orm-project.yaml if present.
+ */
+async function getDefaultLlmModel(): Promise<string | undefined> {
+  const projectFiles = await vscode.workspace.findFiles(
+    "**/.orm-project.yaml",
+    "**/node_modules/**",
+    1,
+  );
+  if (projectFiles.length === 0) return undefined;
+
+  try {
+    const bytes = await vscode.workspace.fs.readFile(projectFiles[0]!);
+    const yaml = Buffer.from(bytes).toString("utf-8");
+    const ps = new ProjectSerializer();
+    const project = ps.deserialize(yaml);
+    return project.settings.defaultLlmModel;
+  } catch {
+    return undefined;
+  }
 }
 
 function buildSummary(
@@ -411,7 +495,8 @@ function buildSummary(
   const fts = result.model.factTypes.length;
   const applied = result.constraintProvenance.filter((c) => c.applied).length;
 
-  let msg = `Extracted ${ots} object types, ${fts} fact types, ${applied} constraints.`;
+  const modelNote = result.modelUsed ? ` [${result.modelUsed}]` : "";
+  let msg = `Extracted ${ots} object types, ${fts} fact types, ${applied} constraints${modelNote}.`;
   if (todoCount > 0 || noteCount > 0) {
     msg += ` ${todoCount} TODO(s), ${noteCount} NOTE(s) annotated.`;
   }

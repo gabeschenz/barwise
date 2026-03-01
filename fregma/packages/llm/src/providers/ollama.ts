@@ -58,7 +58,7 @@ export class OllamaLlmClient implements LlmClient {
       ],
     });
 
-    return { content: response.choices[0]?.message?.content ?? "" };
+    return { content: response.choices[0]?.message?.content ?? "", modelUsed: this.model };
   }
 
   private async completeStructured(
@@ -85,7 +85,7 @@ export class OllamaLlmClient implements LlmClient {
 
     // Ollama may wrap structured output in markdown code fences.
     // Strip them if present.
-    return { content: extractJson(content) };
+    return { content: extractJson(content), modelUsed: this.model };
   }
 }
 

@@ -69,6 +69,11 @@
           "type": "string",
           "enum": ["integer", "uuid"],
           "description": "Default data type strategy for entity primary key columns when no explicit preferred identifier value type is declared. 'integer' maps to INTEGER (auto-counter), 'uuid' maps to UUID."
+        },
+        "default_llm_model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default LLM model identifier for transcript extraction (e.g. 'claude-sonnet-4-5-20250929', 'gpt-4o', 'gpt-5-mini'). Used as the pre-selected default when the model picker is shown."
         }
       }
     },

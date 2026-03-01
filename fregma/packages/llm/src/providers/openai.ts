@@ -54,7 +54,7 @@ export class OpenAILlmClient implements LlmClient {
       ],
     });
 
-    return { content: response.choices[0]?.message?.content ?? "" };
+    return { content: response.choices[0]?.message?.content ?? "", modelUsed: this.model };
   }
 
   private async completeStructured(
@@ -77,6 +77,6 @@ export class OpenAILlmClient implements LlmClient {
       },
     });
 
-    return { content: response.choices[0]?.message?.content ?? "" };
+    return { content: response.choices[0]?.message?.content ?? "", modelUsed: this.model };
   }
 }

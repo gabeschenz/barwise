@@ -15,6 +15,8 @@ export interface CompletionRequest {
 
 export interface CompletionResponse {
   readonly content: string;
+  /** The model identifier that handled this completion. */
+  readonly modelUsed?: string;
 }
 
 export interface LlmClient {

@@ -34,11 +34,12 @@ export class CopilotLlmClient implements LlmClient {
 
   async complete(request: CompletionRequest): Promise<CompletionResponse> {
     const model = await this.selectModel();
+    const modelId = model.id ?? model.family ?? "copilot";
 
     if (request.responseSchema) {
-      return this.completeWithTool(model, request);
+      return this.completeWithTool(model, request, modelId);
     }
-    return this.completeText(model, request);
+    return this.completeText(model, request, modelId);
   }
 
   private async selectModel(): Promise<vscode.LanguageModelChat> {
@@ -63,6 +64,7 @@ export class CopilotLlmClient implements LlmClient {
   private async completeText(
     model: vscode.LanguageModelChat,
     request: CompletionRequest,
+    modelId: string,
   ): Promise<CompletionResponse> {
     const messages = [
       vscode.LanguageModelChatMessage.User(
@@ -79,12 +81,13 @@ export class CopilotLlmClient implements LlmClient {
     for await (const part of response.text) {
       text += part;
     }
-    return { content: text };
+    return { content: text, modelUsed: modelId };
   }
 
   private async completeWithTool(
     model: vscode.LanguageModelChat,
     request: CompletionRequest,
+    modelId: string,
   ): Promise<CompletionResponse> {
     const toolName = "extract_orm_model";
 
@@ -121,7 +124,7 @@ export class CopilotLlmClient implements LlmClient {
     }
 
     if (toolInput) {
-      return { content: JSON.stringify(toolInput) };
+      return { content: JSON.stringify(toolInput), modelUsed: modelId };
     }
 
     // Fallback: if the model didn't use tool_use, try to extract JSON
@@ -129,7 +132,7 @@ export class CopilotLlmClient implements LlmClient {
     if (textFallback) {
       const json = extractJson(textFallback);
       if (json) {
-        return { content: json };
+        return { content: json, modelUsed: modelId };
       }
     }
 

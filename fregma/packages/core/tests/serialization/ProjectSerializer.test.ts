@@ -321,6 +321,49 @@ project:
         ProjectDeserializationError,
       );
     });
+
+    it("serializes default_llm_model", () => {
+      const project = new OrmProject({
+        name: "EDPL",
+        settings: {
+          defaultLlmModel: "gpt-5-mini",
+        },
+      });
+      const yaml = serializer.serialize(project);
+
+      expect(yaml).toContain("settings:");
+      expect(yaml).toContain("default_llm_model: gpt-5-mini");
+    });
+
+    it("deserializes default_llm_model", () => {
+      const yaml = `
+project:
+  name: "EDPL"
+  settings:
+    default_llm_model: claude-sonnet-4-5-20250929
+`;
+      const project = serializer.deserialize(yaml);
+      expect(project.settings.defaultLlmModel).toBe("claude-sonnet-4-5-20250929");
+    });
+
+    it("round-trips default_llm_model", () => {
+      const original = new OrmProject({
+        name: "EDPL",
+        settings: {
+          defaultLlmModel: "gpt-5-mini",
+        },
+      });
+      const yaml = serializer.serialize(original);
+      const restored = serializer.deserialize(yaml);
+      expect(restored.settings.defaultLlmModel).toBe("gpt-5-mini");
+    });
+
+    it("omits default_llm_model when not set", () => {
+      const project = new OrmProject({ name: "Bare" });
+      const yaml = serializer.serialize(project);
+      expect(yaml).not.toContain("default_llm_model");
+      expect(yaml).not.toContain("settings");
+    });
   });
 
   describe("getMappingPaths", () => {
