@@ -44,8 +44,8 @@ Analyze the transcript carefully and extract:
    - Provide a name (PascalCase for entity types, PascalCase for value types)
    - Classify as "entity" or "value"
    - Write a concise definition based on how the stakeholders describe it
-   - For entity types, propose a reference_mode (the identifier, e.g., "customer_id")
-   - For value types, infer the conceptual data_type when possible. Use one of: text, integer, decimal, money, float, boolean, date, time, datetime, timestamp, auto_counter, binary, uuid, other. Include length for text (e.g. name: "text", length: 50) and length/scale for decimal (e.g. name: "decimal", length: 10, scale: 2).
+   - For entity types, propose a reference_mode (the identifier, e.g., "customer_id"). The reference_mode must be a single, simple identifier name -- NEVER a composite like "CourseCode + TermCode" or a fabricated scheme like "auto_counter (generated X)". If identification is unclear, flag it as an ambiguity instead of inventing a scheme.
+   - For value types, infer the conceptual data_type when possible. Use one of: text, integer, decimal, money, float, boolean, date, time, datetime, timestamp, auto_counter, binary, uuid, other. ALWAYS include length for text types -- infer reasonable lengths from context (codes/identifiers: 10-20, names: 100-200, free text/notes: 500, short labels: 30). Include length/scale for decimal (e.g. name: "decimal", length: 10, scale: 2).
    - For value types with a fixed set of allowed values, include a value_constraint
    - Include source references (line numbers and verbatim excerpts)
 
@@ -54,6 +54,10 @@ Analyze the transcript carefully and extract:
    - List the roles with their player (object type name) and role_name
    - Provide at least one reading template using {0}, {1}, etc. as placeholders
    - Include source references
+
+   **CRITICAL -- Identifier fact types**: For EVERY entity type that has a reference_mode, you MUST emit a binary fact type linking the entity to its identifying value type. For example, if Customer has reference_mode "customer_id" and there is a value type CustomerId, emit a fact type "Customer has CustomerId" with roles [{player: "Customer", role_name: "has"}, {player: "CustomerId", role_name: "identifies"}] and readings ["{0} has {1}", "{1} identifies {0}"]. Without these fact types, identifier constraints cannot be applied and the model is incomplete.
+
+   **Ternary and higher-arity fact types**: When the transcript describes a rule spanning 3 or more concepts, model it as a single multi-role fact type rather than leaving it as a comment. For example, "a patient can only have one appointment per time slot on a given day" should produce a ternary or quaternary fact type (e.g., "Patient has Appointment on Date at TimeSlot") with the appropriate uniqueness constraint. Similarly, "each line specifies a product and a quantity" where quantity depends on the order-product combination should be a ternary "Order and Product has Quantity".
 
 3. **Subtypes**: Identify "is a" / specialization relationships between entity types. For each:
    - Specify the subtype and supertype entity names (both must appear in the object_types list)
@@ -86,7 +90,10 @@ Analyze the transcript carefully and extract:
 - Prefer specific, descriptive fact type names over generic ones.
 - If stakeholders use different terms for what appears to be the same concept, flag it as an ambiguity.
 - Role names should be natural verbs or prepositions (e.g., "places", "is placed by", "has", "is of").
-- Reading templates must use {0}, {1}, etc. matching the role order.`;
+- Reading templates must use {0}, {1}, etc. matching the role order.
+- EVERY entity type with a reference_mode MUST have a corresponding identifier fact type in the fact_types array. If you emit an entity with reference_mode "order_number" but no fact type "Order has OrderNumber", the model is incomplete.
+- NEVER use composite or fabricated reference_modes. Each reference_mode must be a single simple identifier name (e.g., "customer_id", "order_number", "sku"). If identification requires a composite key, flag it as an ambiguity.
+- ALWAYS include length for text data types. Do not omit it.`;
 }
 
 /**

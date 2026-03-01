@@ -19,7 +19,7 @@
   "dependencies": {
     "@fregma/core": "0.2.0",
     "@fregma/diagram": "0.1.0",
-    "@fregma/llm": "0.2.0",
+    "@fregma/llm": "0.2.1",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.25.0"
   },
