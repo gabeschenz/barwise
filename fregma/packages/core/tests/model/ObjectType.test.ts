@@ -126,6 +126,58 @@ describe("ObjectType", () => {
     });
   });
 
+  describe("aliases", () => {
+    it("creates an entity type with aliases", () => {
+      const ot = new ObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+        aliases: ["Client", "Account"],
+      });
+      expect(ot.aliases).toEqual(["Client", "Account"]);
+    });
+
+    it("defaults aliases to undefined when not provided", () => {
+      const ot = new ObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      expect(ot.aliases).toBeUndefined();
+    });
+
+    it("treats empty array as undefined", () => {
+      const ot = new ObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+        aliases: [],
+      });
+      expect(ot.aliases).toBeUndefined();
+    });
+
+    it("returns a frozen copy of aliases", () => {
+      const ot = new ObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      });
+      expect(() => {
+        (ot.aliases as string[]).push("Account");
+      }).toThrow();
+    });
+
+    it("accepts aliases on value types", () => {
+      const ot = new ObjectType({
+        name: "Rating",
+        kind: "value",
+        aliases: ["Grade", "Score"],
+      });
+      expect(ot.aliases).toEqual(["Grade", "Score"]);
+    });
+  });
+
   describe("mutability", () => {
     it("allows updating the definition", () => {
       const ot = new ObjectType({

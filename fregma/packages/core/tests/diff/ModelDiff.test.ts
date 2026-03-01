@@ -435,6 +435,94 @@ describe("diffModels", () => {
     expect(delta!.kind).toBe("unchanged");
   });
 
+  // --- Alias diff tests ---
+
+  it("detects added aliases on an object type", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+  });
+
+  it("detects removed aliases on an object type", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Account"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+  });
+
+  it("detects changed aliases on an object type", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Account"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.changes.some((c) => c.includes("aliases"))).toBe(true);
+  });
+
+  it("reports no change when aliases are the same but in different order", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Account"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Account", "Client"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("unchanged");
+  });
+
+  it("reports no change when both have no aliases", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("unchanged");
+  });
+
   it("detects modified definition text", () => {
     const existing = baseModel();
     const incoming = new ModelBuilder("Test")

@@ -101,6 +101,11 @@
         "data_type": {
           "$ref": "#/definitions/data_type_def",
           "description": "Conceptual data type for value types (e.g. text, integer, decimal)."
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Alternative names for this object type (synonyms from different stakeholders or contexts)."
         }
       },
       "if": {

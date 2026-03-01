@@ -13,6 +13,7 @@
  */
 
 import { OrmModel } from "../model/OrmModel.js";
+import type { ObjectType } from "../model/ObjectType.js";
 import type { FactTypeConfig } from "../model/FactType.js";
 import type { RoleConfig } from "../model/Role.js";
 import type {
@@ -70,6 +71,7 @@ export function mergeModels(
         sourceContext: ot.sourceContext,
         valueConstraint: ot.valueConstraint,
         dataType: ot.dataType,
+        aliases: ot.aliases,
       });
       if (delta.incoming) {
         incomingIdToMergedId.set(delta.incoming.id, ot.id);
@@ -86,6 +88,7 @@ export function mergeModels(
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
           dataType: ot.dataType,
+          aliases: ot.aliases,
         });
         incomingIdToMergedId.set(ot.id, ot.id);
       }
@@ -103,12 +106,14 @@ export function mergeModels(
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
           dataType: ot.dataType,
+          aliases: ot.aliases,
         });
       }
       // If accepted: omit (remove).
     } else if (delta.kind === "modified") {
       if (isAccepted) {
         // Keep existing id, take incoming content.
+        // For aliases, union existing + incoming (deduplicated).
         const existingOt = delta.existing!;
         const incomingOt = delta.incoming!;
         merged.addObjectType({
@@ -120,6 +125,7 @@ export function mergeModels(
           sourceContext: incomingOt.sourceContext,
           valueConstraint: incomingOt.valueConstraint,
           dataType: incomingOt.dataType,
+          aliases: unionAliases(existingOt, incomingOt),
         });
         incomingIdToMergedId.set(incomingOt.id, existingOt.id);
       } else {
@@ -134,6 +140,7 @@ export function mergeModels(
           sourceContext: ot.sourceContext,
           valueConstraint: ot.valueConstraint,
           dataType: ot.dataType,
+          aliases: ot.aliases,
         });
         if (delta.incoming) {
           incomingIdToMergedId.set(delta.incoming.id, ot.id);
@@ -277,4 +284,23 @@ function remapConstraintIds(
   // Cross-fact-type constraints will need full id remapping when
   // the merge engine supports them.
   return [...constraints];
+}
+
+/**
+ * Union aliases from existing and incoming object types, deduplicating.
+ * Returns undefined if neither has aliases.
+ */
+function unionAliases(
+  existing: ObjectType,
+  incoming: ObjectType,
+): readonly string[] | undefined {
+  const existingAliases = existing.aliases ?? [];
+  const incomingAliases = incoming.aliases ?? [];
+
+  if (existingAliases.length === 0 && incomingAliases.length === 0) {
+    return undefined;
+  }
+
+  const combined = new Set([...existingAliases, ...incomingAliases]);
+  return [...combined];
 }

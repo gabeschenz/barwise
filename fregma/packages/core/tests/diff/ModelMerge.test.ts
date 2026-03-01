@@ -462,6 +462,144 @@ describe("mergeModels", () => {
     expect(amount.dataType!.name).toBe("money");
   });
 
+  // --- Alias merge tests ---
+
+  it("preserves aliases on unchanged object types", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const merged = mergeModels(existing, incoming, diff.deltas, new Set());
+
+    const customer = merged.getObjectTypeByName("Customer")!;
+    expect(customer.aliases).toEqual(["Client"]);
+  });
+
+  it("unions aliases when accepting modified object type", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Account"],
+      })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const modIdx = diff.deltas.findIndex(
+      (d) => d.name === "Customer" && d.kind === "modified",
+    );
+    expect(modIdx).toBeGreaterThanOrEqual(0);
+
+    const merged = mergeModels(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([modIdx]),
+    );
+
+    const customer = merged.getObjectTypeByName("Customer")!;
+    // Should contain both existing and incoming aliases, deduplicated.
+    expect(customer.aliases).toContain("Client");
+    expect(customer.aliases).toContain("Account");
+    expect(customer.aliases).toHaveLength(2);
+  });
+
+  it("keeps existing aliases when rejecting modification", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Account"],
+      })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    // Reject everything.
+    const merged = mergeModels(existing, incoming, diff.deltas, new Set());
+
+    const customer = merged.getObjectTypeByName("Customer")!;
+    expect(customer.aliases).toEqual(["Client"]);
+  });
+
+  it("carries aliases on added object types", () => {
+    const existing = new ModelBuilder("Test").build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Account"],
+      })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const addedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "added" && d.name === "Customer",
+    );
+    const merged = mergeModels(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([addedIdx]),
+    );
+
+    const customer = merged.getObjectTypeByName("Customer")!;
+    expect(customer.aliases).toEqual(["Client", "Account"]);
+  });
+
+  it("deduplicates when unioning overlapping aliases", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Buyer"],
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Account"],
+      })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const modIdx = diff.deltas.findIndex(
+      (d) => d.name === "Customer" && d.kind === "modified",
+    );
+
+    const merged = mergeModels(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([modIdx]),
+    );
+
+    const customer = merged.getObjectTypeByName("Customer")!;
+    const aliases = customer.aliases!;
+    // All three unique aliases should be present.
+    expect(aliases).toContain("Client");
+    expect(aliases).toContain("Buyer");
+    expect(aliases).toContain("Account");
+    expect(aliases).toHaveLength(3);
+  });
+
   it("takes incoming dataType when accepting modification", () => {
     const existing = new ModelBuilder("Test")
       .withValueType("Code", { dataType: { name: "text" } })
