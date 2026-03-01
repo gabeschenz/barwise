@@ -145,9 +145,177 @@ array) that it forwards to `constraintKey`.
 
 ### Stage 3: Potential-synonym detection
 
-After the initial diff pass, scan for removed/added pairs of the same
-element type with structural similarity. Produce `SynonymCandidate`
-items on `ModelDiffResult` for human resolution.
+#### Problem
+
+When a concept is renamed between transcripts (e.g. one stakeholder
+says "Customer", another says "Client"), the diff reports an unrelated
+remove + add pair. The modeler must manually recognize the rename,
+reject the removal, accept the addition, and remember to add an alias.
+This is error-prone and tedious, especially with multiple renames in a
+single import.
+
+#### Approach
+
+After the initial `diffModels` pass, scan for removed/added pairs of
+the same element type and compute a structural similarity score. Pairs
+that exceed a threshold are reported as `SynonymCandidate` items on
+`ModelDiffResult` for human resolution.
+
+The detection is deliberately conservative: it flags plausible matches
+for the user to confirm, never auto-links. Per the design principles,
+"synonyms are ambiguities" -- "Customer" and "Client" might be the
+same concept, different concepts, or a refinement. Only the modeler
+knows.
+
+#### New types
+
+```typescript
+export interface SynonymCandidate {
+  /** The element type being compared. */
+  readonly elementType: "object_type" | "fact_type";
+  /** Name of the removed element. */
+  readonly removedName: string;
+  /** Name of the added element. */
+  readonly addedName: string;
+  /** Index of the removed delta in the deltas array. */
+  readonly removedIndex: number;
+  /** Index of the added delta in the deltas array. */
+  readonly addedIndex: number;
+  /** Why the pair was flagged (human-readable reasons). */
+  readonly reasons: readonly string[];
+}
+```
+
+`ModelDiffResult` gains an optional field:
+```typescript
+export interface ModelDiffResult {
+  readonly deltas: readonly ModelDelta[];
+  readonly hasChanges: boolean;
+  readonly synonymCandidates: readonly SynonymCandidate[];
+}
+```
+
+Definitions are excluded from synonym detection. Definition renames
+are rare and the term itself is the identity -- if the term changes,
+the definition is genuinely different.
+
+#### Similarity heuristics
+
+Synonym detection uses simple, deterministic heuristics. No string
+distance algorithms or fuzzy matching -- those add complexity and
+false positives. Instead, we look for structural overlap that is
+hard to explain by coincidence.
+
+##### Object type pairing
+
+A removed + added object type pair is flagged when **all** of these
+hold:
+
+1. **Same kind** -- both entity or both value (required gate)
+2. **At least one structural signal** from:
+   - **Alias match**: the removed name appears in the added type's
+     aliases, or vice versa (strongest signal)
+   - **Matching reference mode pattern**: both entities have reference
+     modes with the same suffix after stripping the type name prefix
+     (e.g. "customer_id" and "client_id" both end in "_id")
+   - **Overlapping value constraint**: for value types, the sets of
+     allowed values overlap by >= 50%
+   - **Same data type**: both have the same `dataType.name` (weak
+     signal, only counts alongside another signal)
+
+Each matching signal is recorded in `reasons` so the user understands
+why the pair was flagged.
+
+When multiple added types could match a single removed type (or vice
+versa), all valid pairs are reported. The user resolves which (if any)
+is the actual synonym. No greedy 1:1 matching -- the real world is
+messy and the modeler should see all plausible options.
+
+##### Fact type pairing
+
+A removed + added fact type pair is flagged when **all** of these
+hold:
+
+1. **Same arity** (required gate)
+2. **Role player correspondence**: for each role position, the player
+   names match, or the player pair is itself a synonym candidate
+   (from the object type pass above). All positions must correspond.
+
+This is intentionally strict. Fact type renames without a
+corresponding entity rename are rare in practice -- they usually
+co-occur with entity renames (e.g. "Customer places Order" becomes
+"Client submits Order" when Customer is renamed to Client).
+
+#### Algorithm
+
+```
+1. Collect removed object type deltas (with indices).
+2. Collect added object type deltas (with indices).
+3. For each (removed, added) pair where kind matches:
+     Compute structural signals.
+     If at least one signal matches, emit SynonymCandidate.
+4. Collect removed fact type deltas (with indices).
+5. Collect added fact type deltas (with indices).
+6. For each (removed, added) pair where arity matches:
+     Check role player correspondence (using OT synonym
+     candidates from step 3 to allow transitive matching).
+     If all positions correspond, emit SynonymCandidate.
+```
+
+This is O(R*A) for each element type, where R = removed count and
+A = added count. In practice both are small (< 20 elements in a
+typical transcript diff), so performance is not a concern.
+
+#### Integration with downstream stages
+
+- **Stage 4 (breaking change classification)**: Synonym candidates
+  imply a potential rename, which is a "caution"-level change.
+- **Stage 6 (enhanced review UI)**: Synonym candidates are presented
+  as grouped items in the QuickPick with resolution options: "same
+  concept (add alias)" vs "unrelated (keep as separate add/remove)".
+  When the user picks "same concept", the merge should keep the
+  existing element, add the new name as an alias, and take any
+  updated properties from the incoming element.
+
+The merge engine (`mergeModels`) does not change in this stage. It
+already handles aliases via `unionAliases`. Synonym resolution is a
+UI concern (Stage 6) that translates the user's choice into the
+appropriate `accepted` set and alias additions.
+
+#### Tests
+
+1. **Object type alias match**: removed "Customer" + added "Client"
+   where "Client" has `aliases: ["Customer"]` -- flagged.
+2. **Object type reference mode match**: removed entity with
+   "customer_id" + added entity with "client_id" -- flagged with
+   "matching reference mode" reason.
+3. **Object type value constraint overlap**: removed value type with
+   values ["A","B","C"] + added value type with values ["A","B","D"]
+   -- flagged (>= 50% overlap).
+4. **No match when kinds differ**: removed entity + added value type
+   -- not flagged even if reference modes look similar.
+5. **No match when no structural signal**: removed entity "Foo" +
+   added entity "Bar" with no overlapping signals -- not flagged.
+6. **Multiple candidates**: removed "Customer" matches both added
+   "Client" and added "Account" -- both pairs reported.
+7. **Fact type rename via entity synonym**: removed "Customer places
+   Order" + added "Client places Order" where Customer/Client are OT
+   synonym candidates -- fact type pair flagged.
+8. **Fact type no match on arity change**: removed binary + added
+   ternary -- not flagged.
+9. **No synonym candidates when diff has no removes or no adds**:
+   empty `synonymCandidates` array.
+10. **Existing diff behavior unchanged**: `deltas` array is identical
+    regardless of synonym detection.
+
+#### Files
+
+##### Modified files
+- `packages/core/src/diff/ModelDiff.ts` -- add `SynonymCandidate`
+  type, extend `ModelDiffResult`, add `detectSynonymCandidates()`
+  called at the end of `diffModels()`
+- `packages/core/tests/diff/ModelDiff.test.ts` -- add synonym
+  detection tests
 
 ### Stage 4: Breaking change classification
 
