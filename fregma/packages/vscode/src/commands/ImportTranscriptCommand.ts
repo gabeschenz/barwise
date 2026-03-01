@@ -3,10 +3,15 @@ import * as path from "node:path";
 import {
   OrmYamlSerializer,
   diffModels,
-  mergeModels,
+  mergeAndValidate,
   annotateOrmYaml,
 } from "@fregma/core";
-import type { OrmModel, ModelDelta, DeltaKind } from "@fregma/core";
+import type {
+  OrmModel,
+  ModelDelta,
+  BreakingLevel,
+  SynonymCandidate,
+} from "@fregma/core";
 import { processTranscript, AnthropicLlmClient } from "@fregma/llm";
 import type { LlmClient, DraftModelResult } from "@fregma/llm";
 import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
@@ -173,59 +178,148 @@ export class ImportTranscriptCommand {
       .map((d, i) => ({ delta: d, index: i }))
       .filter(({ delta }) => delta.kind !== "unchanged");
 
-    // Present the fact-by-fact review picker.
-    const accepted = await this.reviewDeltas(actionableDeltas);
-    if (accepted === undefined) return undefined; // Cancelled.
-
-    if (accepted.size === 0) {
-      vscode.window.showInformationMessage(
-        "All changes rejected -- keeping existing model.",
+    // Review loop: allows the user to re-review if validation fails.
+    while (true) {
+      const accepted = await this.reviewDeltas(
+        actionableDeltas,
+        diff.synonymCandidates,
       );
-      return existingModel;
-    }
+      if (accepted === undefined) return undefined; // Cancelled.
 
-    return mergeModels(existingModel, incomingModel, diff.deltas, accepted);
+      if (accepted.size === 0) {
+        vscode.window.showInformationMessage(
+          "All changes rejected -- keeping existing model.",
+        );
+        return existingModel;
+      }
+
+      const result = mergeAndValidate(
+        existingModel,
+        incomingModel,
+        diff.deltas,
+        accepted,
+      );
+
+      if (result.model === null) {
+        // Merge threw -- unrecoverable without different selections.
+        vscode.window.showErrorMessage(
+          `Merge failed: ${result.errors.map((e) => e.message).join("; ")}`,
+        );
+        return undefined;
+      }
+
+      if (!result.isValid) {
+        const errorSummary = result.errors
+          .map((e) => e.message)
+          .join("\n");
+        const choice = await vscode.window.showWarningMessage(
+          `Merged model has structural issues:\n${errorSummary}`,
+          "Write Anyway",
+          "Review Again",
+        );
+        if (choice === "Write Anyway") {
+          return result.model;
+        }
+        if (choice === "Review Again") {
+          continue; // Loop back to reviewDeltas.
+        }
+        // Dismissed or Escape -- cancel.
+        return undefined;
+      }
+
+      return result.model;
+    }
   }
 
   /**
    * Show a multi-select QuickPick where each item is one element-level
-   * change. Items are pre-selected for additions and modifications.
-   * Returns the set of accepted delta indices, or undefined if cancelled.
+   * change. Items are grouped by breaking level (breaking first, then
+   * caution, then safe) with separators. Synonym candidates are annotated
+   * on the relevant items. Items are pre-selected for additions and
+   * modifications. Returns the set of accepted delta indices, or
+   * undefined if cancelled.
    */
   private async reviewDeltas(
     items: { delta: ModelDelta; index: number }[],
+    synonymCandidates: readonly SynonymCandidate[],
   ): Promise<Set<number> | undefined> {
     interface DeltaQuickPickItem extends vscode.QuickPickItem {
       deltaIndex: number;
     }
 
-    const quickPickItems: DeltaQuickPickItem[] = items.map(({ delta, index }) => {
-      const icon = deltaIcon(delta.kind);
-      const label = deltaLabel(delta);
-      const detail = delta.changes.length > 0
-        ? delta.changes.join("; ")
-        : undefined;
+    // Build a lookup from delta index to synonym annotations.
+    const synonymNotes = buildSynonymNotes(synonymCandidates, items);
 
-      return {
-        label: `${icon} ${label}`,
-        description: delta.kind,
-        detail,
-        deltaIndex: index,
-        // Pre-select additions and modifications; leave removals unchecked
-        // so the user has to actively confirm deletions.
-        picked: delta.kind === "added" || delta.kind === "modified",
-      };
-    });
+    // Group items by breaking level.
+    const groups: Record<BreakingLevel, { delta: ModelDelta; index: number }[]> = {
+      breaking: [],
+      caution: [],
+      safe: [],
+    };
+    for (const item of items) {
+      groups[item.delta.breakingLevel].push(item);
+    }
 
-    const picked = await vscode.window.showQuickPick(quickPickItems, {
-      canPickMany: true,
-      title: "Review extracted changes (uncheck to reject)",
-      placeHolder: "Each item is one element from the new extraction. Confirm your selections.",
-    });
+    const separatorLabels: Record<BreakingLevel, string> = {
+      breaking: "Breaking changes",
+      caution: "Caution",
+      safe: "Safe changes",
+    };
+
+    // Build the QuickPick items with separators between groups.
+    const quickPickItems: (DeltaQuickPickItem | vscode.QuickPickItem)[] = [];
+    const levelOrder: BreakingLevel[] = ["breaking", "caution", "safe"];
+
+    for (const level of levelOrder) {
+      const group = groups[level];
+      if (group.length === 0) continue;
+
+      // Add separator.
+      quickPickItems.push({
+        label: separatorLabels[level],
+        kind: vscode.QuickPickItemKind.Separator,
+      });
+
+      for (const { delta, index } of group) {
+        const icon = breakingIcon(delta.breakingLevel);
+        const label = deltaLabel(delta);
+        const synonymNote = synonymNotes.get(index);
+        const changeSummary = delta.changes.length > 0
+          ? delta.changes.join("; ")
+          : undefined;
+        const detail = synonymNote
+          ? [changeSummary, synonymNote].filter(Boolean).join(" | ")
+          : changeSummary;
+
+        quickPickItems.push({
+          label: `${icon} ${label}`,
+          description: `${delta.kind} - ${delta.breakingLevel}`,
+          detail,
+          deltaIndex: index,
+          // Pre-select additions and modifications; leave removals unchecked
+          // so the user has to actively confirm deletions.
+          picked: delta.kind === "added" || delta.kind === "modified",
+        } as DeltaQuickPickItem);
+      }
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      quickPickItems as DeltaQuickPickItem[],
+      {
+        canPickMany: true,
+        title: "Review extracted changes (uncheck to reject)",
+        placeHolder:
+          "Grouped by risk level. Confirm your selections.",
+      },
+    );
 
     if (!picked) return undefined; // User pressed Escape.
 
-    return new Set(picked.map((item) => item.deltaIndex));
+    return new Set(
+      picked
+        .filter((item): item is DeltaQuickPickItem => "deltaIndex" in item)
+        .map((item) => item.deltaIndex),
+    );
   }
 }
 
@@ -233,17 +327,54 @@ export class ImportTranscriptCommand {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function deltaIcon(kind: DeltaKind): string {
-  switch (kind) {
-    case "added":
-      return "+";
-    case "removed":
-      return "-";
-    case "modified":
-      return "~";
-    case "unchanged":
-      return " ";
+function breakingIcon(level: BreakingLevel): string {
+  switch (level) {
+    case "breaking":
+      return "$(warning)";
+    case "caution":
+      return "$(info)";
+    case "safe":
+      return "$(check)";
   }
+}
+
+/**
+ * Build a map from delta index to synonym annotation text. Each delta
+ * that participates in a synonym candidate gets a note like
+ * "Possible rename: see added Client" or "Possible rename: see removed Customer".
+ */
+function buildSynonymNotes(
+  candidates: readonly SynonymCandidate[],
+  items: { delta: ModelDelta; index: number }[],
+): Map<number, string> {
+  const notes = new Map<string, string>();
+  const indexSet = new Set(items.map((item) => item.index));
+
+  for (const candidate of candidates) {
+    if (indexSet.has(candidate.removedIndex)) {
+      const existing = notes.get(String(candidate.removedIndex));
+      const note = `Possible rename: see added "${candidate.addedName}"`;
+      notes.set(
+        String(candidate.removedIndex),
+        existing ? `${existing}; ${note}` : note,
+      );
+    }
+    if (indexSet.has(candidate.addedIndex)) {
+      const existing = notes.get(String(candidate.addedIndex));
+      const note = `Possible rename: see removed "${candidate.removedName}"`;
+      notes.set(
+        String(candidate.addedIndex),
+        existing ? `${existing}; ${note}` : note,
+      );
+    }
+  }
+
+  // Convert to numeric keys.
+  const result = new Map<number, string>();
+  for (const [key, value] of notes) {
+    result.set(Number(key), value);
+  }
+  return result;
 }
 
 function deltaLabel(delta: ModelDelta): string {
