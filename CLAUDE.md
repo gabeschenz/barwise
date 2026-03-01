@@ -2,8 +2,9 @@
 
 ## Project: Fregma
 
-An ORM 2 (Object-Role Modeling) VS Code extension for data engineers
-and architects. Named after Frege + Schema.
+An ORM 2 (Object-Role Modeling) toolkit for data engineers and
+architects. Includes a VS Code extension, CLI tool, and MCP server.
+Named after Frege + Schema.
 
 ## Essential Context
 
@@ -20,6 +21,8 @@ working in a package:
 - `fregma/packages/core/CLAUDE.md` -- metamodel, validation, verbalization, serialization, mapping
 - `fregma/packages/diagram/CLAUDE.md` -- diagram layout and SVG rendering
 - `fregma/packages/llm/CLAUDE.md` -- LLM transcript extraction
+- `fregma/packages/cli/CLAUDE.md` -- CLI tool (validate, verbalize, schema, export, diagram, diff, import)
+- `fregma/packages/mcp/CLAUDE.md` -- MCP server (tools, resources, prompts)
 - `fregma/packages/vscode/CLAUDE.md` -- VS Code extension integration
 - `AGENTS.md` -- General guidance on development practices.
 
@@ -30,6 +33,8 @@ working in a package:
   ^
   |--- @fregma/diagram  (core)
   |--- @fregma/llm      (core)
+  |--- @fregma/cli      (core, diagram, llm)
+  |--- @fregma/mcp      (core, diagram, llm)
   |--- fregma-vscode     (core, diagram, llm)
 ```
 
@@ -38,10 +43,12 @@ full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
-All Phase 1 milestones and core Phase 2 work are complete. The project
-has 671+ passing tests across 4 packages. The VS Code extension is
-functional but lacks integration tests. NORMA XML import is functional
-with data type resolution and preferred identifier support.
+All phases are complete. The project has 1,183 passing tests across 6
+packages. The CLI tool (`fregma`) and MCP server (`fregma-mcp`) provide
+the same capabilities as the VS Code extension for terminal and AI
+workflows. The VS Code extension is functional but lacks integration
+tests. NORMA XML import is functional with data type resolution and
+preferred identifier support.
 
 ## Milestones
 
@@ -67,11 +74,17 @@ with data type resolution and preferred identifier support.
 12. Diagram visualization (@fregma/diagram) -- DONE
 13. VS Code extension (LSP, commands, webview) -- DONE
 
+### Phase 4 -- COMPLETE
+
+14. LLM provider expansion (OpenAI, Ollama, factory) -- DONE
+15. CLI tool (@fregma/cli) -- DONE
+16. MCP server (@fregma/mcp) -- DONE
+
 ### Remaining Work
 
 - VS Code integration tests (packages/vscode/tests/ is empty) -- HIGH
 - NORMA XML import enhancements (role-level value constraints, external uniqueness import) -- LOW
-- Integration exports (dbt, CI/CD validator, MCP server) -- LOW
+- Internal naming audit for semantic precision (FREGMA-93q) -- LOW
 
 ## Monorepo Commands (run from `fregma/`)
 
