@@ -68,6 +68,8 @@ export interface ObjectTypeConfig {
   readonly valueConstraint?: ValueConstraintDef;
   /** Conceptual data type for value types (e.g. text, integer, decimal). */
   readonly dataType?: DataTypeDef;
+  /** Alternative names for this object type (synonyms from different stakeholders or contexts). */
+  readonly aliases?: readonly string[];
 }
 
 /**
@@ -84,6 +86,7 @@ export class ObjectType extends ModelElement {
   private _sourceContext: string | undefined;
   private _valueConstraint: ValueConstraintDef | undefined;
   private _dataType: DataTypeDef | undefined;
+  private _aliases: readonly string[] | undefined;
 
   constructor(config: ObjectTypeConfig) {
     super(config.name, config.id);
@@ -93,6 +96,10 @@ export class ObjectType extends ModelElement {
     this._sourceContext = config.sourceContext;
     this._valueConstraint = config.valueConstraint;
     this._dataType = config.dataType;
+    this._aliases =
+      config.aliases && config.aliases.length > 0
+        ? Object.freeze([...config.aliases])
+        : undefined;
 
     if (this.kind === "entity" && !this._referenceMode) {
       throw new Error(
@@ -142,6 +149,10 @@ export class ObjectType extends ModelElement {
 
   get dataType(): DataTypeDef | undefined {
     return this._dataType;
+  }
+
+  get aliases(): readonly string[] | undefined {
+    return this._aliases;
   }
 
   get isEntity(): boolean {

@@ -13,6 +13,7 @@ interface ObjectTypeOptions {
   sourceContext?: string;
   valueConstraint?: ValueConstraintDef;
   dataType?: DataTypeDef;
+  aliases?: string[];
 }
 
 /**
@@ -218,6 +219,7 @@ export class ModelBuilder {
         sourceContext: options.sourceContext,
         valueConstraint: options.valueConstraint,
         dataType: options.dataType,
+        aliases: options.aliases,
       });
     }
 

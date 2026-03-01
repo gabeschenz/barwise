@@ -41,6 +41,7 @@ interface OrmYamlObjectType {
   source_context?: string;
   value_constraint?: { values: string[] };
   data_type?: { name: string; length?: number; scale?: number };
+  aliases?: string[];
 }
 
 interface OrmYamlFactType {
@@ -247,6 +248,9 @@ export class OrmYamlSerializer {
       if (ot.dataType.scale !== undefined) dt.scale = ot.dataType.scale;
       result.data_type = dt;
     }
+    if (ot.aliases && ot.aliases.length > 0) {
+      result.aliases = [...ot.aliases];
+    }
 
     return result;
   }
@@ -399,6 +403,7 @@ export class OrmYamlSerializer {
               scale: otDoc.data_type.scale,
             }
           : undefined,
+        aliases: otDoc.aliases,
       });
     }
 

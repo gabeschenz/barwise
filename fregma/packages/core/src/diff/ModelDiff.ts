@@ -235,6 +235,13 @@ function diffObjectType(
     changes.push("value constraint changed");
   }
 
+  // Aliases comparison (order-insensitive).
+  const aAliases = (a.aliases ?? []).slice().sort().join(",");
+  const bAliases = (b.aliases ?? []).slice().sort().join(",");
+  if (aAliases !== bAliases) {
+    changes.push("aliases changed");
+  }
+
   // Data type comparison.
   const aDt = a.dataType;
   const bDt = b.dataType;
