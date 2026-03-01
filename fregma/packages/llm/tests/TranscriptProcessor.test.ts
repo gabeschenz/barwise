@@ -131,6 +131,38 @@ describe("TranscriptProcessor", () => {
       const result = await processTranscript("Some text", client);
       expect(result.model.name).toBe("Extracted Model");
     });
+
+    it("propagates modelUsed from client response to result", async () => {
+      const client: LlmClient = {
+        async complete(_request: CompletionRequest) {
+          return {
+            content: JSON.stringify({
+              object_types: [],
+              fact_types: [],
+              inferred_constraints: [],
+              ambiguities: [],
+            }),
+            modelUsed: "gpt-5-mini",
+          };
+        },
+      };
+
+      const result = await processTranscript("Some text", client);
+      expect(result.modelUsed).toBe("gpt-5-mini");
+    });
+
+    it("modelUsed is undefined when client does not report it", async () => {
+      const response = JSON.stringify({
+        object_types: [],
+        fact_types: [],
+        inferred_constraints: [],
+        ambiguities: [],
+      });
+      const client = createMockClient(response);
+
+      const result = await processTranscript("Some text", client);
+      expect(result.modelUsed).toBeUndefined();
+    });
   });
 
   describe("parseExtractionFromJson", () => {

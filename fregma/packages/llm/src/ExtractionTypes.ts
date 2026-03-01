@@ -170,4 +170,6 @@ export interface DraftModelResult {
   readonly ambiguities: readonly Ambiguity[];
   /** Warnings generated during parsing (non-fatal issues). */
   readonly warnings: readonly string[];
+  /** The model identifier that handled the extraction, if reported by the provider. */
+  readonly modelUsed?: string;
 }

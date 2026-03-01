@@ -48,6 +48,14 @@ export interface ProjectSettings {
    * explicit preferred identifier value type is declared in the model.
    */
   readonly preferredIdentifierStrategy?: PreferredIdentifierStrategy;
+  /**
+   * Default LLM model identifier for transcript extraction.
+   *
+   * Free-form string matching the provider's model naming convention
+   * (e.g. "claude-sonnet-4-5-20250929", "gpt-4o", "gpt-5-mini").
+   * Used as the pre-selected default when the model picker is shown.
+   */
+  readonly defaultLlmModel?: string;
 }
 
 // ---------------------------------------------------------------------------

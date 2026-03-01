@@ -21,7 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fregma/core": "0.1.0",
+    "@fregma/core": "0.2.0",
     "elkjs": "^0.9.3"
   },
   "devDependencies": {

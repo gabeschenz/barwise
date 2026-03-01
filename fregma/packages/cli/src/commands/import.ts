@@ -145,8 +145,9 @@ export function registerImportCommand(program: Command): void {
           const applied = result.constraintProvenance.filter(
             (c) => c.applied,
           ).length;
+          const modelNote = result.modelUsed ? ` (model: ${result.modelUsed})` : "";
           process.stderr.write(
-            `Extracted ${ots} object types, ${fts} fact types, ${applied} constraints.\n`,
+            `Extracted ${ots} object types, ${fts} fact types, ${applied} constraints${modelNote}.\n`,
           );
 
           if (result.warnings.length > 0) {

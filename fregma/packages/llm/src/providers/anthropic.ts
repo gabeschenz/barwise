@@ -54,7 +54,7 @@ export class AnthropicLlmClient implements LlmClient {
     });
 
     const textBlock = response.content.find((b) => b.type === "text");
-    return { content: textBlock?.text ?? "" };
+    return { content: textBlock?.text ?? "", modelUsed: this.model };
   }
 
   private async completeWithTool(
@@ -85,6 +85,6 @@ export class AnthropicLlmClient implements LlmClient {
       );
     }
 
-    return { content: JSON.stringify(toolBlock.input) };
+    return { content: JSON.stringify(toolBlock.input), modelUsed: this.model };
   }
 }
