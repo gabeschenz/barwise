@@ -1068,6 +1068,1060 @@ describe("DraftModelParser", () => {
     });
   });
 
+  describe("Phase 2 constraint extraction", () => {
+    // Shared fixture: two fact types with a common object type (Person).
+    // "Person drives Car" and "Person rides Bus" -- enables cross-role constraints.
+    // Also includes a self-referencing "Person manages Person" for ring constraints.
+    function makeTwoFactTypeModel() {
+      return makeResponse({
+        object_types: [
+          { name: "Person", kind: "entity", reference_mode: "person_id", source_references: [] },
+          { name: "Car", kind: "entity", reference_mode: "car_id", source_references: [] },
+          { name: "Bus", kind: "entity", reference_mode: "bus_id", source_references: [] },
+        ],
+        fact_types: [
+          {
+            name: "Person drives Car",
+            roles: [
+              { player: "Person", role_name: "drives" },
+              { player: "Car", role_name: "is driven by" },
+            ],
+            readings: ["{0} drives {1}"],
+            source_references: [],
+          },
+          {
+            name: "Person rides Bus",
+            roles: [
+              { player: "Person", role_name: "rides" },
+              { player: "Bus", role_name: "is ridden by" },
+            ],
+            readings: ["{0} rides {1}"],
+            source_references: [],
+          },
+        ],
+      });
+    }
+
+    function makeRingFactTypeModel() {
+      return makeResponse({
+        object_types: [
+          { name: "Person", kind: "entity", reference_mode: "person_id", source_references: [] },
+        ],
+        fact_types: [
+          {
+            name: "Person manages Person",
+            roles: [
+              { player: "Person", role_name: "manages" },
+              { player: "Person", role_name: "is managed by" },
+            ],
+            readings: ["{0} manages {1}"],
+            source_references: [],
+          },
+        ],
+      });
+    }
+
+    // --- external_uniqueness ---
+
+    describe("external_uniqueness", () => {
+      it("applies external uniqueness constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "external_uniqueness",
+                fact_type: "Person drives Car",
+                roles: ["Car"],
+                description: "Each Car is driven by a unique set of attributes.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const eu = ft.constraints.find((c) => c.type === "external_uniqueness");
+        expect(eu).toBeDefined();
+        if (eu?.type === "external_uniqueness") {
+          expect(eu.roleIds).toHaveLength(1);
+        }
+      });
+
+      it("skips external uniqueness with unresolvable roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "external_uniqueness",
+                fact_type: "Person drives Car",
+                roles: ["NonExistent"],
+                description: "Bad role",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+      });
+
+      it("detects duplicate external uniqueness", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "external_uniqueness",
+                fact_type: "Person drives Car",
+                roles: ["Car"],
+                description: "First EU",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "external_uniqueness",
+                fact_type: "Person drives Car",
+                roles: ["Car"],
+                description: "Duplicate EU",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- disjunctive_mandatory ---
+
+    describe("disjunctive_mandatory", () => {
+      it("applies disjunctive mandatory constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "disjunctive_mandatory",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "Each Person drives a Car or the Car is driven by a Person.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const dm = ft.constraints.find((c) => c.type === "disjunctive_mandatory");
+        expect(dm).toBeDefined();
+        if (dm?.type === "disjunctive_mandatory") {
+          expect(dm.roleIds).toHaveLength(2);
+        }
+      });
+
+      it("skips disjunctive mandatory with unresolvable roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "disjunctive_mandatory",
+                fact_type: "Person drives Car",
+                roles: ["Ghost"],
+                description: "Bad role",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+      });
+
+      it("detects duplicate disjunctive mandatory", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "disjunctive_mandatory",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "First DM",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "disjunctive_mandatory",
+                fact_type: "Person drives Car",
+                roles: ["Car", "Person"],
+                description: "Duplicate DM (reversed order)",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- exclusion ---
+
+    describe("exclusion", () => {
+      it("applies exclusion constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusion",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "No Person both drives and is driven by the same Car.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const ex = ft.constraints.find((c) => c.type === "exclusion");
+        expect(ex).toBeDefined();
+        if (ex?.type === "exclusion") {
+          expect(ex.roleIds).toHaveLength(2);
+        }
+      });
+
+      it("skips exclusion with unresolvable roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusion",
+                fact_type: "Person drives Car",
+                roles: ["Unknown"],
+                description: "Bad exclusion",
+                confidence: "low",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+      });
+
+      it("detects duplicate exclusion", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusion",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "First exclusion",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "exclusion",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "Duplicate exclusion",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- exclusive_or ---
+
+    describe("exclusive_or", () => {
+      it("applies exclusive-or constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusive_or",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "Each Person either drives or is driven but not both.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const xor = ft.constraints.find((c) => c.type === "exclusive_or");
+        expect(xor).toBeDefined();
+        if (xor?.type === "exclusive_or") {
+          expect(xor.roleIds).toHaveLength(2);
+        }
+      });
+
+      it("skips exclusive-or with unresolvable roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusive_or",
+                fact_type: "Person drives Car",
+                roles: ["Phantom"],
+                description: "Bad XOR",
+                confidence: "low",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+      });
+
+      it("detects duplicate exclusive-or", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "exclusive_or",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "First XOR",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "exclusive_or",
+                fact_type: "Person drives Car",
+                roles: ["Car", "Person"],
+                description: "Duplicate XOR",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- frequency ---
+
+    describe("frequency", () => {
+      it("applies frequency constraint with bounded range", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "Each Person drives between 1 and 3 Cars.",
+                confidence: "high",
+                min: 1,
+                max: 3,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const fc = ft.constraints.find((c) => c.type === "frequency");
+        expect(fc).toBeDefined();
+        if (fc?.type === "frequency") {
+          expect(fc.min).toBe(1);
+          expect(fc.max).toBe(3);
+        }
+      });
+
+      it("applies frequency constraint with unbounded max", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "Each Person drives at least 2 Cars.",
+                confidence: "high",
+                min: 2,
+                max: "unbounded",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const fc = ft.constraints.find((c) => c.type === "frequency");
+        if (fc?.type === "frequency") {
+          expect(fc.min).toBe(2);
+          expect(fc.max).toBe("unbounded");
+        }
+      });
+
+      it("skips frequency with missing min", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "Frequency with no min",
+                confidence: "medium",
+                max: 5,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("min");
+      });
+
+      it("skips frequency with missing max", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "Frequency with no max",
+                confidence: "medium",
+                min: 1,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("max");
+      });
+
+      it("skips frequency with unresolvable role", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Unknown"],
+                description: "Frequency on bad role",
+                confidence: "low",
+                min: 1,
+                max: 5,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+      });
+
+      it("skips frequency with multiple roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                description: "Frequency on two roles",
+                confidence: "medium",
+                min: 1,
+                max: 5,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("exactly one role");
+      });
+
+      it("detects duplicate frequency on same role", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "First frequency",
+                confidence: "high",
+                min: 1,
+                max: 3,
+                source_references: [],
+              },
+              {
+                type: "frequency",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                description: "Duplicate frequency",
+                confidence: "medium",
+                min: 2,
+                max: 5,
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- ring ---
+
+    describe("ring", () => {
+      it("applies ring constraint with valid ring_type", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "No Person manages themselves.",
+                confidence: "high",
+                ring_type: "irreflexive",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person manages Person")!;
+        const rc = ft.constraints.find((c) => c.type === "ring");
+        expect(rc).toBeDefined();
+        if (rc?.type === "ring") {
+          expect(rc.ringType).toBe("irreflexive");
+        }
+      });
+
+      it("applies asymmetric ring constraint", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "If A manages B then B does not manage A.",
+                confidence: "high",
+                ring_type: "asymmetric",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person manages Person")!;
+        const rc = ft.constraints.find((c) => c.type === "ring");
+        if (rc?.type === "ring") {
+          expect(rc.ringType).toBe("asymmetric");
+        }
+      });
+
+      it("skips ring with missing ring_type", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "Ring with no ring_type",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("ring_type");
+      });
+
+      it("skips ring with invalid ring_type", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "Ring with bad type",
+                confidence: "medium",
+                ring_type: "invalid_type",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("ring_type");
+      });
+
+      it("skips ring that does not have exactly 2 roles", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages"],
+                description: "Ring with one role",
+                confidence: "medium",
+                ring_type: "irreflexive",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("exactly 2 roles");
+      });
+
+      it("detects duplicate ring constraint", () => {
+        const resp = makeRingFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "First ring",
+                confidence: "high",
+                ring_type: "irreflexive",
+                source_references: [],
+              },
+              {
+                type: "ring",
+                fact_type: "Person manages Person",
+                roles: ["manages", "is managed by"],
+                description: "Duplicate ring",
+                confidence: "medium",
+                ring_type: "irreflexive",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- subset ---
+
+    describe("subset", () => {
+      it("applies subset constraint within same fact type", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "If Person drives Car then Person rides Bus.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const sc = ft.constraints.find((c) => c.type === "subset");
+        expect(sc).toBeDefined();
+        if (sc?.type === "subset") {
+          expect(sc.subsetRoleIds).toHaveLength(1);
+          expect(sc.supersetRoleIds).toHaveLength(1);
+        }
+      });
+
+      it("skips subset with missing superset_fact_type", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_roles: ["Person"],
+                description: "Subset with no superset fact type",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("superset_fact_type");
+      });
+
+      it("skips subset with missing superset_roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                description: "Subset with no superset roles",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("superset_roles");
+      });
+
+      it("skips subset with mismatched arity", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person", "Car"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "Subset with arity mismatch",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("arity");
+      });
+
+      it("skips subset when superset fact type not found", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Nonexistent FT",
+                superset_roles: ["Person"],
+                description: "Subset to missing FT",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("not found");
+      });
+
+      it("detects duplicate subset constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "First subset",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "subset",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "Duplicate subset",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+
+    // --- equality ---
+
+    describe("equality", () => {
+      it("applies equality constraint across two fact types", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "Person drives Car iff Person rides Bus.",
+                confidence: "high",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        const ft = result.model.getFactTypeByName("Person drives Car")!;
+        const eq = ft.constraints.find((c) => c.type === "equality");
+        expect(eq).toBeDefined();
+        if (eq?.type === "equality") {
+          expect(eq.roleIds1).toHaveLength(1);
+          expect(eq.roleIds2).toHaveLength(1);
+        }
+      });
+
+      it("skips equality with missing superset_fact_type", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_roles: ["Person"],
+                description: "Equality with no second FT",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("superset_fact_type");
+      });
+
+      it("skips equality with mismatched arity", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person", "Bus"],
+                description: "Equality with arity mismatch",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("arity");
+      });
+
+      it("detects duplicate equality constraint", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "First equality",
+                confidence: "high",
+                source_references: [],
+              },
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "Duplicate equality",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(true);
+        expect(result.constraintProvenance[1]?.applied).toBe(false);
+        expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
+      });
+    });
+  });
+
   describe("edge cases", () => {
     it("handles empty extraction response", () => {
       const result = parseDraftModel(makeResponse(), "Empty");
