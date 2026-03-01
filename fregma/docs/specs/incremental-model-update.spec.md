@@ -507,9 +507,125 @@ who want merge without validation (tests, programmatic use).
 
 ### Stage 6: Enhanced review UI
 
-Group deltas by breaking level in the QuickPick. Present synonym
-candidates as single items with resolution options (same concept vs
-unrelated). Warn on post-merge validation errors.
+#### Problem
+
+The current `reviewDeltas()` method in `ImportTranscriptCommand`
+presents a flat list of QuickPick items with minimal visual
+differentiation. All deltas use basic icons (+/-/~) and the `kind`
+string as description. There is no grouping, no breaking-level
+indication, no synonym candidate presentation, and no post-merge
+validation check. The user must mentally classify each delta's risk
+and cannot see synonym candidates at all.
+
+#### Approach
+
+Enhance the review UI in `ImportTranscriptCommand.ts` with three
+improvements, all in the VS Code package (no core changes):
+
+1. **Group deltas by breaking level** using QuickPick separators.
+   Deltas are sorted into three groups: "Breaking changes" first
+   (most attention needed), then "Caution", then "Safe". Each group
+   gets a `QuickPickItem` with `kind: vscode.QuickPickItemKind.Separator`.
+   Within each group, deltas appear in their original order.
+
+2. **Annotate synonym candidates** in the QuickPick. When a removed +
+   added pair appears in `diff.synonymCandidates`, the removed item
+   gets a detail annotation like "Possible rename: see added Client"
+   and the added item gets "Possible rename: see removed Customer".
+   This helps the modeler spot renames without needing a separate
+   resolution step. The annotation is informational only -- the
+   user accepts/rejects the individual add/remove items as before.
+   Synonym resolution (adding aliases) is a future enhancement.
+
+3. **Post-merge validation** replaces `mergeModels` with
+   `mergeAndValidate`. If the merged model has validation errors,
+   a warning message is shown listing the errors, and the user is
+   offered the choice to write anyway or go back to review. This
+   prevents silently writing a corrupted model.
+
+#### Breaking level icons
+
+Replace the plain +/-/~ icons with breaking-level-aware codicon
+icons for richer visual feedback:
+
+| Breaking level | Icon | Visual |
+|---|---|---|
+| breaking | `$(warning)` | Warning triangle |
+| caution | `$(info)` | Info circle |
+| safe | `$(check)` | Checkmark |
+
+The `kind` description is replaced with a more descriptive string
+combining the delta kind and breaking level (e.g. "removed - breaking",
+"modified - caution", "added - safe").
+
+#### Implementation details
+
+##### `resolveWithExisting()`
+
+- Replace `mergeModels()` call with `mergeAndValidate()`.
+- If `result.isValid` is false, show `vscode.window.showWarningMessage`
+  listing the errors with "Write Anyway" and "Review Again" actions.
+- "Write Anyway" returns the merged model (possibly invalid).
+- "Review Again" loops back to `reviewDeltas()`.
+- If `model` is null (merge threw), show an error message and return
+  undefined (cancel).
+
+##### `reviewDeltas()`
+
+- Accept `synonymCandidates` as a second parameter.
+- Build a lookup `Map<number, SynonymCandidate[]>` from delta index
+  to synonym candidates referencing that index.
+- Group items by breaking level with separators.
+- Annotate items that appear in synonym candidates.
+
+##### New helper: `breakingIcon()`
+
+```typescript
+function breakingIcon(level: BreakingLevel): string {
+  switch (level) {
+    case "breaking": return "$(warning)";
+    case "caution": return "$(info)";
+    case "safe": return "$(check)";
+  }
+}
+```
+
+##### Updated `deltaLabel()`
+
+No change needed -- it already formats the element name well.
+
+##### Updated `deltaIcon()` -> removed
+
+The `deltaIcon()` function is replaced by `breakingIcon()`. The
+delta kind is moved to the description field instead.
+
+#### Tests
+
+This stage modifies the VS Code extension, which currently has no
+unit tests for commands (the `tests/` directory is empty). The
+changes are UI-only (QuickPick presentation, message dialogs) and
+cannot be tested without the VS Code runtime.
+
+**Manual verification**:
+1. Import a transcript against an existing model with breaking
+   changes (entity removal, arity change). Verify the QuickPick
+   groups deltas into Breaking/Caution/Safe sections with separators.
+2. Accept a removal of an entity used by a kept fact type. Verify
+   the post-merge validation warning appears with the error message.
+3. Import a model where synonym candidates exist (rename detection).
+   Verify the annotation appears on the relevant items.
+4. Type-check the vscode package: `npx tsc --noEmit`.
+5. Build the vscode package: `node esbuild.mjs`.
+6. Run monorepo lint: `npm run lint`.
+
+#### Files
+
+##### Modified files
+- `packages/vscode/src/commands/ImportTranscriptCommand.ts` -- all
+  changes are in this file: updated imports, `breakingIcon()`,
+  updated `reviewDeltas()` with grouping and synonym annotations,
+  updated `resolveWithExisting()` with `mergeAndValidate()` and
+  validation error handling
 
 ## Deferred
 
