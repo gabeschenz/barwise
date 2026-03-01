@@ -1,0 +1,231 @@
+orm_version: "1.0"
+model:
+  name: order-management
+  # TODO(fregma): Skipped constraint: "OrderStatus must be one of: pending, confirmed, shipped, delivered." -- Role-level value constraints from transcripts are not yet supported. (line 23)
+  object_types:
+    - id: 4370b2b9-0ab6-480b-90d0-13501df68001
+      name: Customer
+      # TODO(fregma): Ask: The terms 'customer' and 'client' are used differently by CRM and billing: CRM uses 'customer', billing team uses 'client' and considers clients only after payment. It's unclear whether 'client' should be treated as the same concept or a business-subtype. (lines 29-31)
+      # TODO(fregma): Ask: Identification format/details for CustomerId, OrderNumber and SKU are not specified (only stated 'unique'); exact data formats are unclear. (lines 7-19)
+      kind: entity
+      reference_mode: CustomerId
+      definition: A person or organization recorded in the CRM that can place orders.
+    - id: ef064454-3b06-4b36-8881-95672a345eab
+      name: Order
+      # TODO(fregma): Ask: It is not stated whether the same Product may appear multiple times on the same Order (i.e., multiple distinct OrderLines for the same Product within an Order). (line 15)
+      # TODO(fregma): Ask: OrderLine identification is not specified in the transcript (we proposed an auto-generated identifier). (line 15)
+      kind: entity
+      reference_mode: OrderNumber
+      definition: A purchase request placed by a customer, identified by an order number.
+    - id: 178f7b0e-0415-40f4-be1b-c918bcdddbda
+      name: Product
+      kind: entity
+      reference_mode: SKU
+      definition: An item available for sale, referenced on order lines by SKU.
+    - id: b00b6537-215a-401e-b285-a3a274edb1e3
+      name: OrderLine
+      # TODO(fregma): Ask: How do you uniquely identify a OrderLine?
+      kind: entity
+      reference_mode: auto_counter (generated OrderLineId)
+      definition: A line on an order that specifies a product and the ordered quantity.
+    - id: f35e07d2-6cef-400e-9c10-fdf7764400cc
+      name: CustomerId
+      kind: value
+      definition: The unique identifier assigned to a customer in the CRM.
+      data_type:
+        name: text
+        length: 50
+    - id: e1686b50-7095-482d-84ad-10ccc8125582
+      name: OrderNumber
+      kind: value
+      definition: The primary identifier for an order.
+      data_type:
+        name: text
+        length: 50
+    - id: 9fcd6ba2-4412-4ad0-94d4-200d2a6d28b4
+      name: SKU
+      kind: value
+      definition: Stock-keeping unit code used to identify a product.
+      data_type:
+        name: text
+        length: 30
+    - id: bad5292b-cf8c-4369-b1ab-cc10e0faff5b
+      name: OrderStatus
+      kind: value
+      definition: The lifecycle status of an order.
+      value_constraint:
+        values:
+          - pending
+          - confirmed
+          - shipped
+          - delivered
+      data_type:
+        name: text
+        length: 20
+    - id: 36b41580-1674-45be-8f17-4f601ae7c9d6
+      name: CustomerName
+      kind: value
+      definition: The customer's name (text field).
+      data_type:
+        name: text
+        length: 100
+    - id: 785dece9-112a-4d75-9e61-6da39cd8ab7a
+      name: Quantity
+      kind: value
+      definition: The number of units of a product on an order line.
+      data_type:
+        name: integer
+  fact_types:
+    - id: f13aafab-31e9-4464-bccf-5917a3cb903f
+      name: Customer places Order
+      roles:
+        - id: a9b4f2d5-a755-43ac-bc8d-035077dc7f49
+          player: 4370b2b9-0ab6-480b-90d0-13501df68001
+          role_name: places
+        - id: 3ead6932-c699-40fe-bf96-bf695f91c59a
+          player: ef064454-3b06-4b36-8881-95672a345eab
+          role_name: is placed by
+      readings:
+        - "{0} places {1}"
+        - "{1} is placed by {0}"
+      constraints:
+        - type: mandatory
+          role: 3ead6932-c699-40fe-bf96-bf695f91c59a
+        - type: internal_uniqueness
+          roles:
+            - 3ead6932-c699-40fe-bf96-bf695f91c59a
+    - id: d63e2d2b-ab9b-4429-be4d-a96e00c14b6f
+      name: Order has OrderLine
+      roles:
+        - id: 29da76b1-16b6-4b8b-b1de-8d1111f58ffd
+          player: ef064454-3b06-4b36-8881-95672a345eab
+          role_name: has line
+        - id: ebfe0a1a-fda7-4a24-b8c6-5a4bab2119a2
+          player: b00b6537-215a-401e-b285-a3a274edb1e3
+          role_name: is line of
+      readings:
+        - "{0} has {1}"
+        - "{1} is part of {0}"
+      constraints:
+        - type: mandatory
+          role: 29da76b1-16b6-4b8b-b1de-8d1111f58ffd
+    - id: 37bfc93b-36a9-4fb8-9f1c-9dfce655f3fe
+      name: OrderLine specifies Product
+      roles:
+        - id: 9f0c0df2-07e8-4110-b3bc-7d39dcceab83
+          player: b00b6537-215a-401e-b285-a3a274edb1e3
+          role_name: specifies
+        - id: acf46409-3522-4973-b236-cfad7b730cca
+          player: 178f7b0e-0415-40f4-be1b-c918bcdddbda
+          role_name: is specified by
+      readings:
+        - "{0} specifies {1}"
+        - "{1} is specified by {0}"
+      constraints:
+        - type: mandatory
+          role: 9f0c0df2-07e8-4110-b3bc-7d39dcceab83
+    - id: 956b1c0f-5b75-461b-be33-b494d1835cd9
+      name: OrderLine has Quantity
+      roles:
+        - id: cf2b1a9c-854f-4a1e-8c31-975f85722b49
+          player: b00b6537-215a-401e-b285-a3a274edb1e3
+          role_name: has quantity
+        - id: 5a7292ac-9e1e-4158-8191-d4d74237a37c
+          player: 785dece9-112a-4d75-9e61-6da39cd8ab7a
+          role_name: is quantity of
+      readings:
+        - "{0} has quantity {1}"
+        - "{1} is the quantity of {0}"
+      constraints:
+        - type: mandatory
+          role: cf2b1a9c-854f-4a1e-8c31-975f85722b49
+    - id: f66fd5a5-bde7-4708-9342-9a81b692d72b
+      name: Product identified by SKU
+      roles:
+        - id: 92e97fd1-4d8d-4b9d-bd84-b56b4f42fd7a
+          player: 178f7b0e-0415-40f4-be1b-c918bcdddbda
+          role_name: is identified by
+        - id: 21937cf2-0933-4e93-b45a-48c237d59716
+          player: 9fcd6ba2-4412-4ad0-94d4-200d2a6d28b4
+          role_name: identifies
+      readings:
+        - "{1} identifies {0}"
+        - "{0} is identified by {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 92e97fd1-4d8d-4b9d-bd84-b56b4f42fd7a
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 21937cf2-0933-4e93-b45a-48c237d59716
+    - id: 986cb395-5644-46c0-bdcf-cbf374531dcf
+      name: Customer identified by CustomerId
+      roles:
+        - id: c1fb4b7b-3e83-47fd-9932-7bf7820b32f3
+          player: 4370b2b9-0ab6-480b-90d0-13501df68001
+          role_name: is identified by
+        - id: 0ab08e0d-88cc-4b92-a347-177860c0b35e
+          player: f35e07d2-6cef-400e-9c10-fdf7764400cc
+          role_name: identifies
+      readings:
+        - "{1} identifies {0}"
+        - "{0} is identified by {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - c1fb4b7b-3e83-47fd-9932-7bf7820b32f3
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 0ab08e0d-88cc-4b92-a347-177860c0b35e
+    - id: 82a58996-5a55-49d7-b4ac-506d8df2df92
+      name: Order identified by OrderNumber
+      roles:
+        - id: 48bde634-c93e-4d76-8fac-dfc789933df4
+          player: ef064454-3b06-4b36-8881-95672a345eab
+          role_name: is identified by
+        - id: 4c333ef6-93db-4c01-a0bc-15525fd5fb3c
+          player: e1686b50-7095-482d-84ad-10ccc8125582
+          role_name: identifies
+      readings:
+        - "{1} identifies {0}"
+        - "{0} is identified by {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 48bde634-c93e-4d76-8fac-dfc789933df4
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 4c333ef6-93db-4c01-a0bc-15525fd5fb3c
+    - id: 903fad00-dbcd-448d-acc8-ae49d09df2f5
+      name: Order has Status
+      roles:
+        - id: 7bd8a023-dded-4a9f-9e62-0f95b0b85a38
+          player: ef064454-3b06-4b36-8881-95672a345eab
+          role_name: has status
+        - id: 41e6940b-2125-4837-9395-38e540474b16
+          player: bad5292b-cf8c-4369-b1ab-cc10e0faff5b
+          role_name: is status of
+      readings:
+        - "{0} has status {1}"
+        - "{1} is the status of {0}"
+      constraints:
+        - type: mandatory
+          role: 7bd8a023-dded-4a9f-9e62-0f95b0b85a38
+    - id: 75583679-e2eb-482d-bddc-c3e1d6bc8bd9
+      name: Customer has Name
+      roles:
+        - id: bdf74f59-5d84-4105-a0ae-04b3cdd9fbb3
+          player: 4370b2b9-0ab6-480b-90d0-13501df68001
+          role_name: has name
+        - id: a2a72866-0c25-41e8-94d9-5bf28bd542d6
+          player: 36b41580-1674-45be-8f17-4f601ae7c9d6
+          role_name: is name of
+      readings:
+        - "{0} has name {1}"
+        - "{1} is the name of {0}"
+      constraints:
+        - type: mandatory
+          role: bdf74f59-5d84-4105-a0ae-04b3cdd9fbb3
