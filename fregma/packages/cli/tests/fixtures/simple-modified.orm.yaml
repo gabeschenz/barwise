@@ -1,0 +1,39 @@
+orm_version: "1.0"
+
+model:
+  name: "Simple Test"
+  domain_context: "testing"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Client"
+      kind: "entity"
+      reference_mode: "client_id"
+      definition: "A client who places orders."
+
+    - id: "ot-name"
+      name: "Name"
+      kind: "value"
+
+    - id: "ot-email"
+      name: "Email"
+      kind: "value"
+
+  fact_types:
+    - id: "ft-customer-has-name"
+      name: "Client has Name"
+      roles:
+        - id: "r-customer-has"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-name-of"
+          player: "ot-name"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-customer-has"]
+        - type: "mandatory"
+          role: "r-customer-has"
