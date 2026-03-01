@@ -160,6 +160,7 @@ export {
   type FactTypeDelta,
   type DefinitionDelta,
   type DeltaKind,
+  type BreakingLevel,
   type SynonymCandidate,
 } from "./diff/ModelDiff.js";
 export { mergeModels } from "./diff/ModelMerge.js";

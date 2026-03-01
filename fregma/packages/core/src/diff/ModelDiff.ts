@@ -22,6 +22,8 @@ import type { Definition } from "../model/Definition.js";
 
 export type DeltaKind = "added" | "removed" | "modified" | "unchanged";
 
+export type BreakingLevel = "safe" | "caution" | "breaking";
+
 export interface ObjectTypeDelta {
   readonly kind: DeltaKind;
   readonly elementType: "object_type";
@@ -32,6 +34,8 @@ export interface ObjectTypeDelta {
   readonly incoming?: ObjectType;
   /** Human-readable summary of what changed (empty for add/remove). */
   readonly changes: readonly string[];
+  /** How risky this change is for downstream consumers. */
+  readonly breakingLevel: BreakingLevel;
 }
 
 export interface FactTypeDelta {
@@ -41,6 +45,8 @@ export interface FactTypeDelta {
   readonly existing?: FactType;
   readonly incoming?: FactType;
   readonly changes: readonly string[];
+  /** How risky this change is for downstream consumers. */
+  readonly breakingLevel: BreakingLevel;
 }
 
 export interface DefinitionDelta {
@@ -50,6 +56,8 @@ export interface DefinitionDelta {
   readonly existing?: Definition;
   readonly incoming?: Definition;
   readonly changes: readonly string[];
+  /** How risky this change is for downstream consumers. */
+  readonly breakingLevel: BreakingLevel;
 }
 
 export type ModelDelta = ObjectTypeDelta | FactTypeDelta | DefinitionDelta;
@@ -111,16 +119,19 @@ export function diffModels(
         name,
         existing: ot,
         changes: [],
+        breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
       const changes = diffObjectType(ot, match, existing, incoming);
+      const kind: DeltaKind = changes.length > 0 ? "modified" : "unchanged";
       deltas.push({
-        kind: changes.length > 0 ? "modified" : "unchanged",
+        kind,
         elementType: "object_type",
         name,
         existing: ot,
         incoming: match,
         changes,
+        breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
   }
@@ -133,6 +144,7 @@ export function diffModels(
         name,
         incoming: ot,
         changes: [],
+        breakingLevel: classifyBreakingLevel("added", []),
       });
     }
   }
@@ -150,16 +162,19 @@ export function diffModels(
         name,
         existing: ft,
         changes: [],
+        breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
       const changes = diffFactType(ft, match, existing, incoming);
+      const kind: DeltaKind = changes.length > 0 ? "modified" : "unchanged";
       deltas.push({
-        kind: changes.length > 0 ? "modified" : "unchanged",
+        kind,
         elementType: "fact_type",
         name,
         existing: ft,
         incoming: match,
         changes,
+        breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
   }
@@ -172,6 +187,7 @@ export function diffModels(
         name,
         incoming: ft,
         changes: [],
+        breakingLevel: classifyBreakingLevel("added", []),
       });
     }
   }
@@ -193,16 +209,19 @@ export function diffModels(
         term,
         existing: def,
         changes: [],
+        breakingLevel: classifyBreakingLevel("removed", []),
       });
     } else {
       const changes = diffDefinition(def, match);
+      const kind: DeltaKind = changes.length > 0 ? "modified" : "unchanged";
       deltas.push({
-        kind: changes.length > 0 ? "modified" : "unchanged",
+        kind,
         elementType: "definition",
         term,
         existing: def,
         incoming: match,
         changes,
+        breakingLevel: classifyBreakingLevel(kind, changes),
       });
     }
   }
@@ -215,6 +234,7 @@ export function diffModels(
         term,
         incoming: def,
         changes: [],
+        breakingLevel: classifyBreakingLevel("added", []),
       });
     }
   }
@@ -469,6 +489,56 @@ function diffDefinition(a: Definition, b: Definition): string[] {
     );
   }
   return changes;
+}
+
+// ---------------------------------------------------------------------------
+// Breaking change classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify the breaking level of a change string from a modification delta.
+ * Returns the severity level for a single change description.
+ */
+function classifyChange(change: string): BreakingLevel {
+  // Safe: definition, aliases, source context, readings, role name changes.
+  if (change === "definition changed") return "safe";
+  if (change === "aliases changed") return "safe";
+  if (change.startsWith("source context:")) return "safe";
+  if (change === "readings changed") return "safe";
+  if (/^role \d+: name /.test(change)) return "safe";
+
+  // Breaking: kind change, arity change, role player change.
+  if (change.startsWith("kind:")) return "breaking";
+  if (change.startsWith("arity:")) return "breaking";
+  if (/^role \d+: player /.test(change)) return "breaking";
+
+  // Caution: data type, reference mode, value constraint, constraints.
+  if (change.startsWith("data type:") || change.startsWith("data type added") || change.startsWith("data type removed")) return "caution";
+  if (change.startsWith("reference mode:")) return "caution";
+  if (change === "value constraint changed") return "caution";
+  if (change.startsWith("constraints added")) return "caution";
+  if (change.startsWith("constraints removed")) return "caution";
+
+  // Unknown changes default to caution.
+  return "caution";
+}
+
+/**
+ * Compute the breaking level for a delta based on its kind and changes.
+ * The most severe level among all changes wins.
+ */
+function classifyBreakingLevel(kind: DeltaKind, changes: readonly string[]): BreakingLevel {
+  if (kind === "unchanged" || kind === "added") return "safe";
+  if (kind === "removed") return "breaking";
+
+  // Modified: classify each change and take the most severe.
+  let level: BreakingLevel = "safe";
+  for (const change of changes) {
+    const changeLevel = classifyChange(change);
+    if (changeLevel === "breaking") return "breaking";
+    if (changeLevel === "caution") level = "caution";
+  }
+  return level;
 }
 
 // ---------------------------------------------------------------------------
