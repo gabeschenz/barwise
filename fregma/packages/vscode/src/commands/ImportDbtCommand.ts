@@ -65,7 +65,9 @@ export class ImportDbtCommand {
 
     // Step 4: Run the import with progress.
     let result;
+    let importLatencyMs: number;
     try {
+      const start = Date.now();
       result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -74,6 +76,7 @@ export class ImportDbtCommand {
         },
         async () => importDbtProject(yamlContents),
       );
+      importLatencyMs = Date.now() - start;
     } catch (err) {
       vscode.window.showErrorMessage(
         `dbt import failed: ${(err as Error).message}`,
@@ -120,7 +123,9 @@ export class ImportDbtCommand {
     vscode.window.showInformationMessage(summary);
 
     // Show gap report in output channel.
-    this.showReportInChannel(result.report, yamlUris);
+    const config = vscode.workspace.getConfiguration("fregma");
+    const verbose = config.get<boolean>("verboseLogging") ?? false;
+    this.showReportInChannel(result.report, yamlUris, importLatencyMs, verbose);
   }
 
   /**
@@ -173,15 +178,20 @@ export class ImportDbtCommand {
   private showReportInChannel(
     report: DbtImportReport,
     yamlUris: vscode.Uri[],
+    latencyMs: number,
+    verbose: boolean,
   ): void {
     const gaps = report.entries.filter(
       (e: ReportEntry) => e.severity === "gap" || e.severity === "warning",
     );
 
-    if (gaps.length === 0) return;
+    if (gaps.length === 0 && !verbose) return;
 
     const channel = vscode.window.createOutputChannel("ORM dbt Import");
     channel.appendLine("=== dbt Import Report ===");
+    if (verbose) {
+      channel.appendLine(`Latency: ${latencyMs}ms`);
+    }
     channel.appendLine("");
     channel.appendLine(`Scanned files:`);
     for (const uri of yamlUris) {

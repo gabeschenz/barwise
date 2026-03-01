@@ -92,6 +92,11 @@
           "type": "string",
           "default": "",
           "description": "Copilot model family to prefer (e.g. 'gpt-4o', 'claude-sonnet'). Leave empty to use the default available model."
+        },
+        "fregma.verboseLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log detailed LLM interaction data (prompt length, raw response, token usage, latency) to the output channel."
         }
       }
     },
