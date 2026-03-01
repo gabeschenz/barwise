@@ -22,7 +22,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
-    "@fregma/core": "0.1.0"
+    "@fregma/core": "0.1.0",
+    "openai": "^4.77.0"
   },
   "devDependencies": {
     "@fregma/diagram": "0.1.0",
