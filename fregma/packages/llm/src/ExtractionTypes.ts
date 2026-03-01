@@ -211,4 +211,13 @@ export interface DraftModelResult {
   readonly warnings: readonly string[];
   /** The model identifier that handled the extraction, if reported by the provider. */
   readonly modelUsed?: string;
+  /** Token usage reported by the provider, if available. */
+  readonly usage?: {
+    readonly promptTokens?: number;
+    readonly completionTokens?: number;
+  };
+  /** Wall-clock time of the LLM call in milliseconds, if measured. */
+  readonly latencyMs?: number;
+  /** Raw LLM response content (for verbose logging). */
+  readonly rawResponse?: string;
 }

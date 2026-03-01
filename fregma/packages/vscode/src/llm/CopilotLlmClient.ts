@@ -72,6 +72,7 @@ export class CopilotLlmClient implements LlmClient {
       ),
     ];
 
+    const start = Date.now();
     const response = await model.sendRequest(messages, {
       justification:
         "Fregma needs language model access to extract ORM models from transcripts.",
@@ -81,7 +82,10 @@ export class CopilotLlmClient implements LlmClient {
     for await (const part of response.text) {
       text += part;
     }
-    return { content: text, modelUsed: modelId };
+    const latencyMs = Date.now() - start;
+
+    // Copilot API does not expose token usage.
+    return { content: text, modelUsed: modelId, latencyMs };
   }
 
   private async completeWithTool(
@@ -97,6 +101,7 @@ export class CopilotLlmClient implements LlmClient {
       ),
     ];
 
+    const start = Date.now();
     const response = await model.sendRequest(messages, {
       justification:
         "Fregma needs language model access to extract ORM models from transcripts.",
@@ -122,9 +127,11 @@ export class CopilotLlmClient implements LlmClient {
         textFallback += part.value;
       }
     }
+    const latencyMs = Date.now() - start;
 
     if (toolInput) {
-      return { content: JSON.stringify(toolInput), modelUsed: modelId };
+      // Copilot API does not expose token usage.
+      return { content: JSON.stringify(toolInput), modelUsed: modelId, latencyMs };
     }
 
     // Fallback: if the model didn't use tool_use, try to extract JSON
@@ -132,7 +139,7 @@ export class CopilotLlmClient implements LlmClient {
     if (textFallback) {
       const json = extractJson(textFallback);
       if (json) {
-        return { content: json, modelUsed: modelId };
+        return { content: json, modelUsed: modelId, latencyMs };
       }
     }
 

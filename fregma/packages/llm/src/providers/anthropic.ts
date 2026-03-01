@@ -46,15 +46,25 @@ export class AnthropicLlmClient implements LlmClient {
   private async completeText(
     request: CompletionRequest,
   ): Promise<CompletionResponse> {
+    const start = Date.now();
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: this.maxTokens,
       system: request.systemPrompt,
       messages: [{ role: "user", content: request.userMessage }],
     });
+    const latencyMs = Date.now() - start;
 
     const textBlock = response.content.find((b) => b.type === "text");
-    return { content: textBlock?.text ?? "", modelUsed: this.model };
+    return {
+      content: textBlock?.text ?? "",
+      modelUsed: this.model,
+      usage: {
+        promptTokens: response.usage.input_tokens,
+        completionTokens: response.usage.output_tokens,
+      },
+      latencyMs,
+    };
   }
 
   private async completeWithTool(
@@ -62,6 +72,7 @@ export class AnthropicLlmClient implements LlmClient {
   ): Promise<CompletionResponse> {
     const toolName = "extract_orm_model";
 
+    const start = Date.now();
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: this.maxTokens,
@@ -77,6 +88,7 @@ export class AnthropicLlmClient implements LlmClient {
       ],
       tool_choice: { type: "tool", name: toolName },
     });
+    const latencyMs = Date.now() - start;
 
     const toolBlock = response.content.find((b) => b.type === "tool_use");
     if (!toolBlock || toolBlock.type !== "tool_use") {
@@ -85,6 +97,14 @@ export class AnthropicLlmClient implements LlmClient {
       );
     }
 
-    return { content: JSON.stringify(toolBlock.input), modelUsed: this.model };
+    return {
+      content: JSON.stringify(toolBlock.input),
+      modelUsed: this.model,
+      usage: {
+        promptTokens: response.usage.input_tokens,
+        completionTokens: response.usage.output_tokens,
+      },
+      latencyMs,
+    };
   }
 }

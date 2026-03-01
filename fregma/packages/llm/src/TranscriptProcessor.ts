@@ -63,7 +63,13 @@ export async function processTranscript(
 
   const modelName = options?.modelName ?? "Extracted Model";
   const result = parseDraftModel(extraction, modelName);
-  return { ...result, modelUsed: response.modelUsed };
+  return {
+    ...result,
+    modelUsed: response.modelUsed,
+    usage: response.usage,
+    latencyMs: response.latencyMs,
+    rawResponse: response.content,
+  };
 }
 
 /**

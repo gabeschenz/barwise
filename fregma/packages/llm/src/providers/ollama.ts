@@ -49,6 +49,7 @@ export class OllamaLlmClient implements LlmClient {
   private async completeText(
     request: CompletionRequest,
   ): Promise<CompletionResponse> {
+    const start = Date.now();
     const response = await this.client.chat.completions.create({
       model: this.model,
       max_tokens: this.maxTokens,
@@ -57,13 +58,23 @@ export class OllamaLlmClient implements LlmClient {
         { role: "user", content: request.userMessage },
       ],
     });
+    const latencyMs = Date.now() - start;
 
-    return { content: response.choices[0]?.message?.content ?? "", modelUsed: this.model };
+    return {
+      content: response.choices[0]?.message?.content ?? "",
+      modelUsed: this.model,
+      usage: response.usage ? {
+        promptTokens: response.usage.prompt_tokens,
+        completionTokens: response.usage.completion_tokens,
+      } : undefined,
+      latencyMs,
+    };
   }
 
   private async completeStructured(
     request: CompletionRequest,
   ): Promise<CompletionResponse> {
+    const start = Date.now();
     const response = await this.client.chat.completions.create({
       model: this.model,
       max_tokens: this.maxTokens,
@@ -80,12 +91,21 @@ export class OllamaLlmClient implements LlmClient {
         },
       },
     });
+    const latencyMs = Date.now() - start;
 
     const content = response.choices[0]?.message?.content ?? "";
 
     // Ollama may wrap structured output in markdown code fences.
     // Strip them if present.
-    return { content: extractJson(content), modelUsed: this.model };
+    return {
+      content: extractJson(content),
+      modelUsed: this.model,
+      usage: response.usage ? {
+        promptTokens: response.usage.prompt_tokens,
+        completionTokens: response.usage.completion_tokens,
+      } : undefined,
+      latencyMs,
+    };
   }
 }
 

@@ -46,8 +46,9 @@ export class ImportTranscriptCommand {
     const config = vscode.workspace.getConfiguration("fregma");
     const provider = config.get<string>("llmProvider") ?? "copilot";
     const defaultLlmModel = await getDefaultLlmModel();
-    const client = await buildLlmClientWithPicker(provider, config, defaultLlmModel);
-    if (!client) return; // User cancelled model selection.
+    const selection = await buildLlmClientWithPicker(provider, config, defaultLlmModel);
+    if (!selection) return; // User cancelled model selection.
+    const { client, modelLabel } = selection;
 
     // Step 3: Ask for a model name.
     const baseName = path.basename(
@@ -64,12 +65,13 @@ export class ImportTranscriptCommand {
     if (!modelName) return;
 
     // Step 4: Run the extraction with progress.
+    const transcriptFileName = path.basename(transcriptUri.fsPath);
     let result: DraftModelResult;
     try {
       result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "Extracting ORM model from transcript...",
+          title: `Extracting ORM model from ${transcriptFileName} [${modelLabel}]...`,
           cancellable: false,
         },
         async () => {
@@ -110,18 +112,41 @@ export class ImportTranscriptCommand {
     const summary = buildSummary(result, annotated.todoCount, annotated.noteCount);
     vscode.window.showInformationMessage(summary);
 
-    // Log the model used for transparency.
-    if (result.modelUsed) {
-      const channel = vscode.window.createOutputChannel("ORM Transcript Import");
-      channel.appendLine(`Model used: ${result.modelUsed}`);
-      channel.appendLine("");
-    }
+    // Step 9: Log to output channel.
+    const verbose = config.get<boolean>("verboseLogging") ?? false;
+    const hasWarnings = result.warnings.length > 0 || result.ambiguities.length > 0;
+    const shouldLog = verbose || hasWarnings || result.modelUsed;
 
-    // Show warnings in output channel if any.
-    if (result.warnings.length > 0 || result.ambiguities.length > 0) {
+    if (shouldLog) {
       const channel = vscode.window.createOutputChannel("ORM Transcript Import");
       channel.appendLine(`=== Import: ${modelName} ===`);
+      channel.appendLine(`Transcript: ${transcriptFileName}`);
+      if (result.modelUsed) {
+        channel.appendLine(`Model used: ${result.modelUsed}`);
+      }
+      if (result.latencyMs !== undefined) {
+        channel.appendLine(`Latency: ${result.latencyMs}ms`);
+      }
+      if (result.usage) {
+        const parts: string[] = [];
+        if (result.usage.promptTokens !== undefined) {
+          parts.push(`prompt=${result.usage.promptTokens}`);
+        }
+        if (result.usage.completionTokens !== undefined) {
+          parts.push(`completion=${result.usage.completionTokens}`);
+        }
+        if (parts.length > 0) {
+          channel.appendLine(`Token usage: ${parts.join(", ")}`);
+        }
+      }
+      channel.appendLine(`Prompt length: ${transcript.length} chars`);
       channel.appendLine("");
+
+      if (verbose && result.rawResponse) {
+        channel.appendLine("RAW LLM RESPONSE:");
+        channel.appendLine(result.rawResponse);
+        channel.appendLine("");
+      }
 
       if (result.ambiguities.length > 0) {
         channel.appendLine("AMBIGUITIES:");
@@ -397,6 +422,12 @@ function deltaLabel(delta: ModelDelta): string {
   return `${typeLabel}: ${delta.name}`;
 }
 
+interface LlmClientSelection {
+  readonly client: LlmClient;
+  /** Human-readable model label for progress messages. */
+  readonly modelLabel: string;
+}
+
 /**
  * Build an LLM client, showing a model picker QuickPick for Copilot.
  * Returns undefined if the user cancels the picker.
@@ -405,12 +436,15 @@ async function buildLlmClientWithPicker(
   provider: string,
   config: vscode.WorkspaceConfiguration,
   defaultLlmModel: string | undefined,
-): Promise<LlmClient | undefined> {
+): Promise<LlmClientSelection | undefined> {
   if (provider === "anthropic") {
     const apiKey = config.get<string>("anthropicApiKey") || undefined;
     const configModel = config.get<string>("anthropicModel") || undefined;
     const model = configModel ?? defaultLlmModel;
-    return new AnthropicLlmClient({ apiKey, model });
+    return {
+      client: new AnthropicLlmClient({ apiKey, model }),
+      modelLabel: model ?? "claude",
+    };
   }
 
   // Copilot: list available models and let the user pick.
@@ -425,7 +459,11 @@ async function buildLlmClientWithPicker(
 
   // If only one model, skip the picker.
   if (allModels.length === 1) {
-    return new CopilotLlmClient({ family: allModels[0]!.family });
+    const m = allModels[0]!;
+    return {
+      client: new CopilotLlmClient({ family: m.family }),
+      modelLabel: m.name || m.family || m.id,
+    };
   }
 
   // Build QuickPick items, pre-selecting the project default.
@@ -461,7 +499,10 @@ async function buildLlmClientWithPicker(
 
   if (!picked) return undefined; // User pressed Escape.
 
-  return new CopilotLlmClient({ family: picked.family });
+  return {
+    client: new CopilotLlmClient({ family: picked.family }),
+    modelLabel: picked.label,
+  };
 }
 
 /**
