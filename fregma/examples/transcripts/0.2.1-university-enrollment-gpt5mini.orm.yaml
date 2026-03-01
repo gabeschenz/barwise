@@ -1,0 +1,341 @@
+orm_version: "1.0"
+model:
+  name: university-enrollment
+  object_types:
+    - id: e0dc2e93-bdaf-49a0-a5e0-77be28ebf87c
+      name: Student
+      # TODO(fregma): Ask: Enrollment capacity enforcement (ensuring count of enrolled students ≤ MaxCapacity) is stated but not modeled as an internal_uniqueness or mandatory constraint; it's an aggregate/quantitative constraint needing procedural or integrity-rule specification. (line 31)
+      kind: entity
+      reference_mode: student_number
+      definition: A person admitted to the university who can enroll in course offerings.
+    - id: 1185c0bf-241a-4131-95b4-02dd1963c999
+      name: StudentNumber
+      kind: value
+      definition: Identifier assigned to a student at admission.
+      data_type:
+        name: text
+        length: 20
+    - id: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+      name: Course
+      # TODO(fregma): Ask: CourseOffering identification is not specified; stakeholders describe offerings by course + term but no single offering identifier was given. Identification may require a composite (Course + Term [+ section])—cannot invent a single reference_mode. (lines 21-23)
+      # TODO(fregma): Ask: Grade timing is temporal: 'A grade is optional -- it's only assigned after the course ends.' This is a temporal/conditional constraint (grade optional until course end) and is not represented by the static constraints in this model. (line 35)
+      kind: entity
+      reference_mode: course_code
+      definition: Catalog entry representing a course (e.g., CS101).
+    - id: eace4685-c3d7-4e3b-9c02-de7d166d507b
+      name: CourseCode
+      kind: value
+      definition: Short code that uniquely identifies a course in the catalog (e.g., CS101).
+      data_type:
+        name: text
+        length: 10
+    - id: 62c1fbe4-9083-4ec5-b158-5b9d4875e2a8
+      name: Title
+      kind: value
+      definition: Free-text title of a course.
+      data_type:
+        name: text
+        length: 200
+    - id: 0ef65d04-b734-4399-a7d8-edde8ca98089
+      name: Credits
+      kind: value
+      definition: Whole-number credit value for a course (e.g., 3, 4).
+      data_type:
+        name: integer
+    - id: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+      name: CourseOffering
+      # TODO(fregma): Ask: How do you uniquely identify a CourseOffering?
+      kind: entity
+      reference_mode: courseOffering_id
+      definition: A specific instance of a course in a particular semester (students enroll in offerings).
+    - id: 5452a7ed-c95e-4e1c-9748-2137c32661a3
+      name: Term
+      kind: entity
+      reference_mode: term_code
+      definition: A semester identified by a term code and having start/end dates.
+    - id: 4affb227-753c-4076-88c6-01057b35abae
+      name: TermCode
+      kind: value
+      definition: Short code identifying a term (e.g., "F25", "SP26").
+      data_type:
+        name: text
+        length: 10
+    - id: 792b6852-a7d1-4766-8a67-8c2ce4d1a2ca
+      name: StartDate
+      kind: value
+      definition: Start date of a term.
+      data_type:
+        name: date
+    - id: 210884cf-63d5-4875-9d16-c65448a3669e
+      name: EndDate
+      kind: value
+      definition: End date of a term.
+      data_type:
+        name: date
+    - id: 26f2fc2c-eae3-468d-a6a7-3b3b186ae0cf
+      name: Instructor
+      kind: entity
+      reference_mode: employee_id
+      definition: An employee who teaches course offerings.
+    - id: 50df12a8-413b-4de5-8217-e46d02cdb850
+      name: EmployeeId
+      kind: value
+      definition: Identifier for an instructor/employee.
+      data_type:
+        name: text
+        length: 20
+    - id: 674a4119-c541-4b1e-b663-46935e013ace
+      name: MaxCapacity
+      kind: value
+      definition: Maximum number of students allowed in a course offering.
+      data_type:
+        name: integer
+    - id: d1db267f-10ad-4a39-a389-a006ec65034f
+      name: Grade
+      kind: value
+      definition: Letter grade awarded to a student for an offering.
+      value_constraint:
+        values:
+          - A
+          - B
+          - C
+          - D
+          - F
+      data_type:
+        name: text
+        length: 1
+  fact_types:
+    - id: c691b023-351b-4f43-bc09-2c44500c8f71
+      name: Student enrolls in CourseOffering
+      roles:
+        - id: 594837d0-f85c-4d4a-8f3d-075c82e34c8b
+          player: e0dc2e93-bdaf-49a0-a5e0-77be28ebf87c
+          role_name: enrolls in
+        - id: a9593444-b7d4-4fc9-b360-7104d75aef4a
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: is enrolled by
+      readings:
+        - "{0} enrolls in {1}"
+        - "{1} is enrolled by {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 594837d0-f85c-4d4a-8f3d-075c82e34c8b
+            - a9593444-b7d4-4fc9-b360-7104d75aef4a
+    - id: a21f159d-03cd-4364-9f9b-51b4c5625dcd
+      name: Course has CourseCode
+      roles:
+        - id: b8ea174c-2b9d-4826-b8f5-ce29750edbb9
+          player: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+          role_name: has
+        - id: d817856e-b781-44e5-b6a3-e4358feb0e48
+          player: eace4685-c3d7-4e3b-9c02-de7d166d507b
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - b8ea174c-2b9d-4826-b8f5-ce29750edbb9
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - d817856e-b781-44e5-b6a3-e4358feb0e48
+    - id: 3790f728-c066-4f9d-b1a7-0fd199ce92b0
+      name: Course has Title
+      roles:
+        - id: 3d6c2cf7-b36c-4d04-be5c-c41366971e8b
+          player: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+          role_name: has
+        - id: 57899fc6-f1d6-43fd-a362-abda4b92def1
+          player: 62c1fbe4-9083-4ec5-b158-5b9d4875e2a8
+          role_name: is titled
+      readings:
+        - "{0} has title {1}"
+        - "{1} is the title of {0}"
+    - id: b0ad98ad-a5b0-43db-ac98-dd1936d79d85
+      name: Course has Credits
+      roles:
+        - id: 1a674a2e-61f0-427d-8efd-113b7e013784
+          player: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+          role_name: has
+        - id: 2c035fa5-e1e4-4fd1-a857-535c96ada0e3
+          player: 0ef65d04-b734-4399-a7d8-edde8ca98089
+          role_name: amount
+      readings:
+        - "{0} has {1} credits"
+        - "{1} credits are for {0}"
+    - id: 0e29b65e-15c8-4ee0-8b9d-2f986dc41950
+      name: CourseOffering is offering of Course
+      roles:
+        - id: a26ad6a1-7c99-4a13-9f84-a2d7e3491461
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: is offering of
+        - id: 6fe7bda4-5f0a-4a8b-b815-2e5bdb154314
+          player: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+          role_name: has offering
+      readings:
+        - "{0} is an offering of {1}"
+        - "{1} has offering {0}"
+    - id: f47a5744-56b7-417f-810b-83b537ccbae5
+      name: CourseOffering is in Term
+      roles:
+        - id: fc48592e-8222-4c8d-a8d7-607966b28dd5
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: is in
+        - id: bba276b9-2388-4c3a-9596-ca3853f16b09
+          player: 5452a7ed-c95e-4e1c-9748-2137c32661a3
+          role_name: contains offering
+      readings:
+        - "{0} is in {1}"
+        - "{1} contains {0}"
+    - id: d3ce540e-dd8c-4bb8-8ddb-53ab8e70db6b
+      name: CourseOffering is taught by Instructor
+      roles:
+        - id: 0fc28b28-bd06-4ac4-a07d-f91a24b06aa7
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: is taught by
+        - id: 4c1bfa68-e3ca-4475-ae3c-5109aa794f97
+          player: 26f2fc2c-eae3-468d-a6a7-3b3b186ae0cf
+          role_name: teaches
+      readings:
+        - "{0} is taught by {1}"
+        - "{1} teaches {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 0fc28b28-bd06-4ac4-a07d-f91a24b06aa7
+        - type: mandatory
+          role: 0fc28b28-bd06-4ac4-a07d-f91a24b06aa7
+    - id: 8da421cf-1d76-4b61-8f19-d8bd7e0cf976
+      name: CourseOffering has MaxCapacity
+      roles:
+        - id: cca01b73-e51a-41a3-b8ac-cb584799024f
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: has max capacity
+        - id: fddc8a84-186f-478f-905c-9bed69affbad
+          player: 674a4119-c541-4b1e-b663-46935e013ace
+          role_name: is capacity of
+      readings:
+        - "{0} has maximum capacity {1}"
+        - "{1} is the maximum capacity of {0}"
+    - id: aa2e3d45-02bf-4aab-ba21-7c3d42df4c7b
+      name: Student receives Grade for CourseOffering
+      roles:
+        - id: 0ffeffe7-3332-4c52-9c80-8d4e268fe3ac
+          player: e0dc2e93-bdaf-49a0-a5e0-77be28ebf87c
+          role_name: receives
+        - id: 7f60f0bc-6123-4874-be13-ef5e8b7a9161
+          player: ed3f6ed2-29d3-4826-83e8-17a0b3075500
+          role_name: for
+        - id: 877dc7fc-f3f2-475a-a9cf-e9c902ad4bf0
+          player: d1db267f-10ad-4a39-a389-a006ec65034f
+          role_name: grade
+      readings:
+        - "{0} receives grade {2} for {1}"
+        - Grade {2} is received by {0} for {1}
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 0ffeffe7-3332-4c52-9c80-8d4e268fe3ac
+            - 7f60f0bc-6123-4874-be13-ef5e8b7a9161
+    - id: f394b321-7631-4214-904f-117d702a9ff4
+      name: Student has StudentNumber
+      roles:
+        - id: 5115ab5b-5ddd-4d28-950c-0a13e953fe4a
+          player: e0dc2e93-bdaf-49a0-a5e0-77be28ebf87c
+          role_name: has
+        - id: 45a8915d-f858-42eb-99c0-ecef24665463
+          player: 1185c0bf-241a-4131-95b4-02dd1963c999
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 5115ab5b-5ddd-4d28-950c-0a13e953fe4a
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 45a8915d-f858-42eb-99c0-ecef24665463
+    - id: eb8169d0-618e-4d8d-828a-36553fb34cc2
+      name: Term has TermCode
+      roles:
+        - id: e05ce6bf-542e-4f08-af58-bb1144466fd7
+          player: 5452a7ed-c95e-4e1c-9748-2137c32661a3
+          role_name: has
+        - id: 1a1618b1-d693-4049-bec0-0d483e41b0bb
+          player: 4affb227-753c-4076-88c6-01057b35abae
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - e05ce6bf-542e-4f08-af58-bb1144466fd7
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 1a1618b1-d693-4049-bec0-0d483e41b0bb
+    - id: 79e2f3ef-dd98-48b1-a817-11a8ef2a8a8e
+      name: Term has StartDate
+      roles:
+        - id: f7a8935f-646b-4c09-a0cd-fbc6e27aff3f
+          player: 5452a7ed-c95e-4e1c-9748-2137c32661a3
+          role_name: has start date
+        - id: 2b815230-8d0b-4bc3-8760-8b7ae425441c
+          player: 792b6852-a7d1-4766-8a67-8c2ce4d1a2ca
+          role_name: is start date of
+      readings:
+        - "{0} has start date {1}"
+        - "{1} is the start date of {0}"
+    - id: 22322abe-b686-430e-adc2-1202706ce0f3
+      name: Term has EndDate
+      roles:
+        - id: 818a2cc7-ce12-4228-b2d4-dd71f80d95f8
+          player: 5452a7ed-c95e-4e1c-9748-2137c32661a3
+          role_name: has end date
+        - id: 2db1a456-8c0d-4bd5-be77-c3c66e7aafc1
+          player: 210884cf-63d5-4875-9d16-c65448a3669e
+          role_name: is end date of
+      readings:
+        - "{0} has end date {1}"
+        - "{1} is the end date of {0}"
+    - id: ccf68bad-9ee8-4503-8a24-fbed68213f9c
+      name: Instructor has EmployeeId
+      roles:
+        - id: 892946b1-c691-4092-80e6-4898f68fed56
+          player: 26f2fc2c-eae3-468d-a6a7-3b3b186ae0cf
+          role_name: has
+        - id: d2b992d0-ebfb-4faf-b9e7-bc0acdbb2f00
+          player: 50df12a8-413b-4de5-8217-e46d02cdb850
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 892946b1-c691-4092-80e6-4898f68fed56
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - d2b992d0-ebfb-4faf-b9e7-bc0acdbb2f00
+    - id: 758614c4-8d8c-4f27-b3a5-cd84de4afca4
+      name: Course has CourseTitleAndCredits (derived facts)
+      roles:
+        - id: 5174650d-90e7-4340-bc46-7d63e7073ad2
+          player: c68f81c6-f64f-41b7-84c3-b7b20b030ee0
+          role_name: has
+        - id: 5c9b0c56-a18e-4518-bcf2-f853747f1897
+          player: 62c1fbe4-9083-4ec5-b158-5b9d4875e2a8
+          role_name: title
+        - id: 741279b7-aea0-4e66-a0d5-5f4bb3f6c7fe
+          player: 0ef65d04-b734-4399-a7d8-edde8ca98089
+          role_name: credits
+      readings:
+        - "{0} has title {1} and {2} credits"
+        - Title {1} with {2} credits is for {0}

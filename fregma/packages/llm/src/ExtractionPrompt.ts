@@ -57,7 +57,15 @@ Analyze the transcript carefully and extract:
 
    **CRITICAL -- Identifier fact types**: For EVERY entity type that has a reference_mode, you MUST emit a binary fact type linking the entity to its identifying value type. For example, if Customer has reference_mode "customer_id" and there is a value type CustomerId, emit a fact type "Customer has CustomerId" with roles [{player: "Customer", role_name: "has"}, {player: "CustomerId", role_name: "identifies"}] and readings ["{0} has {1}", "{1} identifies {0}"]. Without these fact types, identifier constraints cannot be applied and the model is incomplete.
 
-   **Ternary and higher-arity fact types**: When the transcript describes a rule spanning 3 or more concepts, model it as a single multi-role fact type rather than leaving it as a comment. For example, "a patient can only have one appointment per time slot on a given day" should produce a ternary or quaternary fact type (e.g., "Patient has Appointment on Date at TimeSlot") with the appropriate uniqueness constraint. Similarly, "each line specifies a product and a quantity" where quantity depends on the order-product combination should be a ternary "Order and Product has Quantity".
+   **CRITICAL -- Identifier constraints**: Every identifier fact type MUST have three constraints in the inferred_constraints array:
+   (a) internal_uniqueness on the entity role with is_preferred: true -- "Each Customer has at most one CustomerId"
+   (b) internal_uniqueness on the value role -- "Each CustomerId identifies at most one Customer"
+   (c) mandatory on the entity role -- "Every Customer has a CustomerId"
+   All three are required. Without is_preferred the relational mapper cannot determine primary keys. Without mandatory the model allows entities without identifiers, which is invalid.
+
+   **Ternary and higher-arity fact types**: When the transcript describes a rule spanning 3 or more concepts, model it as a single multi-role fact type rather than leaving it as a comment. For example, "each line specifies a product and a quantity" where quantity depends on the order-product combination should be a ternary "Order contains Product with Quantity" with composite uniqueness on the Order+Product roles.
+
+   When scheduling or assignment constraints involve multiple dimensions (e.g., "a patient can have at most one appointment per date and time slot", "a doctor can have at most one appointment per date and time slot"), these cross-entity constraints require all participating concepts in one fact type. Model a single higher-arity fact type (e.g., "Appointment is for Patient with Doctor on Date at TimeSlot") and apply multiple uniqueness constraints on different role combinations within it. Do NOT model these as separate binary fact types -- the scheduling constraints cannot be expressed on independent binaries.
 
 3. **Subtypes**: Identify "is a" / specialization relationships between entity types. For each:
    - Specify the subtype and supertype entity names (both must appear in the object_types list)
@@ -92,8 +100,11 @@ Analyze the transcript carefully and extract:
 - Role names should be natural verbs or prepositions (e.g., "places", "is placed by", "has", "is of").
 - Reading templates must use {0}, {1}, etc. matching the role order.
 - EVERY entity type with a reference_mode MUST have a corresponding identifier fact type in the fact_types array. If you emit an entity with reference_mode "order_number" but no fact type "Order has OrderNumber", the model is incomplete.
+- EVERY identifier fact type MUST have three inferred constraints: (1) internal_uniqueness on the entity role with is_preferred: true, (2) internal_uniqueness on the value role, (3) mandatory on the entity role. If any of these are missing, the identifier is incomplete.
 - NEVER use composite or fabricated reference_modes. Each reference_mode must be a single simple identifier name (e.g., "customer_id", "order_number", "sku"). If identification requires a composite key, flag it as an ambiguity.
-- ALWAYS include length for text data types. Do not omit it.`;
+- ALWAYS include length for text data types. Do not omit it.
+- NEVER emit a fact type that duplicates information already captured by other fact types in the model. Each relationship should be modeled exactly once.
+- Do NOT place is_preferred: true on non-identifier fact types. Only the fact type linking an entity to its identifying value type should have is_preferred.`;
 }
 
 /**
