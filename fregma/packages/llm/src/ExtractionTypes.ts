@@ -63,7 +63,15 @@ export interface ExtractedFactType {
 export type InferredConstraintType =
   | "internal_uniqueness"
   | "mandatory"
-  | "value_constraint";
+  | "value_constraint"
+  | "external_uniqueness"
+  | "disjunctive_mandatory"
+  | "exclusion"
+  | "exclusive_or"
+  | "subset"
+  | "equality"
+  | "ring"
+  | "frequency";
 
 export interface InferredConstraint {
   readonly type: InferredConstraintType;
@@ -90,6 +98,31 @@ export interface InferredConstraint {
    * Required when type is "value_constraint".
    */
   readonly values?: readonly string[];
+  /**
+   * For ring constraints only: the ring property being constrained.
+   * One of: irreflexive, asymmetric, antisymmetric, intransitive,
+   * acyclic, symmetric, transitive, purely_reflexive.
+   */
+  readonly ring_type?: string;
+  /**
+   * For frequency constraints only: minimum occurrences.
+   */
+  readonly min?: number;
+  /**
+   * For frequency constraints only: maximum occurrences or "unbounded".
+   */
+  readonly max?: number | "unbounded";
+  /**
+   * For subset/equality constraints: the second fact type name.
+   * The primary fact_type field identifies the first (subset/equality-1) side.
+   */
+  readonly superset_fact_type?: string;
+  /**
+   * For subset/equality constraints: role player names for the superset
+   * (or second) side. The primary roles field identifies the subset
+   * (or first) side.
+   */
+  readonly superset_roles?: readonly string[];
   readonly source_references: readonly SourceReference[];
 }
 

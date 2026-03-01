@@ -35,6 +35,14 @@ export function buildSystemPrompt(): string {
 - **Internal uniqueness**: "Each Order is placed by at most one Customer" -- the combination of values in certain roles is unique. Single-role uniqueness is most common.
 - **Mandatory**: "Every Order is placed by some Customer" -- every instance must participate.
 - **Value constraint**: "Rating must be one of: A, B, C, D, F" -- restricts allowed values. Value constraints can appear at two levels: (1) on the value type itself (via the object type's value_constraint field) when the restriction applies universally, or (2) on a specific role within a fact type (via inferred_constraints with type "value_constraint") when the restriction is contextual to that relationship.
+- **External uniqueness**: Like internal uniqueness but spans roles across multiple fact types or applies to roles not within a single fact type's internal structure. "The combination of Employee Number and Department Code uniquely identifies an Assignment."
+- **Disjunctive mandatory**: At least one of several roles must be populated. "Every Person must have a HomePhone or a MobilePhone (or both)."
+- **Exclusion**: Two or more roles are mutually exclusive -- an instance can fill one but not the other. "A Person cannot be both the Driver and the Passenger in the same Trip."
+- **Exclusive-or**: Combines exclusion with disjunctive mandatory -- exactly one of the roles must be filled. "Each Vehicle is either a Car or a Truck, but not both."
+- **Subset**: One role population must be a subset of another. "Every Person who teaches a Course must also be enrolled in that Course." Uses superset_fact_type and superset_roles to identify the superset side.
+- **Equality**: Two role populations must be identical (subset in both directions). "Every Person who manages a Department also works in that Department, and vice versa." Uses superset_fact_type and superset_roles.
+- **Ring**: A constraint on a self-referencing (recursive) fact type where the same entity type plays both roles. Common ring types: irreflexive ("No Person manages themselves"), asymmetric ("If A manages B then B does not manage A"), antisymmetric, intransitive, acyclic, symmetric, transitive, purely_reflexive.
+- **Frequency**: A role must be played a specific number of times. "Each Customer places between 1 and 5 Orders." Requires min and max values (max can be "unbounded").
 
 ## Instructions
 
@@ -74,7 +82,7 @@ Analyze the transcript carefully and extract:
    - Include source references
 
 4. **Inferred constraints**: Identify business rules from context. For each:
-   - Specify the type (internal_uniqueness, mandatory, or value_constraint)
+   - Specify the type: one of internal_uniqueness, mandatory, value_constraint, external_uniqueness, disjunctive_mandatory, exclusion, exclusive_or, subset, equality, ring, or frequency.
    - In the "roles" array, list the **object type names** (player names) of the constrained roles, NOT the role names. For example, for "Each Order is placed by at most one Customer" in fact type "Customer places Order", use roles: ["Order"] (the constrained player), not roles: ["is placed by"].
    - For value_constraint: specify one role (the constrained player name) and include a "values" array listing the allowed values. Example: type "value_constraint", fact_type "Appointment has AppointmentStatus", roles ["AppointmentStatus"], values ["scheduled", "checked-in", "completed", "cancelled"]. Use this for enumerated values tied to a specific role. If the value type is ALWAYS restricted to these values (regardless of context), prefer setting value_constraint on the object type instead.
    - Write a human-readable description
@@ -84,6 +92,9 @@ Analyze the transcript carefully and extract:
      Both are needed to make the identifier a bijection.
    - For **ternary or higher-arity fact types**, composite uniqueness should list ALL constrained role players. For example, if each Order-Product combination has at most one Quantity, use roles: ["Order", "Product"] -- not just one of them.
    - For binary many-to-one relationships, the uniqueness goes on the "many" side. "Customers can place multiple orders" but "each Order belongs to one Customer" means uniqueness on the Order role, not the Customer role.
+   - For **subset** and **equality** constraints that span two fact types, use the "fact_type" field for one side and "superset_fact_type" for the other side. List role players in "roles" for the first fact type and "superset_roles" for the second. Both role arrays must have the same length (matching arity).
+   - For **ring** constraints on self-referencing fact types (where the same entity plays both roles), specify ring_type as one of: irreflexive, asymmetric, antisymmetric, intransitive, acyclic, symmetric, transitive, purely_reflexive. The roles array must contain exactly 2 entries (both the same player name).
+   - For **frequency** constraints, specify min and max (max can be the string "unbounded"). The roles array must contain exactly 1 entry.
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
@@ -225,7 +236,13 @@ export function buildResponseSchema(): Record<string, unknown> {
           properties: {
             type: {
               type: "string",
-              enum: ["internal_uniqueness", "mandatory", "value_constraint"],
+              enum: [
+                "internal_uniqueness", "mandatory", "value_constraint",
+                "external_uniqueness", "disjunctive_mandatory",
+                "exclusion", "exclusive_or",
+                "subset", "equality",
+                "ring", "frequency",
+              ],
             },
             fact_type: { type: "string" },
             roles: { type: "array", items: { type: "string" } },
@@ -236,6 +253,23 @@ export function buildResponseSchema(): Record<string, unknown> {
             },
             is_preferred: { type: "boolean" },
             values: { type: "array", items: { type: "string" } },
+            ring_type: {
+              type: "string",
+              enum: [
+                "irreflexive", "asymmetric", "antisymmetric",
+                "intransitive", "acyclic", "symmetric",
+                "transitive", "purely_reflexive",
+              ],
+            },
+            min: { type: "number" },
+            max: {
+              oneOf: [
+                { type: "number" },
+                { type: "string", enum: ["unbounded"] },
+              ],
+            },
+            superset_fact_type: { type: "string" },
+            superset_roles: { type: "array", items: { type: "string" } },
             source_references: {
               type: "array",
               items: {
