@@ -26,6 +26,7 @@ import type { FactType } from "../model/FactType.js";
 import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
 import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import type { PreferredIdentifierStrategy } from "../model/OrmProject.js";
 import type {
   RelationalSchema,
   Table,
@@ -34,11 +35,27 @@ import type {
   ForeignKey,
 } from "./RelationalSchema.js";
 
+/**
+ * Options for relational mapping.
+ */
+export interface RelationalMapperOptions {
+  /**
+   * Default data type strategy for entity primary key columns when no
+   * explicit preferred identifier value type is declared.
+   *
+   * - "integer" -- PK columns default to INTEGER.
+   * - "uuid"    -- PK columns default to UUID.
+   * - undefined -- falls back to TEXT (legacy behavior).
+   */
+  readonly preferredIdentifierStrategy?: PreferredIdentifierStrategy;
+}
+
 export class RelationalMapper {
   /**
    * Map an ORM model to a relational schema.
    */
-  map(model: OrmModel): RelationalSchema {
+  map(model: OrmModel, options?: RelationalMapperOptions): RelationalSchema {
+    const fallbackPkType = strategyToSqlType(options?.preferredIdentifierStrategy);
     const associativeTables: MutableTable[] = [];
     const entityTables = new Map<string, MutableTable>();
 
@@ -47,7 +64,7 @@ export class RelationalMapper {
       if (ot.kind === "entity") {
         const pkColName = ot.referenceMode ?? `${toSnake(ot.name)}_id`;
         // Resolve the PK data type from the reference-mode value type.
-        const pkDataType = resolveEntityPkType(ot, model);
+        const pkDataType = resolveEntityPkType(ot, model, fallbackPkType);
         const table: MutableTable = {
           name: toSnake(ot.name),
           columns: [{ name: pkColName, dataType: pkDataType, nullable: false }],
@@ -576,6 +593,21 @@ function conceptualTypeToSql(dataType: DataTypeDef | undefined): string {
 }
 
 /**
+ * Convert a PreferredIdentifierStrategy to its SQL type string.
+ * Returns "TEXT" when no strategy is set (legacy behavior).
+ */
+function strategyToSqlType(strategy: PreferredIdentifierStrategy | undefined): string {
+  switch (strategy) {
+    case "integer":
+      return "INTEGER";
+    case "uuid":
+      return "UUID";
+    default:
+      return "TEXT";
+  }
+}
+
+/**
  * Resolve the SQL type for an entity type's primary key column.
  *
  * Strategy:
@@ -584,9 +616,10 @@ function conceptualTypeToSql(dataType: DataTypeDef | undefined): string {
  *    use the value type from that fact type.
  * 2. Otherwise fall back to the first binary fact type linking this
  *    entity to a value type (the reference-mode heuristic).
- * 3. Falls back to "TEXT" if no value type is found.
+ * 3. Falls back to the configured fallbackPkType (derived from the
+ *    project's preferredIdentifierStrategy, or "TEXT" when unset).
  */
-function resolveEntityPkType(ot: ObjectType, model: OrmModel): string {
+function resolveEntityPkType(ot: ObjectType, model: OrmModel, fallbackPkType: string): string {
   // Pass 1: look for fact type with isPreferred uniqueness constraint.
   for (const ft of model.factTypes) {
     if (ft.arity !== 2) continue;
@@ -607,7 +640,7 @@ function resolveEntityPkType(ot: ObjectType, model: OrmModel): string {
     if (vp) return conceptualTypeToSql(vp.dataType);
   }
 
-  return "TEXT";
+  return fallbackPkType;
 }
 
 /**

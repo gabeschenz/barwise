@@ -273,6 +273,54 @@ project:
         ProjectDeserializationError,
       );
     });
+
+    it("serializes preferred_identifier_strategy", () => {
+      const project = new OrmProject({
+        name: "EDPL",
+        settings: {
+          preferredIdentifierStrategy: "uuid",
+        },
+      });
+      const yaml = serializer.serialize(project);
+
+      expect(yaml).toContain("settings:");
+      expect(yaml).toContain("preferred_identifier_strategy: uuid");
+    });
+
+    it("deserializes preferred_identifier_strategy", () => {
+      const yaml = `
+project:
+  name: "EDPL"
+  settings:
+    preferred_identifier_strategy: integer
+`;
+      const project = serializer.deserialize(yaml);
+      expect(project.settings.preferredIdentifierStrategy).toBe("integer");
+    });
+
+    it("round-trips preferred_identifier_strategy", () => {
+      const original = new OrmProject({
+        name: "EDPL",
+        settings: {
+          preferredIdentifierStrategy: "uuid",
+        },
+      });
+      const yaml = serializer.serialize(original);
+      const restored = serializer.deserialize(yaml);
+      expect(restored.settings.preferredIdentifierStrategy).toBe("uuid");
+    });
+
+    it("rejects invalid preferred_identifier_strategy", () => {
+      const yaml = `
+project:
+  name: "Bad"
+  settings:
+    preferred_identifier_strategy: serial
+`;
+      expect(() => serializer.deserialize(yaml)).toThrow(
+        ProjectDeserializationError,
+      );
+    });
   });
 
   describe("getMappingPaths", () => {

@@ -64,6 +64,11 @@
           "type": "string",
           "minLength": 1,
           "description": "Default directory for export output, relative to the project root."
+        },
+        "preferred_identifier_strategy": {
+          "type": "string",
+          "enum": ["integer", "uuid"],
+          "description": "Default data type strategy for entity primary key columns when no explicit preferred identifier value type is declared. 'integer' maps to INTEGER (auto-counter), 'uuid' maps to UUID."
         }
       }
     },

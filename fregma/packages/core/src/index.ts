@@ -62,6 +62,7 @@ export {
   type OrmProjectConfig,
   type ProjectSettings,
   type ExportFormat,
+  type PreferredIdentifierStrategy,
 } from "./model/OrmProject.js";
 export {
   DomainModel,
@@ -128,7 +129,10 @@ export {
   type PrimaryKey,
   type ForeignKey,
 } from "./mapping/RelationalSchema.js";
-export { RelationalMapper } from "./mapping/RelationalMapper.js";
+export {
+  RelationalMapper,
+  type RelationalMapperOptions,
+} from "./mapping/RelationalMapper.js";
 export { renderDdl } from "./mapping/renderers/ddl.js";
 export {
   renderDbt,

@@ -17,6 +17,19 @@ import type { ObjectType } from "./ObjectType.js";
 export type ExportFormat = "dbt" | "ddl" | "avro";
 
 /**
+ * Strategy for generating preferred identifier (primary key) columns
+ * when the model does not specify an explicit preferred identifier
+ * value type.
+ *
+ * - "integer" -- PK columns default to INTEGER (auto-counter/serial).
+ * - "uuid"    -- PK columns default to UUID.
+ *
+ * When unset, the relational mapper falls back to TEXT (the existing
+ * behavior prior to this setting).
+ */
+export type PreferredIdentifierStrategy = "integer" | "uuid";
+
+/**
  * Project-level settings persisted in .orm-project.yaml.
  *
  * These are structural settings about the project layout that apply
@@ -30,6 +43,11 @@ export interface ProjectSettings {
   readonly defaultExportFormat?: ExportFormat;
   /** Default directory for export output. */
   readonly defaultExportDir?: string;
+  /**
+   * Default data type strategy for entity primary key columns when no
+   * explicit preferred identifier value type is declared in the model.
+   */
+  readonly preferredIdentifierStrategy?: PreferredIdentifierStrategy;
 }
 
 // ---------------------------------------------------------------------------

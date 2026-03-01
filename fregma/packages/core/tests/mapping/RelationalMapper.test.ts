@@ -598,6 +598,84 @@ describe("RelationalMapper", () => {
     });
   });
 
+  describe("preferredIdentifierStrategy option", () => {
+    it("uses INTEGER fallback when strategy is 'integer'", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Widget", { referenceMode: "widget_id" })
+        .build();
+
+      const schema = mapper.map(model, { preferredIdentifierStrategy: "integer" });
+      const table = schema.tables.find((t) => t.name === "widget")!;
+      expect(table.columns[0]!.dataType).toBe("INTEGER");
+    });
+
+    it("uses UUID fallback when strategy is 'uuid'", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Widget", { referenceMode: "widget_id" })
+        .build();
+
+      const schema = mapper.map(model, { preferredIdentifierStrategy: "uuid" });
+      const table = schema.tables.find((t) => t.name === "widget")!;
+      expect(table.columns[0]!.dataType).toBe("UUID");
+    });
+
+    it("falls back to TEXT when no strategy is set", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Widget", { referenceMode: "widget_id" })
+        .build();
+
+      const schema = mapper.map(model);
+      const table = schema.tables.find((t) => t.name === "widget")!;
+      expect(table.columns[0]!.dataType).toBe("TEXT");
+    });
+
+    it("explicit value type overrides strategy", () => {
+      // Even with uuid strategy, an entity with a declared integer
+      // value type should use INTEGER for its PK.
+      const model = new OrmModel({ name: "Test" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
+      model.addObjectType({
+        name: "Customer_id",
+        kind: "value",
+        dataType: { name: "auto_counter" },
+      });
+      model.addFactType({
+        name: "Customer has id",
+        roles: [
+          { id: "r1", name: "has", playerId: customer.id },
+          {
+            id: "r2",
+            name: "is of",
+            playerId: model.getObjectTypeByName("Customer_id")!.id,
+          },
+        ],
+        readings: ["{0} has {1}"],
+        constraints: [],
+      });
+
+      const schema = mapper.map(model, { preferredIdentifierStrategy: "uuid" });
+      const table = schema.tables.find((t) => t.name === "customer")!;
+      // Explicit auto_counter value type takes precedence over uuid strategy.
+      expect(table.columns[0]!.dataType).toBe("INTEGER");
+    });
+
+    it("strategy applies to all entity types without explicit value types", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withEntityType("Order", { referenceMode: "order_number" })
+        .build();
+
+      const schema = mapper.map(model, { preferredIdentifierStrategy: "uuid" });
+      for (const table of schema.tables) {
+        expect(table.columns[0]!.dataType).toBe("UUID");
+      }
+    });
+  });
+
   describe("schema metadata", () => {
     it("sets sourceModelId", () => {
       const model = new ModelBuilder("Order Management").build();
