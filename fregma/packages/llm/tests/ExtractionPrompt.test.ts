@@ -64,7 +64,7 @@ describe("ExtractionPrompt", () => {
     it("includes is_preferred guidance for uniqueness constraints", () => {
       const prompt = buildSystemPrompt();
       expect(prompt).toContain("is_preferred");
-      expect(prompt).toContain("preferred identifier");
+      expect(prompt).toContain("reference-mode fact types");
     });
   });
 

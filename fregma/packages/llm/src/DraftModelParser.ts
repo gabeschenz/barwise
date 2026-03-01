@@ -166,19 +166,33 @@ export function parseDraftModel(
     }
 
     if (ic.type === "internal_uniqueness") {
-      // Find the role(s) by player name.
-      const roleIds = resolveRolesByPlayerName(ft, ic.roles, warnings, ic.description);
+      // Find the role(s) by player name or role name.
+      const roleIds = resolveRolesByPlayerName(ft, ic.roles, model, warnings, ic.description);
       if (roleIds.length > 0) {
         const constraint: import("@fregma/core").Constraint = ic.is_preferred
           ? { type: "internal_uniqueness", roleIds, isPreferred: true }
           : { type: "internal_uniqueness", roleIds };
-        ft.addConstraint(constraint);
-        constraintProvenance.push({
-          description: ic.description,
-          confidence: ic.confidence,
-          sourceReferences: ic.source_references ?? [],
-          applied: true,
-        });
+
+        // Skip duplicate constraints (LLMs often emit the same constraint
+        // in multiple phrasings, e.g. "each X has at most one Y" and
+        // "each Y identifies at most one X" both targeting the same role).
+        if (isDuplicateConstraint(ft, constraint)) {
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: false,
+            skipReason: "Duplicate constraint (identical type and roles already present).",
+          });
+        } else {
+          ft.addConstraint(constraint);
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: true,
+          });
+        }
       } else {
         constraintProvenance.push({
           description: ic.description,
@@ -189,15 +203,29 @@ export function parseDraftModel(
         });
       }
     } else if (ic.type === "mandatory") {
-      const roleIds = resolveRolesByPlayerName(ft, ic.roles, warnings, ic.description);
+      const roleIds = resolveRolesByPlayerName(ft, ic.roles, model, warnings, ic.description);
       if (roleIds.length === 1 && roleIds[0]) {
-        ft.addConstraint({ type: "mandatory", roleId: roleIds[0] });
-        constraintProvenance.push({
-          description: ic.description,
-          confidence: ic.confidence,
-          sourceReferences: ic.source_references ?? [],
-          applied: true,
-        });
+        const mandatoryConstraint: import("@fregma/core").Constraint = {
+          type: "mandatory",
+          roleId: roleIds[0],
+        };
+        if (isDuplicateConstraint(ft, mandatoryConstraint)) {
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: false,
+            skipReason: "Duplicate constraint (identical type and role already present).",
+          });
+        } else {
+          ft.addConstraint(mandatoryConstraint);
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: true,
+          });
+        }
       } else {
         constraintProvenance.push({
           description: ic.description,
@@ -309,41 +337,82 @@ export function parseDraftModel(
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Check whether a structurally identical constraint already exists on a fact type.
+ * Two internal_uniqueness constraints are duplicates if they cover the same set
+ * of role IDs. The isPreferred flag is promoted (if either is preferred, the
+ * existing one wins).
+ */
+function isDuplicateConstraint(
+  ft: import("@fregma/core").FactType,
+  candidate: import("@fregma/core").Constraint,
+): boolean {
+  if (candidate.type === "internal_uniqueness") {
+    const candidateRoles = [...candidate.roleIds].sort();
+    return ft.constraints.some((existing) => {
+      if (existing.type !== "internal_uniqueness") return false;
+      const existingRoles = [...existing.roleIds].sort();
+      return (
+        existingRoles.length === candidateRoles.length &&
+        existingRoles.every((id, i) => id === candidateRoles[i])
+      );
+    });
+  }
+  if (candidate.type === "mandatory") {
+    return ft.constraints.some(
+      (existing) =>
+        existing.type === "mandatory" &&
+        existing.roleId === candidate.roleId,
+    );
+  }
+  return false;
+}
+
+/**
+ * Resolve role identifiers from constraint role hints.
+ *
+ * The LLM may send role names ("is placed by"), player names
+ * ("Customer"), or a mix. We try matching strategies in order:
+ *   1. Exact role name match (case-insensitive)
+ *   2. Player object type name match (via model lookup)
+ *   3. Skip with warning (no blind fallback)
+ */
 function resolveRolesByPlayerName(
   ft: import("@fregma/core").FactType,
-  playerNames: readonly string[],
+  roleHints: readonly string[],
+  model: OrmModel,
   warnings: string[],
   constraintDesc: string,
 ): string[] {
   const roleIds: string[] = [];
-  for (const playerName of playerNames) {
-    const role = ft.roles.find((r) => {
-      // Match by player name: look up the ORM model's object types
-      // through the fact type. We compare role names or check if the
-      // player name matches any role's object type.
-      return r.name === playerName.toLowerCase() ||
-        r.name === playerName;
-    });
+  for (const hint of roleHints) {
+    const hintLower = hint.toLowerCase();
 
-    if (role) {
-      roleIds.push(role.id);
-    } else {
-      // Try matching by position hint: if the playerName matches
-      // an object type name, find the role played by that OT.
-      const roleByPlayer = ft.roles.find((_r) => {
-        // We don't have direct OT access here, so fall back to
-        // checking all roles. The caller typically passes OT names.
-        return true; // Accept first unmatched role as fallback.
-      });
-      if (roleByPlayer && !roleIds.includes(roleByPlayer.id)) {
-        // This is a weak match; warn about it.
-        warnings.push(
-          `Constraint "${constraintDesc}": could not precisely match ` +
-          `role "${playerName}" in fact type. Using positional fallback.`,
-        );
-        roleIds.push(roleByPlayer.id);
+    // Strategy 1: Match by role name (case-insensitive).
+    const byRoleName = ft.roles.find(
+      (r) => r.name.toLowerCase() === hintLower && !roleIds.includes(r.id),
+    );
+    if (byRoleName) {
+      roleIds.push(byRoleName.id);
+      continue;
+    }
+
+    // Strategy 2: Match by player object type name.
+    const ot = model.getObjectTypeByName(hint);
+    if (ot) {
+      const candidates = ft.rolesForPlayer(ot.id)
+        .filter((r) => !roleIds.includes(r.id));
+      if (candidates.length > 0) {
+        roleIds.push(candidates[0]!.id);
+        continue;
       }
     }
+
+    // No match found -- warn but do not blindly pick a role.
+    warnings.push(
+      `Constraint "${constraintDesc}": could not resolve ` +
+      `role "${hint}" in fact type "${ft.name}". Skipping this role.`,
+    );
   }
   return roleIds;
 }
