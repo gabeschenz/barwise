@@ -523,6 +523,260 @@ describe("diffModels", () => {
     expect(delta!.kind).toBe("unchanged");
   });
 
+  // --- Constraint normalization tests (Stage 2) ---
+
+  it("reports no diff when constraints are identical but role IDs differ", () => {
+    // This is the core false-positive bug: two LLM extractions produce
+    // the same constraints but with fresh UUIDs for every role.
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    // Build fact type with explicit role IDs on existing model.
+    const custA = existing.getObjectTypeByName("Customer")!;
+    const ordA = existing.getObjectTypeByName("Order")!;
+    existing.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custA.id, id: "aaa-role1" },
+        { name: "is placed by", playerId: ordA.id, id: "aaa-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        { type: "internal_uniqueness", roleIds: ["aaa-role2"] },
+        { type: "mandatory", roleId: "aaa-role2" },
+      ],
+    });
+
+    // Build incoming model with different role UUIDs but same structure.
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const custB = incoming.getObjectTypeByName("Customer")!;
+    const ordB = incoming.getObjectTypeByName("Order")!;
+    incoming.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custB.id, id: "bbb-role1" },
+        { name: "is placed by", playerId: ordB.id, id: "bbb-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        { type: "internal_uniqueness", roleIds: ["bbb-role2"] },
+        { type: "mandatory", roleId: "bbb-role2" },
+      ],
+    });
+
+    const result = diffModels(existing, incoming);
+    const ftDelta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "Customer places Order",
+    );
+    expect(ftDelta).toBeDefined();
+    expect(ftDelta!.kind).toBe("unchanged");
+    expect(ftDelta!.changes).toHaveLength(0);
+  });
+
+  it("detects real constraint change when uniqueness moves to a different role position", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const custA = existing.getObjectTypeByName("Customer")!;
+    const ordA = existing.getObjectTypeByName("Order")!;
+    existing.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custA.id, id: "aaa-role1" },
+        { name: "is placed by", playerId: ordA.id, id: "aaa-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        { type: "internal_uniqueness", roleIds: ["aaa-role2"] },
+      ],
+    });
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const custB = incoming.getObjectTypeByName("Customer")!;
+    const ordB = incoming.getObjectTypeByName("Order")!;
+    incoming.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custB.id, id: "bbb-role1" },
+        { name: "is placed by", playerId: ordB.id, id: "bbb-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        // Uniqueness on role1 instead of role2 -- a real semantic change.
+        { type: "internal_uniqueness", roleIds: ["bbb-role1"] },
+      ],
+    });
+
+    const result = diffModels(existing, incoming);
+    const ftDelta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "Customer places Order",
+    );
+    expect(ftDelta).toBeDefined();
+    expect(ftDelta!.kind).toBe("modified");
+    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+  });
+
+  it("detects isPreferred flip as a real change", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const custA = existing.getObjectTypeByName("Customer")!;
+    const ordA = existing.getObjectTypeByName("Order")!;
+    existing.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custA.id, id: "aaa-role1" },
+        { name: "is placed by", playerId: ordA.id, id: "aaa-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        { type: "internal_uniqueness", roleIds: ["aaa-role2"], isPreferred: true },
+      ],
+    });
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const custB = incoming.getObjectTypeByName("Customer")!;
+    const ordB = incoming.getObjectTypeByName("Order")!;
+    incoming.addFactType({
+      name: "Customer places Order",
+      roles: [
+        { name: "places", playerId: custB.id, id: "bbb-role1" },
+        { name: "is placed by", playerId: ordB.id, id: "bbb-role2" },
+      ],
+      readings: ["{0} places {1}"],
+      constraints: [
+        // Same role position but isPreferred removed.
+        { type: "internal_uniqueness", roleIds: ["bbb-role2"] },
+      ],
+    });
+
+    const result = diffModels(existing, incoming);
+    const ftDelta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "Customer places Order",
+    );
+    expect(ftDelta).toBeDefined();
+    expect(ftDelta!.kind).toBe("modified");
+    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+  });
+
+  it("reports no diff for Phase 2 constraints with different role IDs", () => {
+    // Subset, ring, and frequency constraints with fresh UUIDs.
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Person2", { referenceMode: "person2_id" })
+      .build();
+
+    const p1A = existing.getObjectTypeByName("Person")!;
+    const p2A = existing.getObjectTypeByName("Person2")!;
+    existing.addFactType({
+      name: "Person mentors Person2",
+      roles: [
+        { name: "mentors", playerId: p1A.id, id: "aaa-r1" },
+        { name: "is mentored by", playerId: p2A.id, id: "aaa-r2" },
+      ],
+      readings: ["{0} mentors {1}"],
+      constraints: [
+        { type: "ring", roleId1: "aaa-r1", roleId2: "aaa-r2", ringType: "irreflexive" },
+        { type: "frequency", roleId: "aaa-r1", min: 1, max: 5 },
+      ],
+    });
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Person2", { referenceMode: "person2_id" })
+      .build();
+
+    const p1B = incoming.getObjectTypeByName("Person")!;
+    const p2B = incoming.getObjectTypeByName("Person2")!;
+    incoming.addFactType({
+      name: "Person mentors Person2",
+      roles: [
+        { name: "mentors", playerId: p1B.id, id: "bbb-r1" },
+        { name: "is mentored by", playerId: p2B.id, id: "bbb-r2" },
+      ],
+      readings: ["{0} mentors {1}"],
+      constraints: [
+        { type: "ring", roleId1: "bbb-r1", roleId2: "bbb-r2", ringType: "irreflexive" },
+        { type: "frequency", roleId: "bbb-r1", min: 1, max: 5 },
+      ],
+    });
+
+    const result = diffModels(existing, incoming);
+    const ftDelta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "Person mentors Person2",
+    );
+    expect(ftDelta).toBeDefined();
+    expect(ftDelta!.kind).toBe("unchanged");
+    expect(ftDelta!.changes).toHaveLength(0);
+  });
+
+  it("detects Phase 2 semantic change (ring type changed)", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Person2", { referenceMode: "person2_id" })
+      .build();
+
+    const p1A = existing.getObjectTypeByName("Person")!;
+    const p2A = existing.getObjectTypeByName("Person2")!;
+    existing.addFactType({
+      name: "Person mentors Person2",
+      roles: [
+        { name: "mentors", playerId: p1A.id, id: "aaa-r1" },
+        { name: "is mentored by", playerId: p2A.id, id: "aaa-r2" },
+      ],
+      readings: ["{0} mentors {1}"],
+      constraints: [
+        { type: "ring", roleId1: "aaa-r1", roleId2: "aaa-r2", ringType: "irreflexive" },
+      ],
+    });
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Person", { referenceMode: "person_id" })
+      .withEntityType("Person2", { referenceMode: "person2_id" })
+      .build();
+
+    const p1B = incoming.getObjectTypeByName("Person")!;
+    const p2B = incoming.getObjectTypeByName("Person2")!;
+    incoming.addFactType({
+      name: "Person mentors Person2",
+      roles: [
+        { name: "mentors", playerId: p1B.id, id: "bbb-r1" },
+        { name: "is mentored by", playerId: p2B.id, id: "bbb-r2" },
+      ],
+      readings: ["{0} mentors {1}"],
+      constraints: [
+        // Same positions but ringType changed.
+        { type: "ring", roleId1: "bbb-r1", roleId2: "bbb-r2", ringType: "asymmetric" },
+      ],
+    });
+
+    const result = diffModels(existing, incoming);
+    const ftDelta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "Person mentors Person2",
+    );
+    expect(ftDelta).toBeDefined();
+    expect(ftDelta!.kind).toBe("modified");
+    expect(ftDelta!.changes.some((c) => c.includes("constraints"))).toBe(true);
+  });
+
   it("detects modified definition text", () => {
     const existing = baseModel();
     const incoming = new ModelBuilder("Test")
