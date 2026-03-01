@@ -799,4 +799,197 @@ describe("diffModels", () => {
     expect(modified).toBeDefined();
     expect(modified!.changes).toContain("definition text changed");
   });
+
+  // --- Synonym candidate detection tests (Stage 3) ---
+
+  it("flags synonym candidate when removed name appears in added type aliases", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", {
+        referenceMode: "client_id",
+        aliases: ["Customer"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(1);
+    expect(result.synonymCandidates[0]!.removedName).toBe("Customer");
+    expect(result.synonymCandidates[0]!.addedName).toBe("Client");
+    expect(result.synonymCandidates[0]!.elementType).toBe("object_type");
+    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("alias"))).toBe(true);
+  });
+
+  it("flags synonym candidate when entities have matching reference mode suffix", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", { referenceMode: "client_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(1);
+    expect(result.synonymCandidates[0]!.removedName).toBe("Customer");
+    expect(result.synonymCandidates[0]!.addedName).toBe("Client");
+    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("reference mode"))).toBe(true);
+  });
+
+  it("flags synonym candidate when value types have overlapping value constraints", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Rating", { valueConstraint: { values: ["A", "B", "C"] } })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Grade", { valueConstraint: { values: ["A", "B", "D"] } })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(1);
+    expect(result.synonymCandidates[0]!.removedName).toBe("Rating");
+    expect(result.synonymCandidates[0]!.addedName).toBe("Grade");
+    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("value constraint"))).toBe(true);
+  });
+
+  it("does not flag synonym when kinds differ", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withValueType("Client")
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(0);
+  });
+
+  it("does not flag synonym when no structural signal matches", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Foo", { referenceMode: "foo_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Bar", { referenceMode: "bar_code" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(0);
+  });
+
+  it("reports multiple synonym candidates when one removed matches multiple added", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", {
+        referenceMode: "client_id",
+        aliases: ["Customer"],
+      })
+      .withEntityType("Account", {
+        referenceMode: "account_id",
+        aliases: ["Customer"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(2);
+    const names = result.synonymCandidates.map((c) => c.addedName).sort();
+    expect(names).toEqual(["Account", "Client"]);
+    expect(result.synonymCandidates.every((c) => c.removedName === "Customer")).toBe(true);
+  });
+
+  it("flags fact type synonym when role players are OT synonym candidates", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", { referenceMode: "client_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Client places Order", {
+        role1: { player: "Client", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+
+    // Customer/Client should be an OT synonym candidate.
+    const otCandidates = result.synonymCandidates.filter(
+      (c) => c.elementType === "object_type",
+    );
+    expect(otCandidates).toHaveLength(1);
+    expect(otCandidates[0]!.removedName).toBe("Customer");
+    expect(otCandidates[0]!.addedName).toBe("Client");
+
+    // The fact type pair should also be flagged via transitive matching.
+    const ftCandidates = result.synonymCandidates.filter(
+      (c) => c.elementType === "fact_type",
+    );
+    expect(ftCandidates).toHaveLength(1);
+    expect(ftCandidates[0]!.removedName).toBe("Customer places Order");
+    expect(ftCandidates[0]!.addedName).toBe("Client places Order");
+  });
+
+  it("does not flag fact type synonym when arity differs", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("A", { referenceMode: "a_id" })
+      .withEntityType("B", { referenceMode: "b_id" })
+      .withBinaryFactType("A relates B", {
+        role1: { player: "A", name: "relates" },
+        role2: { player: "B", name: "is related by" },
+      })
+      .build();
+    // Can't easily build a ternary via ModelBuilder, so just ensure
+    // a binary-only incoming with no matching fact type doesn't crash.
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("A", { referenceMode: "a_id" })
+      .withEntityType("B", { referenceMode: "b_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const ftCandidates = result.synonymCandidates.filter(
+      (c) => c.elementType === "fact_type",
+    );
+    expect(ftCandidates).toHaveLength(0);
+  });
+
+  it("returns empty synonymCandidates when diff has no removes or no adds", () => {
+    // Only additions, no removals.
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    expect(result.synonymCandidates).toHaveLength(0);
+  });
+
+  it("does not alter deltas array when synonym candidates are detected", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", { referenceMode: "client_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+
+    // Synonym candidate should exist.
+    expect(result.synonymCandidates.length).toBeGreaterThan(0);
+
+    // But deltas should still show a remove + add, not a modification.
+    const removed = result.deltas.filter((d) => d.kind === "removed");
+    const added = result.deltas.filter((d) => d.kind === "added");
+    expect(removed).toHaveLength(1);
+    expect(removed[0]!.name).toBe("Customer");
+    expect(added).toHaveLength(1);
+    expect(added[0]!.name).toBe("Client");
+  });
 });
