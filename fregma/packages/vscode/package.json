@@ -2,7 +2,7 @@
   "name": "fregma-vscode",
   "displayName": "Fregma ORM Modeler",
   "description": "ORM 2 modeling tool for data engineers and architects",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "publisher": "fregma",
   "engines": {
