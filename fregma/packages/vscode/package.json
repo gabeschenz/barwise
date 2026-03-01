@@ -5,6 +5,20 @@
   "version": "0.2.1",
   "private": true,
   "publisher": "fregma",
+  "author": "Gabe Schenz",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gabeschenz/fregma"
+  },
+  "keywords": [
+    "ORM",
+    "Object-Role Modeling",
+    "data modeling",
+    "conceptual modeling",
+    "schema"
+  ],
   "engines": {
     "vscode": "^1.93.0"
   },
