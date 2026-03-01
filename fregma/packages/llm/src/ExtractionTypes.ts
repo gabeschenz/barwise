@@ -73,6 +73,7 @@ export interface InferredConstraint {
    * Role player names identifying which roles the constraint covers.
    * For internal_uniqueness: the player names of the unique roles.
    * For mandatory: the player name of the mandatory role.
+   * For value_constraint: the player name of the constrained role.
    */
   readonly roles: readonly string[];
   /** Human-readable description of the business rule. */
@@ -84,6 +85,11 @@ export interface InferredConstraint {
    * constraint per entity should be marked as preferred.
    */
   readonly is_preferred?: boolean;
+  /**
+   * For value_constraint only: the allowed values.
+   * Required when type is "value_constraint".
+   */
+  readonly values?: readonly string[];
   readonly source_references: readonly SourceReference[];
 }
 

@@ -658,7 +658,7 @@ describe("DraftModelParser", () => {
       expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
     });
 
-    it("skips value_constraint on fact type roles", () => {
+    it("applies value_constraint on a fact type role", () => {
       const resp = makeModelWithFactType();
       const result = parseDraftModel(
         {
@@ -667,8 +667,71 @@ describe("DraftModelParser", () => {
             {
               type: "value_constraint",
               fact_type: "Customer places Order",
-              roles: ["places"],
-              description: "Value constraint on role",
+              roles: ["Order"],
+              description: "Order status must be one of: pending, shipped, delivered",
+              confidence: "high",
+              values: ["pending", "shipped", "delivered"],
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(true);
+
+      const ft = result.model.getFactTypeByName("Customer places Order");
+      expect(ft).toBeDefined();
+      const vcs = ft!.constraints.filter((c) => c.type === "value_constraint");
+      expect(vcs).toHaveLength(1);
+      const vc = vcs[0]!;
+      expect(vc.type).toBe("value_constraint");
+      if (vc.type === "value_constraint") {
+        expect(vc.values).toEqual(["pending", "shipped", "delivered"]);
+        // roleId should match the Order role
+        const orderRole = ft!.roles.find((r) => {
+          const ot = result.model.objectTypes.find((o) => o.id === r.playerId);
+          return ot?.name === "Order";
+        });
+        expect(vc.roleId).toBe(orderRole!.id);
+      }
+    });
+
+    it("skips value_constraint with no values", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["Order"],
+              description: "VC with no values",
+              confidence: "medium",
+              values: [],
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("no values");
+    });
+
+    it("skips value_constraint with missing values field", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["Order"],
+              description: "VC with missing values",
               confidence: "medium",
               source_references: [],
             },
@@ -678,7 +741,89 @@ describe("DraftModelParser", () => {
       );
 
       expect(result.constraintProvenance[0]?.applied).toBe(false);
-      expect(result.constraintProvenance[0]?.skipReason).toContain("not yet supported");
+      expect(result.constraintProvenance[0]?.skipReason).toContain("no values");
+    });
+
+    it("skips value_constraint with unresolvable role", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["NonexistentType"],
+              description: "VC on unknown role",
+              confidence: "medium",
+              values: ["a", "b"],
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+    });
+
+    it("skips value_constraint with multiple roles", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["Customer", "Order"],
+              description: "VC on two roles",
+              confidence: "medium",
+              values: ["a", "b"],
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("exactly one role");
+    });
+
+    it("detects duplicate value_constraint on same role", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["Order"],
+              description: "First VC",
+              confidence: "high",
+              values: ["pending", "shipped"],
+              source_references: [],
+            },
+            {
+              type: "value_constraint",
+              fact_type: "Customer places Order",
+              roles: ["Order"],
+              description: "Duplicate VC",
+              confidence: "medium",
+              values: ["pending", "shipped", "delivered"],
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.constraintProvenance[0]?.applied).toBe(true);
+      expect(result.constraintProvenance[1]?.applied).toBe(false);
+      expect(result.constraintProvenance[1]?.skipReason).toContain("Duplicate");
     });
 
     it("skips fact type with empty name", () => {
