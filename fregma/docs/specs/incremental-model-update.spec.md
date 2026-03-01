@@ -77,8 +77,71 @@ stack: model, serialization, JSON Schema, diff, and merge.
 
 ### Stage 2: Constraint comparison fix
 
-Replace `JSON.stringify(c)` in `constraintKey()` with a normalized
-comparison that strips role IDs and compares by type + structural shape.
+#### Problem
+
+`constraintKey()` uses `JSON.stringify(c)` to produce comparison keys,
+but the serialized form includes role IDs. Since each LLM extraction
+generates fresh UUIDs for roles, two semantically identical constraints
+produce different keys. This causes every re-extraction to report
+spurious "constraints added" + "constraints removed" pairs for
+constraints that haven't actually changed.
+
+#### Approach
+
+Replace `JSON.stringify(c)` with a normalized key function that
+resolves role IDs to positional indices within the parent fact type.
+Since `diffConstraints` is called from `diffFactType` (which already
+matches fact types by name and compares roles by position), positional
+indices are the stable identity.
+
+The new `constraintKey(c, roles)` accepts the fact type's roles array
+and maps each role ID to its 0-based index. The key is then built per
+constraint type using only semantic properties:
+
+| Constraint type | Key components |
+|---|---|
+| `internal_uniqueness` | type, sorted role indices, isPreferred |
+| `mandatory` | type, role index |
+| `external_uniqueness` | type, sorted role indices |
+| `value_constraint` | type, role index (if present), sorted values |
+| `disjunctive_mandatory` | type, sorted role indices |
+| `exclusion` | type, sorted role indices |
+| `exclusive_or` | type, sorted role indices |
+| `subset` | type, subset indices, superset indices (order preserved) |
+| `equality` | type, indices1, indices2 (order preserved) |
+| `ring` | type, index1, index2, ringType |
+| `frequency` | type, role index, min, max |
+
+For role IDs not found in the fact type's roles (cross-fact-type
+constraints like external uniqueness), the raw ID is kept as-is.
+Cross-FT constraint normalization is deferred until those constraints
+are fully supported in the merge engine.
+
+`diffConstraints` gains a `roles` parameter (the fact type's roles
+array) that it forwards to `constraintKey`.
+
+#### Tests
+
+1. **False-positive elimination**: Two models with identical
+   constraints but different role UUIDs produce no diff (the core bug).
+2. **Real changes still detected**: Uniqueness moved from role 0 to
+   role 1 is reported as a change.
+3. **isPreferred flip detected**: Same uniqueness constraint but
+   `isPreferred` toggled is reported.
+4. **Phase 2 constraints with fresh IDs**: Subset, ring, and frequency
+   constraints with different UUIDs produce no false positive.
+5. **Phase 2 semantic change detected**: Ring constraint with changed
+   `ringType` is reported.
+6. **Existing tests unaffected**: All current diff tests continue to
+   pass without modification.
+
+#### Files
+
+##### Modified files
+- `packages/core/src/diff/ModelDiff.ts` -- rewrite `constraintKey()`,
+  update `diffConstraints()` signature to accept roles
+- `packages/core/tests/diff/ModelDiff.test.ts` -- add constraint
+  normalization tests
 
 ### Stage 3: Potential-synonym detection
 

@@ -13,6 +13,7 @@ import type { OrmModel } from "../model/OrmModel.js";
 import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
 import type { FactType } from "../model/FactType.js";
 import type { Constraint } from "../model/Constraint.js";
+import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
 
 // ---------------------------------------------------------------------------
@@ -299,8 +300,14 @@ function diffFactType(
     changes.push("readings changed");
   }
 
-  // Constraints.
-  const constraintDiff = diffConstraints(a.constraints, b.constraints);
+  // Constraints -- pass both role arrays so constraintKey can resolve
+  // role IDs to positional indices (stable across LLM re-extractions).
+  const constraintDiff = diffConstraints(
+    a.constraints,
+    b.constraints,
+    a.roles,
+    b.roles,
+  );
   changes.push(...constraintDiff);
 
   if ((a.definition ?? "") !== (b.definition ?? "")) {
@@ -311,30 +318,97 @@ function diffFactType(
 }
 
 /**
- * Produce a stable, comparable string key for a constraint (ignoring
- * specific role ids, since those differ between models).
+ * Build a role-id-to-index lookup from a roles array.
  */
-function constraintKey(c: Constraint): string {
-  // We compare by type and structural shape, not by role ids,
-  // because role ids differ between LLM extractions.
-  return JSON.stringify(c);
+function roleIndexMap(roles: readonly Role[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (let i = 0; i < roles.length; i++) {
+    m.set(roles[i]!.id, i);
+  }
+  return m;
+}
+
+/**
+ * Resolve a role ID to its positional index using the lookup.
+ * Falls back to the raw ID for cross-fact-type constraints whose role
+ * IDs don't belong to this fact type.
+ */
+function resolveRole(id: string, idxMap: Map<string, number>): string {
+  const idx = idxMap.get(id);
+  return idx !== undefined ? String(idx) : id;
+}
+
+/**
+ * Produce a stable, comparable string key for a constraint, normalized
+ * so that role IDs are replaced with positional indices within the
+ * parent fact type. This eliminates false-positive diffs caused by
+ * fresh UUIDs from LLM re-extractions.
+ */
+function constraintKey(
+  c: Constraint,
+  idxMap: Map<string, number>,
+): string {
+  switch (c.type) {
+    case "internal_uniqueness": {
+      const indices = c.roleIds.map((id) => resolveRole(id, idxMap)).sort();
+      return `IU:${indices.join(",")}:${c.isPreferred ? "P" : ""}`;
+    }
+    case "mandatory":
+      return `M:${resolveRole(c.roleId, idxMap)}`;
+    case "external_uniqueness": {
+      const indices = c.roleIds.map((id) => resolveRole(id, idxMap)).sort();
+      return `EU:${indices.join(",")}`;
+    }
+    case "value_constraint": {
+      const role = c.roleId ? resolveRole(c.roleId, idxMap) : "";
+      const vals = [...c.values].sort().join(",");
+      return `VC:${role}:${vals}`;
+    }
+    case "disjunctive_mandatory": {
+      const indices = c.roleIds.map((id) => resolveRole(id, idxMap)).sort();
+      return `DM:${indices.join(",")}`;
+    }
+    case "exclusion": {
+      const indices = c.roleIds.map((id) => resolveRole(id, idxMap)).sort();
+      return `EX:${indices.join(",")}`;
+    }
+    case "exclusive_or": {
+      const indices = c.roleIds.map((id) => resolveRole(id, idxMap)).sort();
+      return `XO:${indices.join(",")}`;
+    }
+    case "subset": {
+      const sub = c.subsetRoleIds.map((id) => resolveRole(id, idxMap));
+      const sup = c.supersetRoleIds.map((id) => resolveRole(id, idxMap));
+      return `SUB:${sub.join(",")}:${sup.join(",")}`;
+    }
+    case "equality": {
+      const ids1 = c.roleIds1.map((id) => resolveRole(id, idxMap));
+      const ids2 = c.roleIds2.map((id) => resolveRole(id, idxMap));
+      return `EQ:${ids1.join(",")}:${ids2.join(",")}`;
+    }
+    case "ring":
+      return `RING:${resolveRole(c.roleId1, idxMap)},${resolveRole(c.roleId2, idxMap)}:${c.ringType}`;
+    case "frequency":
+      return `FREQ:${resolveRole(c.roleId, idxMap)}:${c.min}:${c.max}`;
+  }
 }
 
 function diffConstraints(
   a: readonly Constraint[],
   b: readonly Constraint[],
+  rolesA: readonly Role[],
+  rolesB: readonly Role[],
 ): string[] {
   const changes: string[] = [];
 
-  // Group by type for a readable summary.
-  const typesA = a.map((c) => c.type).sort();
-  const typesB = b.map((c) => c.type).sort();
+  const idxMapA = roleIndexMap(rolesA);
+  const idxMapB = roleIndexMap(rolesB);
 
-  const keysA = new Set(a.map(constraintKey));
-  const keysB = new Set(b.map(constraintKey));
+  const keysA = new Set(a.map((c) => constraintKey(c, idxMapA)));
+  const keysB = new Set(b.map((c) => constraintKey(c, idxMapB)));
 
-  const added = b.filter((c) => !keysA.has(constraintKey(c)));
-  const removed = a.filter((c) => !keysB.has(constraintKey(c)));
+  const added = b.filter((c) => !keysA.has(constraintKey(c, idxMapB)));
+  const removed = a.filter((c) => !keysB.has(constraintKey(c, idxMapA)));
 
   if (added.length > 0) {
     const types = [...new Set(added.map((c) => c.type))].join(", ");
@@ -343,17 +417,6 @@ function diffConstraints(
   if (removed.length > 0) {
     const types = [...new Set(removed.map((c) => c.type))].join(", ");
     changes.push(`constraints removed: ${types}`);
-  }
-
-  // If types match but inner structure changed (e.g. role id shifts
-  // that are purely due to re-extraction), don't flag as a change.
-  // The user cares about semantic differences, not id churn.
-  if (
-    added.length === 0 &&
-    removed.length === 0 &&
-    typesA.join(",") !== typesB.join(",")
-  ) {
-    changes.push("constraint details changed");
   }
 
   return changes;
