@@ -34,7 +34,7 @@ export function buildSystemPrompt(): string {
 **Constraints** encode business rules:
 - **Internal uniqueness**: "Each Order is placed by at most one Customer" -- the combination of values in certain roles is unique. Single-role uniqueness is most common.
 - **Mandatory**: "Every Order is placed by some Customer" -- every instance must participate.
-- **Value constraint**: "Rating must be one of: A, B, C, D, F" -- restricts allowed values.
+- **Value constraint**: "Rating must be one of: A, B, C, D, F" -- restricts allowed values. Value constraints can appear at two levels: (1) on the value type itself (via the object type's value_constraint field) when the restriction applies universally, or (2) on a specific role within a fact type (via inferred_constraints with type "value_constraint") when the restriction is contextual to that relationship.
 
 ## Instructions
 
@@ -76,6 +76,7 @@ Analyze the transcript carefully and extract:
 4. **Inferred constraints**: Identify business rules from context. For each:
    - Specify the type (internal_uniqueness, mandatory, or value_constraint)
    - In the "roles" array, list the **object type names** (player names) of the constrained roles, NOT the role names. For example, for "Each Order is placed by at most one Customer" in fact type "Customer places Order", use roles: ["Order"] (the constrained player), not roles: ["is placed by"].
+   - For value_constraint: specify one role (the constrained player name) and include a "values" array listing the allowed values. Example: type "value_constraint", fact_type "Appointment has AppointmentStatus", roles ["AppointmentStatus"], values ["scheduled", "checked-in", "completed", "cancelled"]. Use this for enumerated values tied to a specific role. If the value type is ALWAYS restricted to these values (regardless of context), prefer setting value_constraint on the object type instead.
    - Write a human-readable description
    - For **reference-mode fact types** (entity has value-type identifier), emit TWO uniqueness constraints:
      (a) uniqueness on the entity role with is_preferred: true ("Each Customer has at most one CustomerId")
@@ -234,6 +235,7 @@ export function buildResponseSchema(): Record<string, unknown> {
               enum: ["high", "medium", "low"],
             },
             is_preferred: { type: "boolean" },
+            values: { type: "array", items: { type: "string" } },
             source_references: {
               type: "array",
               items: {

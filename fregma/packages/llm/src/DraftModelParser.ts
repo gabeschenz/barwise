@@ -238,15 +238,54 @@ export function parseDraftModel(
         });
       }
     } else if (ic.type === "value_constraint") {
-      // Value constraints on fact type roles are less common from
-      // transcript extraction. Log but skip for now.
-      constraintProvenance.push({
-        description: ic.description,
-        confidence: ic.confidence,
-        sourceReferences: ic.source_references ?? [],
-        applied: false,
-        skipReason: "Role-level value constraints from transcripts are not yet supported.",
-      });
+      // Role-level value constraint: restrict allowed values for a
+      // specific role within a fact type.
+      if (!ic.values || ic.values.length === 0) {
+        constraintProvenance.push({
+          description: ic.description,
+          confidence: ic.confidence,
+          sourceReferences: ic.source_references ?? [],
+          applied: false,
+          skipReason: "Value constraint has no values specified.",
+        });
+        continue;
+      }
+
+      const roleIds = resolveRolesByPlayerName(ft, ic.roles, model, warnings, ic.description);
+      if (roleIds.length !== 1) {
+        constraintProvenance.push({
+          description: ic.description,
+          confidence: ic.confidence,
+          sourceReferences: ic.source_references ?? [],
+          applied: false,
+          skipReason: roleIds.length === 0
+            ? `Could not resolve role [${ic.roles.join(", ")}] in fact type "${ic.fact_type}".`
+            : `Value constraint requires exactly one role, got ${roleIds.length}.`,
+        });
+      } else {
+        const vcConstraint: import("@fregma/core").Constraint = {
+          type: "value_constraint",
+          roleId: roleIds[0]!,
+          values: [...ic.values],
+        };
+        if (isDuplicateConstraint(ft, vcConstraint)) {
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: false,
+            skipReason: "Duplicate constraint (identical value constraint on same role already present).",
+          });
+        } else {
+          ft.addConstraint(vcConstraint);
+          constraintProvenance.push({
+            description: ic.description,
+            confidence: ic.confidence,
+            sourceReferences: ic.source_references ?? [],
+            applied: true,
+          });
+        }
+      }
     }
   }
 
@@ -362,6 +401,13 @@ function isDuplicateConstraint(
     return ft.constraints.some(
       (existing) =>
         existing.type === "mandatory" &&
+        existing.roleId === candidate.roleId,
+    );
+  }
+  if (candidate.type === "value_constraint") {
+    return ft.constraints.some(
+      (existing) =>
+        existing.type === "value_constraint" &&
         existing.roleId === candidate.roleId,
     );
   }
