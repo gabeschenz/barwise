@@ -14,7 +14,7 @@ export interface FactInstance {
    * Mapping of role ID to the concrete value for that role.
    * Keys must be role IDs from the parent population's fact type.
    */
-  readonly values: Readonly<Record<string, string>>;
+  readonly roleValues: Readonly<Record<string, string>>;
 }
 
 /**
@@ -24,7 +24,7 @@ export interface FactInstanceConfig {
   /** Optional stable identifier. Generated if omitted. */
   readonly id?: string;
   /** Role ID to value mapping. */
-  readonly values: Record<string, string>;
+  readonly roleValues: Record<string, string>;
 }
 
 /**
@@ -117,6 +117,6 @@ export class Population {
 function createInstance(config: FactInstanceConfig): FactInstance {
   return {
     id: config.id ?? randomUUID(),
-    values: { ...config.values },
+    roleValues: { ...config.roleValues },
   };
 }

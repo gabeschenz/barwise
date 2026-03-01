@@ -40,9 +40,9 @@ function makeModelWithPopulation(): OrmModel {
     factTypeId: ft.id,
     description: "Sample orders",
   });
-  pop.addInstance({ id: "inst-1", values: { r1: "C001", r2: "O123" } });
-  pop.addInstance({ id: "inst-2", values: { r1: "C001", r2: "O124" } });
-  pop.addInstance({ id: "inst-3", values: { r1: "C002", r2: "O125" } });
+  pop.addInstance({ id: "inst-1", roleValues: { r1: "C001", r2: "O123" } });
+  pop.addInstance({ id: "inst-2", roleValues: { r1: "C001", r2: "O124" } });
+  pop.addInstance({ id: "inst-3", roleValues: { r1: "C002", r2: "O125" } });
 
   return model;
 }
@@ -81,7 +81,7 @@ describe("Population serialization", () => {
 
       const instances = doc.model.populations[0].instances;
       expect(instances[0].id).toBe("inst-1");
-      expect(instances[0].values).toEqual({ r1: "C001", r2: "O123" });
+      expect(instances[0].role_values).toEqual({ r1: "C001", r2: "O123" });
       expect(instances[1].id).toBe("inst-2");
       expect(instances[2].id).toBe("inst-3");
     });
@@ -155,7 +155,7 @@ describe("Population serialization", () => {
       expect(pop.instances).toHaveLength(3);
     });
 
-    it("reconstructs fact instances with values", () => {
+    it("reconstructs fact instances with role values", () => {
       const model = makeModelWithPopulation();
       const yaml = serializer.serialize(model);
 
@@ -163,7 +163,7 @@ describe("Population serialization", () => {
       const pop = restored.populations[0]!;
       const inst = pop.getInstance("inst-1")!;
       expect(inst).toBeDefined();
-      expect(inst.values).toEqual({ r1: "C001", r2: "O123" });
+      expect(inst.roleValues).toEqual({ r1: "C001", r2: "O123" });
     });
 
     it("handles YAML with no populations", () => {
@@ -205,7 +205,7 @@ model:
       expect(() => serializer.deserialize(yaml)).toThrow();
     });
 
-    it("rejects instance with missing values", () => {
+    it("rejects instance with missing role_values", () => {
       const yaml = `
 orm_version: "1.0"
 model:
@@ -242,7 +242,7 @@ model:
         const origInst = origPop.instances[i]!;
         const restoredInst = restoredPop.instances[i]!;
         expect(restoredInst.id).toBe(origInst.id);
-        expect(restoredInst.values).toEqual(origInst.values);
+        expect(restoredInst.roleValues).toEqual(origInst.roleValues);
       }
     });
 
@@ -270,7 +270,7 @@ model:
         factTypeId: ft.id,
         description: "More orders",
       });
-      pop2.addInstance({ id: "inst-4", values: { r1: "C003", r2: "O126" } });
+      pop2.addInstance({ id: "inst-4", roleValues: { r1: "C003", r2: "O126" } });
 
       const yaml = serializer.serialize(model);
       const restored = serializer.deserialize(yaml);

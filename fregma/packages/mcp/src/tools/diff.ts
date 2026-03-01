@@ -47,7 +47,7 @@ export function executeDiff(
         elementType: d.elementType,
         name: d.elementType === "definition" ? d.term : d.name,
         breakingLevel: d.breakingLevel,
-        changes: d.changes,
+        changeDescriptions: d.changeDescriptions,
       })),
     synonymCandidates: diff.synonymCandidates,
   };

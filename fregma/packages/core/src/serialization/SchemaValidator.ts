@@ -4,7 +4,7 @@ import ormModelSchema from "../../schemas/orm-model.schema.json" with { type: "j
 /**
  * Result of validating a parsed YAML document against the JSON Schema.
  */
-export interface ValidationResult {
+export interface SchemaValidationResult {
   readonly valid: boolean;
   readonly errors: readonly SchemaError[];
 }
@@ -35,7 +35,7 @@ export class SchemaValidator {
    * Validate a parsed YAML document (plain object) against the
    * orm-model.schema.json schema.
    */
-  validateModel(data: unknown): ValidationResult {
+  validateModel(data: unknown): SchemaValidationResult {
     const valid = this.validate(data);
 
     if (valid) {

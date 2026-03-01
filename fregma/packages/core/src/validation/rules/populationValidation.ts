@@ -127,7 +127,7 @@ function checkValueConstraintViolations(model: OrmModel): Diagnostic[] {
       const allowedSet = new Set(vc.values);
 
       for (const inst of pop.instances) {
-        const val = inst.values[vc.roleId];
+        const val = inst.roleValues[vc.roleId];
         if (val !== undefined && !allowedSet.has(val)) {
           diagnostics.push({
             severity: "error",
@@ -163,7 +163,7 @@ function checkFrequencyViolations(model: OrmModel): Diagnostic[] {
       // Count occurrences of each distinct value in the constrained role.
       const counts = new Map<string, number>();
       for (const inst of pop.instances) {
-        const val = inst.values[fc.roleId];
+        const val = inst.roleValues[fc.roleId];
         if (val !== undefined) {
           counts.set(val, (counts.get(val) ?? 0) + 1);
         }
@@ -220,7 +220,7 @@ function checkExclusionViolations(model: OrmModel): Diagnostic[] {
       for (const inst of pop.instances) {
         const valuesInRoles = new Map<string, string[]>(); // value -> role ids
         for (const rid of localRoleIds) {
-          const val = inst.values[rid];
+          const val = inst.roleValues[rid];
           if (val !== undefined) {
             const roles = valuesInRoles.get(val);
             if (roles) {
@@ -272,7 +272,7 @@ function checkExclusiveOrViolations(model: OrmModel): Diagnostic[] {
       for (const inst of pop.instances) {
         const playedRoles: string[] = [];
         for (const rid of localRoleIds) {
-          if (inst.values[rid] !== undefined) {
+          if (inst.roleValues[rid] !== undefined) {
             playedRoles.push(rid);
           }
         }
@@ -470,8 +470,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
       const pairs: Array<[string, string]> = [];
       const pairSet = new Set<string>();
       for (const inst of pop.instances) {
-        const a = inst.values[rc.roleId1];
-        const b = inst.values[rc.roleId2];
+        const a = inst.roleValues[rc.roleId1];
+        const b = inst.roleValues[rc.roleId2];
         if (a !== undefined && b !== undefined) {
           pairs.push([a, b]);
           pairSet.add(`${a}\0${b}`);
@@ -481,8 +481,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
       switch (rc.ringType) {
         case "irreflexive":
           for (const inst of pop.instances) {
-            const a = inst.values[rc.roleId1];
-            const b = inst.values[rc.roleId2];
+            const a = inst.roleValues[rc.roleId1];
+            const b = inst.roleValues[rc.roleId2];
             if (a !== undefined && a === b) {
               diagnostics.push({
                 severity: "error",
@@ -498,8 +498,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
 
         case "asymmetric":
           for (const inst of pop.instances) {
-            const a = inst.values[rc.roleId1];
-            const b = inst.values[rc.roleId2];
+            const a = inst.roleValues[rc.roleId1];
+            const b = inst.roleValues[rc.roleId2];
             if (a !== undefined && b !== undefined) {
               if (a === b) {
                 diagnostics.push({
@@ -528,8 +528,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
 
         case "antisymmetric":
           for (const inst of pop.instances) {
-            const a = inst.values[rc.roleId1];
-            const b = inst.values[rc.roleId2];
+            const a = inst.roleValues[rc.roleId1];
+            const b = inst.roleValues[rc.roleId2];
             if (a !== undefined && b !== undefined && a !== b) {
               if (pairSet.has(`${b}\0${a}`)) {
                 diagnostics.push({
@@ -548,8 +548,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
 
         case "symmetric":
           for (const inst of pop.instances) {
-            const a = inst.values[rc.roleId1];
-            const b = inst.values[rc.roleId2];
+            const a = inst.roleValues[rc.roleId1];
+            const b = inst.roleValues[rc.roleId2];
             if (a !== undefined && b !== undefined && !pairSet.has(`${b}\0${a}`)) {
               diagnostics.push({
                 severity: "error",
@@ -607,8 +607,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
 
         case "purely_reflexive":
           for (const inst of pop.instances) {
-            const a = inst.values[rc.roleId1];
-            const b = inst.values[rc.roleId2];
+            const a = inst.roleValues[rc.roleId1];
+            const b = inst.roleValues[rc.roleId2];
             if (a !== undefined && b !== undefined && a !== b) {
               diagnostics.push({
                 severity: "error",
@@ -701,5 +701,5 @@ function makeCompositeKey(
   inst: FactInstance,
   roleIds: readonly string[],
 ): string {
-  return roleIds.map((rid) => inst.values[rid] ?? "").join("\0");
+  return roleIds.map((rid) => inst.roleValues[rid] ?? "").join("\0");
 }

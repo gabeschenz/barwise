@@ -123,7 +123,7 @@ export function registerImportCommand(program: Command): void {
                   finalModel = mergeResult.model;
                   if (!mergeResult.isValid) {
                     process.stderr.write(
-                      `Warning: Merged model has ${mergeResult.errors.length} validation issue(s).\n`,
+                      `Warning: Merged model has ${mergeResult.diagnostics.length} validation issue(s).\n`,
                     );
                   }
                 } else {

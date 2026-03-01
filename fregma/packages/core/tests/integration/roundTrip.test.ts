@@ -267,7 +267,7 @@ describe("Round-trip serialization integration", () => {
         const origInst = origPop.instances[i]!;
         const rtInst = rtPop!.instances[i]!;
         expect(rtInst.id).toBe(origInst.id);
-        expect(rtInst.values).toEqual(origInst.values);
+        expect(rtInst.roleValues).toEqual(origInst.roleValues);
       }
     }
   });

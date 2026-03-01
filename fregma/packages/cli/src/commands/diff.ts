@@ -40,7 +40,7 @@ export function registerDiffCommand(program: Command): void {
                       elementType: d.elementType,
                       name: d.elementType === "definition" ? d.term : d.name,
                       breakingLevel: d.breakingLevel,
-                      changes: d.changes,
+                      changeDescriptions: d.changeDescriptions,
                     })),
                   synonymCandidates: opts.synonyms
                     ? diff.synonymCandidates
@@ -72,7 +72,7 @@ export function registerDiffCommand(program: Command): void {
             const level = `[${delta.breakingLevel}]`;
             process.stdout.write(`  ${tag} ${label} ${level}\n`);
 
-            for (const change of delta.changes) {
+            for (const change of delta.changeDescriptions) {
               process.stdout.write(`    ${change}\n`);
             }
 

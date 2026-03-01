@@ -15,7 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { diffModels } from "../../src/diff/ModelDiff.js";
-import { mergeModels, mergeAndValidate, validateMergeResult } from "../../src/diff/ModelMerge.js";
+import { mergeModels, mergeAndValidate, getStructuralErrors } from "../../src/diff/ModelMerge.js";
 
 function baseModel() {
   return new ModelBuilder("Test")
@@ -647,7 +647,7 @@ describe("mergeAndValidate", () => {
     );
 
     expect(result.isValid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    expect(result.diagnostics).toHaveLength(0);
     expect(result.model).toBeDefined();
     expect(result.model!.objectTypes.map((o) => o.name).sort()).toEqual(
       ["Customer", "Order"],
@@ -685,12 +685,12 @@ describe("mergeAndValidate", () => {
     );
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
     // The error should mention the dangling reference.
-    expect(result.errors.some((e) => e.severity === "error")).toBe(true);
+    expect(result.diagnostics.some((e) => e.severity === "error")).toBe(true);
   });
 
-  it("validates structural integrity via validateMergeResult", () => {
+  it("validates structural integrity via getStructuralErrors", () => {
     // A valid model should produce no errors.
     const model = new ModelBuilder("Test")
       .withEntityType("Customer", { referenceMode: "customer_id" })
@@ -701,7 +701,7 @@ describe("mergeAndValidate", () => {
       })
       .build();
 
-    const errors = validateMergeResult(model);
+    const errors = getStructuralErrors(model);
     expect(errors).toHaveLength(0);
   });
 
@@ -722,10 +722,10 @@ describe("mergeAndValidate", () => {
     );
 
     expect(result.isValid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    expect(result.diagnostics).toHaveLength(0);
   });
 
-  it("returns isValid false when errors array is non-empty", () => {
+  it("returns isValid false when diagnostics array is non-empty", () => {
     const existing = new ModelBuilder("Test")
       .withEntityType("Customer", { referenceMode: "customer_id" })
       .withEntityType("Order", { referenceMode: "order_number" })
@@ -752,7 +752,7 @@ describe("mergeAndValidate", () => {
     );
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
   });
 
   it("mergeModels still returns OrmModel directly (unchanged API)", () => {
@@ -799,8 +799,8 @@ describe("mergeAndValidate", () => {
       new Set([removeIdx]),
     );
 
-    // Should not throw -- errors are captured in the result.
+    // Should not throw -- diagnostics are captured in the result.
     expect(result.isValid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
   });
 });

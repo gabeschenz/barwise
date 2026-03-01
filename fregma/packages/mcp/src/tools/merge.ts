@@ -89,15 +89,15 @@ export function executeMerge(
     ? serializer.serialize(mergeResult.model)
     : serializer.serialize(baseModel);
 
-  // mergeResult.errors contains only structural errors (severity "error").
-  // validateMergeResult filters out warnings intentionally -- a structurally
+  // mergeResult.diagnostics contains only structural errors (severity "error").
+  // getStructuralErrors filters out warnings intentionally -- a structurally
   // valid merge is safe to write to disk even with completeness warnings.
   const result = {
     yaml,
     valid: mergeResult.isValid,
     hasChanges: true,
-    errorCount: mergeResult.errors.length,
-    errors: mergeResult.errors.map((d: Diagnostic) => ({
+    errorCount: mergeResult.diagnostics.length,
+    diagnostics: mergeResult.diagnostics.map((d: Diagnostic) => ({
       severity: d.severity,
       ruleId: d.ruleId,
       message: d.message,
