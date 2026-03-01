@@ -529,7 +529,7 @@ describe("DraftModelParser", () => {
       });
     }
 
-    it("uses positional fallback when role name does not match", () => {
+    it("skips constraint when role hint matches neither role name nor player name", () => {
       const resp = makeModelWithFactType();
       const result = parseDraftModel(
         {
@@ -538,7 +538,7 @@ describe("DraftModelParser", () => {
             {
               type: "internal_uniqueness",
               fact_type: "Customer places Order",
-              // Use a name that won't match any role name.
+              // Use a name that won't match any role name or player name.
               roles: ["SomeUnknownRole"],
               description: "Uniqueness with unresolvable role name",
               confidence: "medium",
@@ -549,9 +549,41 @@ describe("DraftModelParser", () => {
         "Test",
       );
 
-      // Should still apply via positional fallback.
+      // Should NOT apply -- no blind fallback.
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.warnings.some((w) => w.includes("could not resolve"))).toBe(true);
+    });
+
+    it("resolves constraint role by player object type name", () => {
+      const resp = makeModelWithFactType();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          inferred_constraints: [
+            {
+              type: "internal_uniqueness",
+              fact_type: "Customer places Order",
+              // Use the player name (object type name), not the role name.
+              roles: ["Order"],
+              description: "Each Order is placed by at most one Customer.",
+              confidence: "high",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      // Should resolve via player name lookup.
       expect(result.constraintProvenance[0]?.applied).toBe(true);
-      expect(result.warnings.some((w) => w.includes("positional fallback"))).toBe(true);
+      const ft = result.model.getFactTypeByName("Customer places Order")!;
+      const uc = ft.constraints.find((c) => c.type === "internal_uniqueness");
+      expect(uc).toBeDefined();
+      // The constraint should be on the Order role (role index 1).
+      const orderRole = ft.roles.find((r) => r.name === "is placed by")!;
+      if (uc?.type === "internal_uniqueness") {
+        expect(uc.roleIds).toContain(orderRole.id);
+      }
     });
 
     it("records skip reason when mandatory has too many roles", () => {
@@ -586,8 +618,7 @@ describe("DraftModelParser", () => {
             {
               type: "mandatory",
               fact_type: "Customer places Order",
-              // Use a name that will match via positional fallback
-              // but then a second unresolvable name that won't.
+              // Use a name that won't match any role name or player name.
               roles: ["CompletelyFake"],
               description: "Mandatory with unresolvable role",
               confidence: "low",
@@ -598,9 +629,9 @@ describe("DraftModelParser", () => {
         "Test",
       );
 
-      // The positional fallback will match the first unmatched role,
-      // so this should actually apply.
-      expect(result.constraintProvenance[0]?.applied).toBe(true);
+      // No blind fallback -- should not apply.
+      expect(result.constraintProvenance[0]?.applied).toBe(false);
+      expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
     });
 
     it("records skip reason for internal_uniqueness with no resolvable roles", () => {

@@ -63,9 +63,14 @@ Analyze the transcript carefully and extract:
 
 4. **Inferred constraints**: Identify business rules from context. For each:
    - Specify the type (internal_uniqueness, mandatory, or value_constraint)
-   - Reference the fact type name and role player names
+   - In the "roles" array, list the **object type names** (player names) of the constrained roles, NOT the role names. For example, for "Each Order is placed by at most one Customer" in fact type "Customer places Order", use roles: ["Order"] (the constrained player), not roles: ["is placed by"].
    - Write a human-readable description
-   - For internal_uniqueness constraints that represent the entity's primary identifying relationship (its reference mode), set is_preferred to true. Typically there is exactly one preferred identifier per entity type -- the fact type linking the entity to its reference-mode value type.
+   - For **reference-mode fact types** (entity has value-type identifier), emit TWO uniqueness constraints:
+     (a) uniqueness on the entity role with is_preferred: true ("Each Customer has at most one CustomerId")
+     (b) uniqueness on the value role ("Each CustomerId identifies at most one Customer")
+     Both are needed to make the identifier a bijection.
+   - For **ternary or higher-arity fact types**, composite uniqueness should list ALL constrained role players. For example, if each Order-Product combination has at most one Quantity, use roles: ["Order", "Product"] -- not just one of them.
+   - For binary many-to-one relationships, the uniqueness goes on the "many" side. "Customers can place multiple orders" but "each Order belongs to one Customer" means uniqueness on the Order role, not the Customer role.
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
