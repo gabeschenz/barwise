@@ -971,6 +971,321 @@ describe("diffModels", () => {
     expect(result.synonymCandidates).toHaveLength(0);
   });
 
+  // --- Breaking change classification tests (Stage 4) ---
+
+  it("classifies unchanged delta as safe", () => {
+    const a = baseModel();
+    const b = baseModel();
+    const result = diffModels(a, b);
+    const unchanged = result.deltas.filter((d) => d.kind === "unchanged");
+    expect(unchanged.length).toBeGreaterThan(0);
+    for (const d of unchanged) {
+      expect(d.breakingLevel).toBe("safe");
+    }
+  });
+
+  it("classifies added delta as safe", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const added = result.deltas.filter((d) => d.kind === "added");
+    expect(added).toHaveLength(1);
+    expect(added[0]!.breakingLevel).toBe("safe");
+  });
+
+  it("classifies removed delta as breaking", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withValueType("Name")
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const removed = result.deltas.filter((d) => d.kind === "removed");
+    expect(removed).toHaveLength(1);
+    expect(removed[0]!.breakingLevel).toBe("breaking");
+  });
+
+  it("classifies definition-only change as safe", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        definition: "Old def",
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        definition: "New def",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("safe");
+  });
+
+  it("classifies alias-only change as safe", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client"],
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("safe");
+  });
+
+  it("classifies reference mode change as caution", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_code" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Customer");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("caution");
+  });
+
+  it("classifies kind change (entity -> value) as breaking", () => {
+    const existing = new ModelBuilder("Test")
+      .withValueType("Name")
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Name", { referenceMode: "name_id" })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Name");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("breaking");
+  });
+
+  it("classifies arity change as breaking", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("A", { referenceMode: "a_id" })
+      .withEntityType("B", { referenceMode: "b_id" })
+      .withEntityType("C", { referenceMode: "c_id" })
+      .build();
+
+    const aA = existing.getObjectTypeByName("A")!;
+    const bA = existing.getObjectTypeByName("B")!;
+    existing.addFactType({
+      name: "A relates B",
+      roles: [
+        { name: "relates", playerId: aA.id, id: "r1" },
+        { name: "is related by", playerId: bA.id, id: "r2" },
+      ],
+      readings: ["{0} relates {1}"],
+      constraints: [],
+    });
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("A", { referenceMode: "a_id" })
+      .withEntityType("B", { referenceMode: "b_id" })
+      .withEntityType("C", { referenceMode: "c_id" })
+      .build();
+
+    const aB = incoming.getObjectTypeByName("A")!;
+    const bB = incoming.getObjectTypeByName("B")!;
+    const cB = incoming.getObjectTypeByName("C")!;
+    incoming.addFactType({
+      name: "A relates B",
+      roles: [
+        { name: "relates", playerId: aB.id, id: "s1" },
+        { name: "is related by", playerId: bB.id, id: "s2" },
+        { name: "involves", playerId: cB.id, id: "s3" },
+      ],
+      readings: ["{0} relates {1} involving {2}"],
+      constraints: [],
+    });
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.name === "A relates B",
+    );
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("breaking");
+  });
+
+  it("classifies role player change as breaking", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withEntityType("Agent", { referenceMode: "agent_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withEntityType("Agent", { referenceMode: "agent_id" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Agent", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta!.breakingLevel).toBe("breaking");
+  });
+
+  it("classifies constraint addition as caution", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        mandatory: "role2",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta!.breakingLevel).toBe("caution");
+  });
+
+  it("classifies mixed safe + breaking changes as breaking (most severe wins)", () => {
+    // Definition change (safe) + kind change (breaking) = breaking.
+    const existing = new ModelBuilder("Test")
+      .withValueType("Name", { definition: "Old" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Name", {
+        referenceMode: "name_id",
+        definition: "New",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find((d) => d.name === "Name");
+    expect(delta!.kind).toBe("modified");
+    expect(delta!.breakingLevel).toBe("breaking");
+  });
+
+  it("classifies role name change only as safe", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "submits" },
+        role2: { player: "Order", name: "is submitted by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta!.breakingLevel).toBe("safe");
+  });
+
+  it("classifies readings-only change as safe", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        uniqueness: "role2",
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+        readings: ["{0} submits {1}"],
+        uniqueness: "role2",
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+    const delta = result.deltas.find(
+      (d) => d.elementType === "fact_type" && d.kind === "modified",
+    );
+    expect(delta!.breakingLevel).toBe("safe");
+  });
+
+  it("does not alter deltas or synonymCandidates with breakingLevel classification", () => {
+    // Verify existing behavior unchanged.
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Client", { referenceMode: "client_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Client places Order", {
+        role1: { player: "Client", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const result = diffModels(existing, incoming);
+
+    // deltas still show remove + add, not modified.
+    const removed = result.deltas.filter((d) => d.kind === "removed");
+    const added = result.deltas.filter((d) => d.kind === "added");
+    expect(removed.length).toBeGreaterThan(0);
+    expect(added.length).toBeGreaterThan(0);
+
+    // Synonym detection still works.
+    expect(result.synonymCandidates.length).toBeGreaterThan(0);
+
+    // Every delta has a breakingLevel.
+    for (const d of result.deltas) {
+      expect(["safe", "caution", "breaking"]).toContain(d.breakingLevel);
+    }
+  });
+
   it("does not alter deltas array when synonym candidates are detected", () => {
     const existing = new ModelBuilder("Test")
       .withEntityType("Customer", { referenceMode: "customer_id" })

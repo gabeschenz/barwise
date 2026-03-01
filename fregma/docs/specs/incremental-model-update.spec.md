@@ -319,8 +319,101 @@ appropriate `accepted` set and alias additions.
 
 ### Stage 4: Breaking change classification
 
-Add `breakingLevel: "safe" | "caution" | "breaking"` to each
-`ModelDelta` based on the nature of the change.
+#### Problem
+
+All deltas are presented identically in the review UI. A harmless
+definition update looks the same as an arity change or entity removal.
+The modeler must mentally classify each change to decide how much
+scrutiny it deserves. With many deltas (common when re-extracting a
+large domain), this is tedious and error-prone.
+
+#### Approach
+
+Add `breakingLevel: BreakingLevel` to each `ModelDelta`, computed
+from the delta's `kind` and `changes` array. The level helps the UI
+(Stage 6) sort and group deltas so the modeler can triage efficiently.
+
+```typescript
+export type BreakingLevel = "safe" | "caution" | "breaking";
+```
+
+The field is always present (not optional) so consumers don't need
+null checks. `unchanged` deltas are always `"safe"`.
+
+#### Classification rules
+
+The level is determined by the **most severe** change in a delta's
+`changes` array. If any single change is breaking, the whole delta is
+breaking. If any is caution (and none is breaking), the delta is
+caution.
+
+##### Delta kind rules
+
+| Kind | Default level | Notes |
+|---|---|---|
+| `unchanged` | safe | Nothing changed |
+| `added` | safe | New elements are additive |
+| `removed` | breaking | Removing an element can break references |
+| `modified` | (per change) | Depends on what changed |
+
+##### Modification change rules
+
+| Change pattern | Level | Rationale |
+|---|---|---|
+| `definition changed` | safe | Documentation only |
+| `aliases changed` | safe | Metadata only |
+| `source context:` | safe | Metadata only |
+| `data type:` / `data type added` / `data type removed` | caution | May affect downstream mappings |
+| `reference mode:` | caution | Changes identification scheme |
+| `value constraint changed` | caution | Changes allowed values |
+| `readings changed` | safe | Verbalization only |
+| `role N: name` | safe | Verbalization only |
+| `role N: player` | breaking | Changes the relationship structure |
+| `kind:` | breaking | Entity/value switch changes semantics |
+| `arity:` | breaking | Structural change to fact type |
+| `constraints added` | caution | New rules on existing data |
+| `constraints removed` | caution | Relaxed rules, may indicate misunderstanding |
+
+Changes not matching any pattern default to `caution` (unknown changes
+deserve attention).
+
+#### Implementation
+
+A pure function `classifyBreakingLevel(delta)` computes the level
+from the delta's `kind` and `changes` array. It is called for each
+delta inside `diffModels()` before returning the result.
+
+The function is not exported -- it is an implementation detail of the
+diff engine. The result is stored on the delta itself.
+
+#### Tests
+
+1. **Unchanged delta**: level is `"safe"`.
+2. **Added delta**: level is `"safe"`.
+3. **Removed delta**: level is `"breaking"`.
+4. **Definition-only change**: level is `"safe"`.
+5. **Alias-only change**: level is `"safe"`.
+6. **Reference mode change**: level is `"caution"`.
+7. **Kind change (entity -> value)**: level is `"breaking"`.
+8. **Arity change**: level is `"breaking"`.
+9. **Role player change**: level is `"breaking"`.
+10. **Constraint added**: level is `"caution"`.
+11. **Mixed changes (safe + breaking)**: level is `"breaking"` (most
+    severe wins).
+12. **Role name change only**: level is `"safe"`.
+13. **Readings-only change**: level is `"safe"`.
+14. **Existing diff behavior unchanged**: deltas and synonymCandidates
+    are identical regardless of classification.
+
+#### Files
+
+##### Modified files
+- `packages/core/src/diff/ModelDiff.ts` -- add `BreakingLevel` type,
+  `breakingLevel` field to delta interfaces,
+  `classifyBreakingLevel()` function
+- `packages/core/src/index.ts` -- export `BreakingLevel` type
+- `packages/core/tests/diff/ModelDiff.test.ts` -- add classification
+  tests
 
 ### Stage 5: Post-merge validation
 
