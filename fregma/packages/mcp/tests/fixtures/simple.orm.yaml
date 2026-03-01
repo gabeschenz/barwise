@@ -1,0 +1,35 @@
+orm_version: "1.0"
+
+model:
+  name: "Simple Test"
+  domain_context: "testing"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+      definition: "A person who places orders."
+
+    - id: "ot-name"
+      name: "Name"
+      kind: "value"
+
+  fact_types:
+    - id: "ft-customer-has-name"
+      name: "Customer has Name"
+      roles:
+        - id: "r-customer-has"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-name-of"
+          player: "ot-name"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-customer-has"]
+        - type: "mandatory"
+          role: "r-customer-has"
