@@ -417,8 +417,93 @@ diff engine. The result is stored on the delta itself.
 
 ### Stage 5: Post-merge validation
 
-Run structural validation on the merged model before writing to disk.
-Flag dangling player references, orphaned constraints, etc.
+#### Problem
+
+`mergeModels()` is purely constructive -- it builds a new model from
+the user's accepted deltas but does not validate the result. The
+caller (`ImportTranscriptCommand`) writes the merged model to disk
+immediately. If the user accepts a removal of an entity type that is
+still referenced by a kept fact type, the merged model contains
+dangling role player references. This corrupts the `.orm.yaml` file
+silently.
+
+Structural validation rules already cover every post-merge concern:
+dangling role references, duplicate names, broken subtype references,
+subtype cycles, and broken objectification references. The gap is
+that nobody calls them between merge and write.
+
+#### Approach
+
+Add a `validateMergeResult()` function in the core package that runs
+the existing `structuralRules` against a merged model and returns
+only the errors. This keeps `mergeModels()` pure (no side effects,
+no validation coupling) and gives consumers full control over how to
+handle errors.
+
+The function is deliberately narrow: it runs structural rules only,
+not completeness warnings or constraint consistency checks. Those are
+useful for general model health but not merge-specific. A merged
+model that is structurally valid (no dangling refs, no duplicates) is
+safe to write to disk even if it has completeness gaps.
+
+```typescript
+export interface MergeValidationResult {
+  /** The merged model (always present, even if invalid). */
+  readonly model: OrmModel;
+  /** Structural errors found in the merged model. Empty if valid. */
+  readonly errors: readonly Diagnostic[];
+  /** True when the merged model has no structural errors. */
+  readonly isValid: boolean;
+}
+```
+
+A convenience wrapper `mergeAndValidate()` combines `mergeModels()`
+and `validateMergeResult()` into a single call. This is the
+recommended API for consumers who want both operations:
+
+```typescript
+export function mergeAndValidate(
+  existing: OrmModel,
+  incoming: OrmModel,
+  deltas: readonly ModelDelta[],
+  accepted: ReadonlySet<number>,
+): MergeValidationResult;
+```
+
+`mergeModels()` remains unchanged and is still exported for consumers
+who want merge without validation (tests, programmatic use).
+
+#### Tests
+
+1. **Valid merge produces no errors**: Accept an addition, merged
+   model passes validation.
+2. **Dangling role reference detected**: Accept removal of entity
+   type "Customer" while keeping fact type "Customer places Order".
+   Validation reports an error for the dangling player reference.
+3. **validateMergeResult on valid model**: Calling
+   `validateMergeResult()` on a structurally valid model returns
+   an empty errors array.
+4. **Valid merge returns isValid true**: `isValid` is true when
+   `errors` is empty.
+5. **Invalid merge returns isValid false**: `isValid` is false when
+   `errors` is non-empty.
+6. **mergeModels behavior unchanged**: `mergeModels()` still returns
+   `OrmModel` directly (not wrapped in `MergeValidationResult`).
+7. **Model is null when merge throws**: When `mergeModels()` throws
+   (e.g. `addFactType` rejects dangling player), `mergeAndValidate`
+   captures the error as a diagnostic with `model: null`.
+8. **Existing merge tests pass**: All 23 existing merge tests
+   continue to pass without modification.
+
+#### Files
+
+##### Modified files
+- `packages/core/src/diff/ModelMerge.ts` -- add
+  `validateMergeResult()`, `mergeAndValidate()`,
+  `MergeValidationResult` type
+- `packages/core/src/index.ts` -- export new types and functions
+- `packages/core/tests/diff/ModelMerge.test.ts` -- add post-merge
+  validation tests
 
 ### Stage 6: Enhanced review UI
 

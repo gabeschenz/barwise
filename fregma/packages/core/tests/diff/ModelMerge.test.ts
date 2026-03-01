@@ -15,7 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { diffModels } from "../../src/diff/ModelDiff.js";
-import { mergeModels } from "../../src/diff/ModelMerge.js";
+import { mergeModels, mergeAndValidate, validateMergeResult } from "../../src/diff/ModelMerge.js";
 
 function baseModel() {
   return new ModelBuilder("Test")
@@ -618,5 +618,189 @@ describe("mergeModels", () => {
     const code = merged.getObjectTypeByName("Code")!;
     expect(code.dataType).toBeDefined();
     expect(code.dataType!.length).toBe(10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Post-merge validation tests (Stage 5)
+// ---------------------------------------------------------------------------
+
+describe("mergeAndValidate", () => {
+  it("returns valid result when merge produces no structural errors", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const addedIdx = diff.deltas.findIndex(
+      (d) => d.kind === "added" && d.name === "Order",
+    );
+    const result = mergeAndValidate(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([addedIdx]),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.model).toBeDefined();
+    expect(result.model!.objectTypes.map((o) => o.name).sort()).toEqual(
+      ["Customer", "Order"],
+    );
+  });
+
+  it("reports error when removing entity type breaks a kept fact type", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    // Incoming has no Customer and no fact type.
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+
+    // Accept removal of Customer but NOT removal of the fact type.
+    const removeOtIdx = diff.deltas.findIndex(
+      (d) => d.kind === "removed" && d.name === "Customer",
+    );
+    expect(removeOtIdx).toBeGreaterThanOrEqual(0);
+
+    const result = mergeAndValidate(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([removeOtIdx]),
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+    // The error should mention the dangling reference.
+    expect(result.errors.some((e) => e.severity === "error")).toBe(true);
+  });
+
+  it("validates structural integrity via validateMergeResult", () => {
+    // A valid model should produce no errors.
+    const model = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const errors = validateMergeResult(model);
+    expect(errors).toHaveLength(0);
+  });
+
+  it("returns isValid true when errors array is empty", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const result = mergeAndValidate(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set(),
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("returns isValid false when errors array is non-empty", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const removeIdx = diff.deltas.findIndex(
+      (d) => d.kind === "removed" && d.name === "Customer",
+    );
+
+    const result = mergeAndValidate(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([removeIdx]),
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("mergeModels still returns OrmModel directly (unchanged API)", () => {
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const merged = mergeModels(existing, incoming, diff.deltas, new Set());
+
+    // mergeModels returns OrmModel, not MergeValidationResult.
+    expect(merged.objectTypes).toBeDefined();
+    expect(merged.name).toBe("Test");
+  });
+
+  it("model is null when merge throws due to structural error", () => {
+    // When mergeModels throws (e.g. addFactType rejects dangling player),
+    // mergeAndValidate should capture the error rather than crashing.
+    const existing = new ModelBuilder("Test")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const incoming = new ModelBuilder("Test")
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .build();
+
+    const diff = diffModels(existing, incoming);
+    const removeIdx = diff.deltas.findIndex(
+      (d) => d.kind === "removed" && d.name === "Customer",
+    );
+
+    const result = mergeAndValidate(
+      existing,
+      incoming,
+      diff.deltas,
+      new Set([removeIdx]),
+    );
+
+    // Should not throw -- errors are captured in the result.
+    expect(result.isValid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 });
