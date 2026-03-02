@@ -7,8 +7,9 @@ diffing, diagram generation, transcript import, and model merging.
 
 ## Supported clients
 
-Claude Code, Claude Desktop, opencode, Cursor, Windsurf, Zed, Cline,
-JetBrains AI, and any other tool implementing the MCP specification.
+Claude Code, Claude Desktop, GitHub Copilot (VS Code), opencode, Cursor,
+Windsurf, Zed, Cline, JetBrains AI, and any other tool implementing the
+MCP specification.
 
 ## Setup
 
@@ -51,6 +52,43 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
   }
 }
 ```
+
+### GitHub Copilot (VS Code)
+
+The quickest way is via the command palette: run **MCP: Add Server...**,
+choose **stdio**, and enter the command and arguments below.
+
+To configure manually, add to `.vscode/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "fregma": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/fregma/packages/mcp/dist/index.js"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${input:anthropic-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "anthropic-key",
+      "description": "Anthropic API key (for transcript import)",
+      "password": true
+    }
+  ]
+}
+```
+
+The `env` and `inputs` sections are only needed for the `import_transcript`
+tool. Remove them if you only use validation, verbalization, schema
+generation, diffing, and diagram tools.
+
+Open Copilot Chat, switch to **Agent** mode, and the fregma tools will
+appear in the tool picker.
 
 ### Cursor / Windsurf
 
