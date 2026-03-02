@@ -67,6 +67,7 @@ export function parseDraftModel(
           ? { values: [...ext.value_constraint.values] }
           : undefined,
         dataType: resolveDataType(ext.data_type, ext.name, warnings),
+        aliases: ext.aliases?.length ? [...ext.aliases] : undefined,
       });
 
       objectTypeProvenance.push({
