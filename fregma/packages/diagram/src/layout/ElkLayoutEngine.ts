@@ -23,7 +23,9 @@ import {
   ROLE_BOX_HEIGHT,
   OT_MIN_WIDTH,
   OT_HEIGHT,
+  OT_ALIAS_LINE_HEIGHT,
   CONSTRAINT_RADIUS,
+  FONT_SIZE_ALIAS,
 } from "../render/theme.js";
 
 // elkjs has CJS/ESM interop quirks: the default export may be the
@@ -214,12 +216,20 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
 
   for (const node of sortedNodes) {
     if (node.kind === "object_type") {
-      // Estimate width from name length.
-      const labelWidth = Math.max(OT_MIN_WIDTH, node.name.length * 9 + 40);
+      // Estimate width from name length, accounting for alias text.
+      let labelWidth = Math.max(OT_MIN_WIDTH, node.name.length * 9 + 40);
+      const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
+      if (hasAliases) {
+        // Alias text: (a.k.a. 'X', 'Y') rendered at smaller font size.
+        const aliasText = `(a.k.a. ${node.aliases!.map((a) => `'${a}'`).join(", ")})`;
+        const aliasWidth = aliasText.length * FONT_SIZE_ALIAS * 0.6 + 40;
+        labelWidth = Math.max(labelWidth, aliasWidth);
+      }
+      const height = hasAliases ? OT_HEIGHT + OT_ALIAS_LINE_HEIGHT : OT_HEIGHT;
       children.push({
         id: node.id,
         width: labelWidth,
-        height: OT_HEIGHT,
+        height,
       });
     } else if (node.kind === "fact_type") {
       // Fact type node: width is the sum of role boxes.
@@ -340,6 +350,7 @@ function extractPositions(
         name: node.name,
         objectTypeKind: node.objectTypeKind,
         referenceMode: node.referenceMode,
+        aliases: node.aliases,
         x,
         y,
         width,

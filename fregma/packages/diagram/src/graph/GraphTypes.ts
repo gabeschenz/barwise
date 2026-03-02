@@ -39,6 +39,8 @@ export interface ObjectTypeNode {
   readonly objectTypeKind: "entity" | "value";
   /** Reference mode for entity types (e.g. "customer_id"). */
   readonly referenceMode?: string;
+  /** Alternative names / synonyms for this object type. */
+  readonly aliases?: readonly string[];
 }
 
 /**

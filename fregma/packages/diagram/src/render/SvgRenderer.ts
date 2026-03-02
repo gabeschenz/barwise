@@ -97,21 +97,43 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
     );
   }
 
+  // Compute vertical offsets for name, reference mode, and aliases.
+  // Lines are stacked vertically and centered within the node.
+  const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
+  const hasRefMode = node.referenceMode !== undefined;
+  // Shift name upward when additional lines exist below it.
+  const nameOffset = hasAliases && hasRefMode ? -8
+    : hasAliases || hasRefMode ? -3
+    : 0;
+
   // Name label.
   parts.push(
-    `<text x="${cx}" y="${cy - (node.referenceMode ? 3 : 0)}" ` +
+    `<text x="${cx}" y="${cy + nameOffset}" ` +
     `text-anchor="middle" dominant-baseline="central" ` +
     `fill="${theme.COLOR_TEXT}" font-size="${theme.FONT_SIZE_LABEL}" ` +
     `font-weight="600">${esc(node.name)}</text>`,
   );
 
   // Reference mode (below name for entity types).
-  if (node.referenceMode) {
+  if (hasRefMode) {
+    const refModeY = hasAliases ? cy + 5 : cy + 12;
     parts.push(
-      `<text x="${cx}" y="${cy + 12}" ` +
+      `<text x="${cx}" y="${refModeY}" ` +
       `text-anchor="middle" dominant-baseline="central" ` +
       `fill="${theme.COLOR_REF_MODE}" font-size="${theme.FONT_SIZE_REF_MODE}">` +
-      `(${esc(node.referenceMode)})</text>`,
+      `(${esc(node.referenceMode!)})</text>`,
+    );
+  }
+
+  // Aliases (below reference mode, or below name if no reference mode).
+  if (hasAliases) {
+    const aliasLabel = `(a.k.a. ${node.aliases!.map((a) => `'${a}'`).join(", ")})`;
+    const aliasY = hasRefMode ? cy + 18 : cy + 12;
+    parts.push(
+      `<text x="${cx}" y="${aliasY}" ` +
+      `text-anchor="middle" dominant-baseline="central" ` +
+      `fill="${theme.COLOR_ALIAS}" font-size="${theme.FONT_SIZE_ALIAS}" ` +
+      `font-style="italic">${esc(aliasLabel)}</text>`,
     );
   }
 
@@ -427,5 +449,6 @@ function esc(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }

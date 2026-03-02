@@ -649,6 +649,39 @@ describe("ModelToGraph", () => {
     }
   });
 
+  it("includes aliases on object type nodes when present", () => {
+    const model = new ModelBuilder("Aliases")
+      .withEntityType("Customer", {
+        referenceMode: "customer_id",
+        aliases: ["Client", "Buyer"],
+      })
+      .build();
+
+    const graph = modelToGraph(model);
+    const otNode = graph.nodes.find(
+      (n) => n.kind === "object_type" && n.name === "Customer",
+    );
+    expect(otNode).toBeDefined();
+    if (otNode?.kind === "object_type") {
+      expect(otNode.aliases).toEqual(["Client", "Buyer"]);
+    }
+  });
+
+  it("omits aliases on object type nodes when not set", () => {
+    const model = new ModelBuilder("NoAliases")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const graph = modelToGraph(model);
+    const otNode = graph.nodes.find(
+      (n) => n.kind === "object_type" && n.name === "Customer",
+    );
+    expect(otNode).toBeDefined();
+    if (otNode?.kind === "object_type") {
+      expect(otNode.aliases).toBeUndefined();
+    }
+  });
+
   it("does not mark non-objectified fact types", () => {
     const model = new ModelBuilder("Regular")
       .withEntityType("Person", { referenceMode: "person_id" })
