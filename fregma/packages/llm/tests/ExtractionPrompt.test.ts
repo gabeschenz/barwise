@@ -137,6 +137,18 @@ describe("ExtractionPrompt", () => {
       expect(itemProps["is_preferred"]?.type).toBe("boolean");
     });
 
+    it("defines objectified_fact_types as an array with required fields", () => {
+      const schema = buildResponseSchema();
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      expect(props["objectified_fact_types"]?.type).toBe("array");
+      const items = props["objectified_fact_types"]?.items as Record<string, unknown>;
+      const itemRequired = items.required as string[];
+      expect(itemRequired).toContain("fact_type");
+      expect(itemRequired).toContain("object_type");
+      expect(itemRequired).toContain("description");
+      expect(itemRequired).toContain("source_references");
+    });
+
     it("defines constraint types enum", () => {
       const schema = buildResponseSchema();
       const props = schema.properties as Record<string, Record<string, unknown>>;

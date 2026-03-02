@@ -2196,6 +2196,183 @@ describe("DraftModelParser", () => {
     });
   });
 
+  describe("objectification extraction", () => {
+    function makeModelWithFactTypeAndEntities() {
+      return makeResponse({
+        object_types: [
+          { name: "Student", kind: "entity", reference_mode: "student_id", source_references: [] },
+          { name: "Course", kind: "entity", reference_mode: "course_id", source_references: [] },
+          { name: "Enrollment", kind: "entity", reference_mode: "enrollment_id", source_references: [] },
+          { name: "Rating", kind: "value", source_references: [] },
+        ],
+        fact_types: [
+          {
+            name: "Student enrolls in Course",
+            roles: [
+              { player: "Student", role_name: "enrolls in" },
+              { player: "Course", role_name: "is enrolled in by" },
+            ],
+            readings: ["{0} enrolls in {1}"],
+            source_references: [],
+          },
+        ],
+      });
+    }
+
+    it("applies objectification linking fact type to entity", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [
+            {
+              fact_type: "Student enrolls in Course",
+              object_type: "Enrollment",
+              description: "Enrollment objectifies the enrollment relationship.",
+              source_references: [{ lines: [10, 12], excerpt: "enrollment record" }],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(1);
+      const oft = result.model.objectifiedFactTypes[0]!;
+      const ft = result.model.getFactTypeByName("Student enrolls in Course")!;
+      const ot = result.model.getObjectTypeByName("Enrollment")!;
+      expect(oft.factTypeId).toBe(ft.id);
+      expect(oft.objectTypeId).toBe(ot.id);
+
+      expect(result.objectificationProvenance).toHaveLength(1);
+      expect(result.objectificationProvenance[0]!.applied).toBe(true);
+      expect(result.objectificationProvenance[0]!.factType).toBe("Student enrolls in Course");
+      expect(result.objectificationProvenance[0]!.objectType).toBe("Enrollment");
+      expect(result.objectificationProvenance[0]!.sourceReferences).toHaveLength(1);
+    });
+
+    it("skips when fact type not found", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [
+            {
+              fact_type: "Nonexistent FT",
+              object_type: "Enrollment",
+              description: "Bad fact type reference",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(0);
+      expect(result.objectificationProvenance[0]!.applied).toBe(false);
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("Nonexistent FT");
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("not found");
+    });
+
+    it("skips when object type not found", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [
+            {
+              fact_type: "Student enrolls in Course",
+              object_type: "NonexistentEntity",
+              description: "Bad object type reference",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(0);
+      expect(result.objectificationProvenance[0]!.applied).toBe(false);
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("NonexistentEntity");
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("not found");
+    });
+
+    it("skips when object type is a value type", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [
+            {
+              fact_type: "Student enrolls in Course",
+              object_type: "Rating",
+              description: "Value type cannot objectify",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(0);
+      expect(result.objectificationProvenance[0]!.applied).toBe(false);
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("value");
+      expect(result.objectificationProvenance[0]!.skipReason).toContain("not an entity");
+    });
+
+    it("skips duplicate objectification of same fact type", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [
+            {
+              fact_type: "Student enrolls in Course",
+              object_type: "Enrollment",
+              description: "First objectification",
+              source_references: [],
+            },
+            {
+              fact_type: "Student enrolls in Course",
+              object_type: "Enrollment",
+              description: "Duplicate objectification",
+              source_references: [],
+            },
+          ],
+        },
+        "Test",
+      );
+
+      // First succeeds, second is caught by model validation.
+      expect(result.model.objectifiedFactTypes).toHaveLength(1);
+      expect(result.objectificationProvenance).toHaveLength(2);
+      expect(result.objectificationProvenance[0]!.applied).toBe(true);
+      expect(result.objectificationProvenance[1]!.applied).toBe(false);
+      expect(result.objectificationProvenance[1]!.skipReason).toContain("Failed");
+    });
+
+    it("handles empty objectified_fact_types array", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(
+        {
+          ...resp,
+          objectified_fact_types: [],
+        },
+        "Test",
+      );
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(0);
+      expect(result.objectificationProvenance).toHaveLength(0);
+    });
+
+    it("handles missing objectified_fact_types field", () => {
+      const resp = makeModelWithFactTypeAndEntities();
+      const result = parseDraftModel(resp, "Test");
+
+      expect(result.model.objectifiedFactTypes).toHaveLength(0);
+      expect(result.objectificationProvenance).toHaveLength(0);
+    });
+  });
+
   describe("edge cases", () => {
     it("handles empty extraction response", () => {
       const result = parseDraftModel(makeResponse(), "Empty");

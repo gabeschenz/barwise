@@ -5,6 +5,7 @@ export type {
   ExtractedRole,
   ExtractedFactType,
   ExtractedSubtype,
+  ExtractedObjectifiedFactType,
   InferredConstraintType,
   InferredConstraint,
   Ambiguity,
@@ -12,6 +13,7 @@ export type {
   ElementProvenance,
   ConstraintProvenance,
   SubtypeProvenance,
+  ObjectificationProvenance,
   DraftModelResult,
 } from "./ExtractionTypes.js";
 

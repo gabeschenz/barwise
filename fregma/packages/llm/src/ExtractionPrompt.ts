@@ -75,13 +75,23 @@ Analyze the transcript carefully and extract:
 
    When scheduling or assignment constraints involve multiple dimensions (e.g., "a patient can have at most one appointment per date and time slot", "a doctor can have at most one appointment per date and time slot"), these cross-entity constraints require all participating concepts in one fact type. Model a single higher-arity fact type (e.g., "Appointment is for Patient with Doctor on Date at TimeSlot") and apply multiple uniqueness constraints on different role combinations within it. Do NOT model these as separate binary fact types -- the scheduling constraints cannot be expressed on independent binaries.
 
-3. **Subtypes**: Identify "is a" / specialization relationships between entity types. For each:
+3. **Objectified fact types**: Identify when a relationship is itself treated as an entity in other relationships. This is called objectification (or nesting). For example, if the transcript discusses "Enrollment" as a concept that has its own properties (grade, semester) AND enrollment represents the relationship "Student enrolls in Course", then "Student enrolls in Course" is objectified as "Enrollment". For each:
+   - Specify the fact_type name (the underlying relationship, e.g., "Student enrolls in Course")
+   - Specify the object_type name (the entity created by objectification, e.g., "Enrollment")
+   - Both must appear in the extracted fact_types and object_types respectively
+   - The object type must be an entity type with its own reference_mode
+   - Write a description explaining why objectification is appropriate
+   - Include source references
+   - Common examples: Enrollment (Student enrolls in Course), Marriage (Person marries Person), Employment (Person works for Company), Prescription (Doctor prescribes Drug to Patient)
+   - Only use objectification when the transcript explicitly treats the relationship as a named concept with its own attributes
+
+5. **Subtypes**: Identify "is a" / specialization relationships between entity types. For each:
    - Specify the subtype and supertype entity names (both must appear in the object_types list)
    - Set provides_identification to false only if the subtype has its own independent identifier
    - Write a brief description explaining the specialization
    - Include source references
 
-4. **Inferred constraints**: Identify business rules from context. For each:
+6. **Inferred constraints**: Identify business rules from context. For each:
    - Specify the type: one of internal_uniqueness, mandatory, value_constraint, external_uniqueness, disjunctive_mandatory, exclusion, exclusive_or, subset, equality, ring, or frequency.
    - In the "roles" array, list the **object type names** (player names) of the constrained roles, NOT the role names. For example, for "Each Order is placed by at most one Customer" in fact type "Customer places Order", use roles: ["Order"] (the constrained player), not roles: ["is placed by"].
    - For value_constraint: specify one role (the constrained player name) and include a "values" array listing the allowed values. Example: type "value_constraint", fact_type "Appointment has AppointmentStatus", roles ["AppointmentStatus"], values ["scheduled", "checked-in", "completed", "cancelled"]. Use this for enumerated values tied to a specific role. If the value type is ALWAYS restricted to these values (regardless of context), prefer setting value_constraint on the object type instead.
@@ -98,7 +108,7 @@ Analyze the transcript carefully and extract:
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
-5. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
+7. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
    - Describe the ambiguity
    - Include the source references showing the conflicting or unclear statements
 
@@ -326,6 +336,39 @@ export function buildResponseSchema(): Record<string, unknown> {
           required: ["subtype", "supertype", "description", "source_references"],
         },
       },
+      objectified_fact_types: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            fact_type: { type: "string" },
+            object_type: { type: "string" },
+            description: { type: "string" },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: [
+            "fact_type",
+            "object_type",
+            "description",
+            "source_references",
+          ],
+        },
+      },
       ambiguities: {
         type: "array",
         items: {
@@ -386,6 +429,9 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
   const inferredConstraints = Array.isArray(obj["inferred_constraints"])
     ? obj["inferred_constraints"]
     : [];
+  const objectifiedFactTypes = Array.isArray(obj["objectified_fact_types"])
+    ? obj["objectified_fact_types"]
+    : [];
   const ambiguities = Array.isArray(obj["ambiguities"])
     ? obj["ambiguities"]
     : [];
@@ -396,6 +442,8 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
     subtypes: subtypes as ExtractionResponse["subtypes"],
     inferred_constraints:
       inferredConstraints as ExtractionResponse["inferred_constraints"],
+    objectified_fact_types:
+      objectifiedFactTypes as ExtractionResponse["objectified_fact_types"],
     ambiguities: ambiguities as ExtractionResponse["ambiguities"],
   };
 }
