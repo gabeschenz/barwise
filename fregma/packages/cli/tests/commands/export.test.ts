@@ -75,4 +75,52 @@ describe("fregma export", () => {
       expect(existsSync(join(tmpDir, "schema.yml"))).toBe(true);
     });
   });
+
+  describe("openapi", () => {
+    it("generates OpenAPI JSON to stdout", async () => {
+      const result = await runCli([
+        "export",
+        "openapi",
+        `${fixtures}/simple.orm.yaml`,
+      ]);
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.openapi).toBe("3.0.0");
+      expect(parsed.components.schemas).toBeDefined();
+      expect(parsed.paths).toBeDefined();
+    });
+
+    it("writes to file with --output", async () => {
+      mkdirSync(tmpDir, { recursive: true });
+      const outFile = join(tmpDir, "openapi.json");
+      const result = await runCli([
+        "export",
+        "openapi",
+        `${fixtures}/simple.orm.yaml`,
+        "--output",
+        outFile,
+      ]);
+      expect(result.exitCode).toBe(0);
+      expect(existsSync(outFile)).toBe(true);
+      const content = readFileSync(outFile, "utf-8");
+      const parsed = JSON.parse(content);
+      expect(parsed.openapi).toBe("3.0.0");
+    });
+
+    it("applies custom title and api-version", async () => {
+      const result = await runCli([
+        "export",
+        "openapi",
+        `${fixtures}/simple.orm.yaml`,
+        "--title",
+        "My API",
+        "--api-version",
+        "2.0.0",
+      ]);
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.info.title).toBe("My API");
+      expect(parsed.info.version).toBe("2.0.0");
+    });
+  });
 });
