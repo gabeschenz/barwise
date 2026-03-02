@@ -154,6 +154,13 @@ export {
   type AvroFieldType,
   type AvroRenderOptions,
 } from "./mapping/renderers/avro.js";
+export {
+  renderOpenApi,
+  openApiToJson,
+  type OpenApiSpec,
+  type OpenApiPropertyType,
+  type OpenApiRenderOptions,
+} from "./mapping/renderers/openapi.js";
 
 // Diff / Merge
 export {

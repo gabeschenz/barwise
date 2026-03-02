@@ -1,5 +1,5 @@
 /**
- * fregma export yaml|json|dbt <file>
+ * fregma export yaml|json|dbt|openapi <file>
  *
  * Export an ORM model in various formats.
  */
@@ -7,7 +7,7 @@
 import type { Command } from "commander";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { RelationalMapper, renderDbt } from "@fregma/core";
+import { RelationalMapper, renderDbt, renderOpenApi, openApiToJson } from "@fregma/core";
 import { loadModel, serializer, writeOutput } from "../helpers/io.js";
 
 export function registerExportCommand(program: Command): void {
@@ -84,4 +84,40 @@ export function registerExportCommand(program: Command): void {
         process.exitCode = 1;
       }
     });
+
+  exportCmd
+    .command("openapi")
+    .description("Generate OpenAPI 3.0 specification from relational mapping")
+    .argument("<file>", "Path to .orm.yaml file")
+    .option("--output <file>", "Write to file instead of stdout")
+    .option("--title <title>", "API title", "ORM API")
+    .option("--api-version <version>", "API version string", "1.0.0")
+    .option("--base-path <path>", "Base path prefix for endpoints", "/")
+    .action(
+      async (
+        file: string,
+        opts: {
+          output?: string;
+          title: string;
+          apiVersion: string;
+          basePath: string;
+        },
+      ) => {
+        try {
+          const model = loadModel(file);
+          const mapper = new RelationalMapper();
+          const schema = mapper.map(model);
+          const spec = renderOpenApi(schema, {
+            title: opts.title,
+            version: opts.apiVersion,
+            basePath: opts.basePath,
+          });
+          const json = openApiToJson(spec);
+          writeOutput(json, opts.output);
+        } catch (err) {
+          process.stderr.write(`Error: ${(err as Error).message}\n`);
+          process.exitCode = 1;
+        }
+      },
+    );
 }
