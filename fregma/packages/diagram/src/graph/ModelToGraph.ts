@@ -46,6 +46,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       name: ot.name,
       objectTypeKind: ot.kind,
       referenceMode: ot.referenceMode,
+      aliases: ot.aliases?.length ? ot.aliases : undefined,
     });
   }
 

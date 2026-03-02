@@ -710,6 +710,118 @@ describe("SvgRenderer", () => {
     expect(svg).toContain("</svg>");
   });
 
+  it("renders alias text below entity name", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Customer",
+          objectTypeKind: "entity",
+          referenceMode: "customer_id",
+          aliases: ["Client", "Buyer"],
+          x: 50,
+          y: 50,
+          width: 160,
+          height: 55,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // Should contain the a.k.a. line with single-quoted aliases.
+    expect(svg).toContain("a.k.a.");
+    expect(svg).toContain("Client");
+    expect(svg).toContain("Buyer");
+  });
+
+  it("formats aliases with a.k.a. prefix and single quotes", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Customer",
+          objectTypeKind: "entity",
+          referenceMode: "customer_id",
+          aliases: ["Client"],
+          x: 50,
+          y: 50,
+          width: 160,
+          height: 55,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    // Should format as (a.k.a. 'Client')
+    expect(svg).toContain("(a.k.a. &#x27;Client&#x27;)");
+  });
+
+  it("escapes special XML characters in aliases", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Item",
+          objectTypeKind: "entity",
+          aliases: ["A<B"],
+          x: 50,
+          y: 50,
+          width: 160,
+          height: 55,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).toContain("A&lt;B");
+    expect(svg).not.toContain("A<B");
+  });
+
+  it("omits alias line when aliases are not present", () => {
+    const svg = renderSvg(makeMinimalGraph());
+    expect(svg).not.toContain("a.k.a.");
+  });
+
+  it("omits alias line when aliases array is empty", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Customer",
+          objectTypeKind: "entity",
+          aliases: [],
+          x: 50,
+          y: 50,
+          width: 120,
+          height: 40,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+    expect(svg).not.toContain("a.k.a.");
+  });
+
   it("renders objectified fact type with rounded enclosing box", () => {
     const graph: PositionedGraph = {
       width: 400,

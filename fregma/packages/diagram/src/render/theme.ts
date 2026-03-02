@@ -12,11 +12,14 @@ export const ROLE_BOX_HEIGHT = 28;
 export const OT_MIN_WIDTH = 90;
 export const OT_HEIGHT = 40;
 export const OT_CORNER_RADIUS = 6;
+/** Extra height added to an object type node when aliases are present. */
+export const OT_ALIAS_LINE_HEIGHT = 14;
 
 // -- Fonts --
 export const FONT_FAMILY = "'Segoe UI', system-ui, sans-serif";
 export const FONT_SIZE_LABEL = 13;
 export const FONT_SIZE_REF_MODE = 10;
+export const FONT_SIZE_ALIAS = 9;
 export const FONT_SIZE_ROLE = 9;
 
 // -- Colors --
@@ -31,6 +34,7 @@ export const COLOR_MANDATORY = "#333333";
 export const COLOR_EDGE = "#666666";
 export const COLOR_TEXT = "#1a1a1a";
 export const COLOR_REF_MODE = "#666666";
+export const COLOR_ALIAS = "#666666";
 export const COLOR_SPANNING = "#e8703a";
 
 // -- Constraint markers --

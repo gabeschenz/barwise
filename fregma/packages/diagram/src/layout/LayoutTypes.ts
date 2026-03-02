@@ -38,6 +38,8 @@ export interface PositionedObjectTypeNode {
   readonly name: string;
   readonly objectTypeKind: "entity" | "value";
   readonly referenceMode?: string;
+  /** Alternative names / synonyms for this object type. */
+  readonly aliases?: readonly string[];
   readonly x: number;
   readonly y: number;
   readonly width: number;
