@@ -137,6 +137,17 @@ describe("ExtractionPrompt", () => {
       expect(itemProps["is_preferred"]?.type).toBe("boolean");
     });
 
+    it("includes aliases in object_types schema", () => {
+      const schema = buildResponseSchema();
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      const items = props["object_types"]?.items as Record<string, unknown>;
+      const itemProps = items.properties as Record<string, Record<string, unknown>>;
+      expect(itemProps["aliases"]).toBeDefined();
+      expect(itemProps["aliases"]?.type).toBe("array");
+      const aliasItems = itemProps["aliases"]?.items as Record<string, unknown>;
+      expect(aliasItems.type).toBe("string");
+    });
+
     it("defines objectified_fact_types as an array with required fields", () => {
       const schema = buildResponseSchema();
       const props = schema.properties as Record<string, Record<string, unknown>>;

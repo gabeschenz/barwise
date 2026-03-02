@@ -43,6 +43,8 @@ export interface ExtractedObjectType {
     readonly length?: number;
     readonly scale?: number;
   };
+  /** Alternative names / synonyms used interchangeably with the primary name. */
+  readonly aliases?: readonly string[];
   readonly source_references: readonly SourceReference[];
 }
 

@@ -55,6 +55,7 @@ Analyze the transcript carefully and extract:
    - For entity types, propose a reference_mode (the identifier, e.g., "customer_id"). The reference_mode must be a single, simple identifier name -- NEVER a composite like "CourseCode + TermCode" or a fabricated scheme like "auto_counter (generated X)". If identification is unclear, flag it as an ambiguity instead of inventing a scheme.
    - For value types, infer the conceptual data_type when possible. Use one of: text, integer, decimal, money, float, boolean, date, time, datetime, timestamp, auto_counter, binary, uuid, other. ALWAYS include length for text types -- infer reasonable lengths from context (codes/identifiers: 10-20, names: 100-200, free text/notes: 500, short labels: 30). Include length/scale for decimal (e.g. name: "decimal", length: 10, scale: 2).
    - For value types with a fixed set of allowed values, include a value_constraint
+   - If stakeholders use alternative names or synonyms for this concept, list them in the aliases array (e.g., aliases: ["Client"] when the primary name is "Customer")
    - Include source references (line numbers and verbatim excerpts)
 
 2. **Fact types**: Identify relationships between object types. For each:
@@ -118,7 +119,7 @@ Analyze the transcript carefully and extract:
 - Do NOT invent concepts not discussed in the transcript.
 - Do NOT assume constraints that are not at least implied by the conversation.
 - Prefer specific, descriptive fact type names over generic ones.
-- If stakeholders use different terms for what appears to be the same concept, flag it as an ambiguity.
+- If stakeholders use different terms for what appears to be the same concept, record the alternative names as aliases on the primary object type rather than flagging as an ambiguity. For example, if "Client" and "Customer" are used interchangeably, pick the most common term as the name and list the other(s) in the aliases array. Only flag as ambiguity if it is genuinely unclear whether the terms refer to the same concept.
 - Role names should be natural verbs or prepositions (e.g., "places", "is placed by", "has", "is of").
 - Reading templates must use {0}, {1}, etc. matching the role order.
 - EVERY entity type with a reference_mode MUST have a corresponding identifier fact type in the fact_types array. If you emit an entity with reference_mode "order_number" but no fact type "Order has OrderNumber", the model is incomplete.
@@ -180,6 +181,10 @@ export function buildResponseSchema(): Record<string, unknown> {
                 scale: { type: "number" },
               },
               required: ["name"],
+            },
+            aliases: {
+              type: "array",
+              items: { type: "string" },
             },
             source_references: {
               type: "array",

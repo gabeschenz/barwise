@@ -206,6 +206,62 @@ describe("DraftModelParser", () => {
       expect(result.objectTypeProvenance[0]?.elementName).toBe("Customer");
       expect(result.objectTypeProvenance[0]?.sourceReferences).toHaveLength(1);
     });
+
+    it("passes aliases through to the model", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Customer",
+              kind: "entity",
+              aliases: ["Client", "Buyer"],
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Customer")!;
+      expect(ot.aliases).toEqual(["Client", "Buyer"]);
+    });
+
+    it("omits aliases when not provided", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Customer",
+              kind: "entity",
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Customer")!;
+      expect(ot.aliases).toBeUndefined();
+    });
+
+    it("omits aliases when empty array", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            {
+              name: "Customer",
+              kind: "entity",
+              aliases: [],
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      const ot = result.model.getObjectTypeByName("Customer")!;
+      expect(ot.aliases).toBeUndefined();
+    });
   });
 
   describe("fact type creation", () => {
