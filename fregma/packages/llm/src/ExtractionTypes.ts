@@ -138,6 +138,16 @@ export interface ExtractedSubtype {
   readonly source_references: readonly SourceReference[];
 }
 
+export interface ExtractedObjectifiedFactType {
+  /** Name of the fact type being objectified (must match an extracted fact type). */
+  readonly fact_type: string;
+  /** Name of the entity type created by objectification (must match an extracted object type). */
+  readonly object_type: string;
+  /** Human-readable description of why this relationship is objectified. */
+  readonly description: string;
+  readonly source_references: readonly SourceReference[];
+}
+
 export interface Ambiguity {
   readonly description: string;
   readonly source_references: readonly SourceReference[];
@@ -152,6 +162,7 @@ export interface ExtractionResponse {
   readonly fact_types: readonly ExtractedFactType[];
   readonly subtypes: readonly ExtractedSubtype[];
   readonly inferred_constraints: readonly InferredConstraint[];
+  readonly objectified_fact_types?: readonly ExtractedObjectifiedFactType[];
   readonly ambiguities: readonly Ambiguity[];
 }
 
@@ -192,6 +203,18 @@ export interface SubtypeProvenance {
 }
 
 /**
+ * Provenance for an objectified fact type extracted by the LLM.
+ */
+export interface ObjectificationProvenance {
+  readonly factType: string;
+  readonly objectType: string;
+  readonly sourceReferences: readonly SourceReference[];
+  readonly applied: boolean;
+  /** If not applied, the reason it was skipped. */
+  readonly skipReason?: string;
+}
+
+/**
  * The result of parsing an extraction response into an OrmModel.
  */
 export interface DraftModelResult {
@@ -205,6 +228,8 @@ export interface DraftModelResult {
   readonly subtypeProvenance: readonly SubtypeProvenance[];
   /** Status of each inferred constraint. */
   readonly constraintProvenance: readonly ConstraintProvenance[];
+  /** Status of each objectified fact type. */
+  readonly objectificationProvenance: readonly ObjectificationProvenance[];
   /** Ambiguities identified by the LLM. */
   readonly ambiguities: readonly Ambiguity[];
   /** Warnings generated during parsing (non-fatal issues). */
