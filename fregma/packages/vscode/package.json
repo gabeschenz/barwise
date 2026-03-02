@@ -2,7 +2,7 @@
   "name": "fregma-vscode",
   "displayName": "Fregma ORM Modeler",
   "description": "ORM 2 modeling tool for data engineers and architects",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "publisher": "fregma",
   "author": "Gabe Schenz",
@@ -124,9 +124,9 @@
     "test:integration": "vscode-test"
   },
   "dependencies": {
-    "@fregma/core": "0.2.0",
-    "@fregma/diagram": "0.1.0",
-    "@fregma/llm": "0.2.2",
+    "@fregma/core": "0.3.0",
+    "@fregma/diagram": "0.2.0",
+    "@fregma/llm": "0.3.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",

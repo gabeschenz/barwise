@@ -1,6 +1,6 @@
 {
   "name": "@fregma/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "MCP server for ORM 2 modeling capabilities",
   "type": "module",
@@ -17,9 +17,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fregma/core": "0.2.0",
-    "@fregma/diagram": "0.1.0",
-    "@fregma/llm": "0.2.1",
+    "@fregma/core": "0.3.0",
+    "@fregma/diagram": "0.2.0",
+    "@fregma/llm": "0.3.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.25.0"
   },

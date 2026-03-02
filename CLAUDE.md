@@ -43,7 +43,7 @@ full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
-All phases are complete. The project has 1,183 passing tests across 6
+All phases are complete. The project has 1,315 passing tests across 6
 packages. The CLI tool (`fregma`) and MCP server (`fregma-mcp`) provide
 the same capabilities as the VS Code extension for terminal and AI
 workflows. The VS Code extension is functional but lacks integration
@@ -97,6 +97,8 @@ preferred identifier support.
 
 ## Conventions (Monorepo-Wide)
 
+- ALWAYS create a spec file before beginning development.  There should
+  be a documented and reviewed plan to ensure the quality of work is high.
 - TypeScript strict mode. Base config in `fregma/tsconfig.base.json`
   uses NodeNext module resolution; the vscode package overrides to
   Bundler resolution for esbuild.

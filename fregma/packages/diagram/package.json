@@ -1,6 +1,6 @@
 {
   "name": "@fregma/diagram",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "ORM diagram layout and SVG rendering (platform-independent)",
   "type": "module",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@fregma/core": "0.2.0",
+    "@fregma/core": "0.3.0",
     "elkjs": "^0.9.3"
   },
   "devDependencies": {
