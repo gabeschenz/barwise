@@ -2084,6 +2084,80 @@ describe("DraftModelParser", () => {
         expect(result.constraintProvenance[0]?.skipReason).toContain("arity");
       });
 
+      it("skips equality with missing superset_roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Person rides Bus",
+                description: "Equality with no superset roles",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("superset_roles");
+      });
+
+      it("skips equality when superset fact type not found", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Person"],
+                superset_fact_type: "Nonexistent FT",
+                superset_roles: ["Person"],
+                description: "Equality to missing FT",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("not found");
+      });
+
+      it("skips equality with unresolvable roles", () => {
+        const resp = makeTwoFactTypeModel();
+        const result = parseDraftModel(
+          {
+            ...resp,
+            inferred_constraints: [
+              {
+                type: "equality",
+                fact_type: "Person drives Car",
+                roles: ["Nonexistent"],
+                superset_fact_type: "Person rides Bus",
+                superset_roles: ["Person"],
+                description: "Equality with bad subset role",
+                confidence: "medium",
+                source_references: [],
+              },
+            ],
+          },
+          "Test",
+        );
+
+        expect(result.constraintProvenance[0]?.applied).toBe(false);
+        expect(result.constraintProvenance[0]?.skipReason).toContain("Could not resolve");
+      });
+
       it("detects duplicate equality constraint", () => {
         const resp = makeTwoFactTypeModel();
         const result = parseDraftModel(
