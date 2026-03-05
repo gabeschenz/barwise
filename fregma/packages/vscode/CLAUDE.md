@@ -1,7 +1,7 @@
 # fregma-vscode
 
 VS Code extension that wires the platform-independent packages
-(`@fregma/core`, `@fregma/diagram`, `@fregma/llm`) into the editor.
+(`@fregma/core`, `@fregma/diagram`, `@fregma/llm`, `@fregma/mcp`) into the editor.
 This package is the thin integration layer -- business logic lives in
 the core packages.
 
@@ -37,18 +37,23 @@ src/
     DiagramPanel.ts           VS Code Webview panel host for SVG diagrams
   llm/
     CopilotLlmClient.ts      LlmClient implementation using GitHub Copilot chat API
+  mcp/
+    ToolRegistration.ts      Registers tools via vscode.lm.registerTool() (in-process, Copilot access)
+    McpServerProvider.ts     Registers bundled MCP stdio server for external MCP clients
+    stdio-entry.ts           Standalone entry point for the MCP server child process
 ```
 
 ## Build
 
 This package uses **esbuild** (not `tsc`) for production builds. The
-build produces two bundles:
+build produces three bundles:
 
 - `dist/client/extension.js` -- the extension entry point
 - `dist/server/OrmLanguageServer.js` -- the language server process
+- `dist/mcp/index.js` -- the MCP server (spawned as a child process)
 
 ```sh
-node esbuild.mjs            # build both bundles
+node esbuild.mjs            # build all three bundles
 npx tsc --noEmit             # type-check only (uses tsconfig.json with Bundler resolution)
 ```
 
@@ -67,6 +72,19 @@ bundle time.
   default provider so users do not need an API key.
 - Extension settings are declared in `package.json` under
   `contributes.configuration` (LLM provider, API key, model selection).
+- AI tool integration uses two complementary mechanisms:
+  1. **Language Model Tools** (`vscode.lm.registerTool`) -- the primary
+     integration. Runs in the extension host process with full access
+     to Copilot language models. `ToolRegistration.ts` wraps each
+     `execute*()` function from `@fregma/mcp` in a
+     `LanguageModelTool<T>`. The `import_transcript` tool uses
+     `CopilotLlmClient` directly so no API key is needed.
+  2. **MCP stdio server** (`registerMcpServerDefinitionProvider`) --
+     spawns `dist/mcp/index.js` as a child process for external MCP
+     clients that discover servers through VS Code.
+  The `fregma.enableMcpServer` setting controls both mechanisms.
+  Tool declarations live in `package.json` under
+  `contributes.languageModelTools`.
 
 ## Testing
 
@@ -99,5 +117,6 @@ Test fixtures live in `tests/fixtures/` (`.orm.yaml` files).
 | Upstream  | `@fregma/core` | Model types, validation, verbalization, serialization, mapping |
 | Upstream  | `@fregma/diagram` | `generateDiagram` for webview SVG rendering |
 | Upstream  | `@fregma/llm` | `processTranscript`, `LlmClient` interface, extraction types |
+| Upstream  | `@fregma/mcp` | `createServer` for MCP stdio server; `execute*` functions for Language Model Tools |
 | External  | `vscode` | Editor API (provided at runtime, not bundled) |
 | External  | `vscode-languageserver/client` | LSP protocol implementation |

@@ -35,7 +35,7 @@ working in a package:
   |--- @fregma/llm      (core)
   |--- @fregma/cli      (core, diagram, llm)
   |--- @fregma/mcp      (core, diagram, llm)
-  |--- fregma-vscode     (core, diagram, llm)
+  |--- fregma-vscode     (core, diagram, llm, mcp)
 ```
 
 Changes to `@fregma/core` can break all downstream packages. Run the

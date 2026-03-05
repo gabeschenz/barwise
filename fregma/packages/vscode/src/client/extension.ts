@@ -12,6 +12,8 @@ import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
 import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
 import { ImportCommand } from "../commands/ImportCommand.js";
 import { ExportCommand } from "../commands/ExportCommand.js";
+import { registerMcpServerProvider } from "../mcp/McpServerProvider.js";
+import { registerLanguageModelTools } from "../mcp/ToolRegistration.js";
 
 let client: LanguageClient;
 
@@ -71,7 +73,13 @@ export function activate(context: vscode.ExtensionContext): void {
       "orm.export",
       () => new ExportCommand().execute(),
     ),
+    registerMcpServerProvider(context),
   );
+
+  // Register Language Model Tools (vscode.lm.registerTool) so that
+  // Copilot Chat and other AI features can invoke fregma tools
+  // directly in the extension host process (with Copilot access).
+  registerLanguageModelTools(context);
 }
 
 export function deactivate(): Thenable<void> | undefined {
