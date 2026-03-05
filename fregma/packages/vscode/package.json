@@ -2,11 +2,11 @@
   "name": "fregma-vscode",
   "displayName": "Fregma ORM Modeler",
   "description": "ORM 2 modeling tool for data engineers and architects",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "publisher": "fregma",
   "author": "Gabe Schenz",
-  "license": "MIT",
+  "license": "SEE LICENSE IN ../../LICENSE",
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
     "schema"
   ],
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.99.0"
   },
   "categories": [
     "Programming Languages",
@@ -30,7 +30,8 @@
   "activationEvents": [
     "onLanguage:yaml",
     "workspaceContains:**/*.orm.yaml",
-    "workspaceContains:**/*.orm-project.yaml"
+    "workspaceContains:**/*.orm-project.yaml",
+    "onStartupFinished"
   ],
   "main": "./dist/client/extension.js",
   "contributes": {
@@ -97,9 +98,176 @@
           "type": "boolean",
           "default": false,
           "description": "Log detailed LLM interaction data (prompt length, raw response, token usage, latency) to the output channel."
+        },
+        "fregma.enableMcpServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the built-in MCP server. When enabled, fregma ORM tools (validation, verbalization, schema generation, diagram, diff, merge, transcript import) are available to Copilot Chat and other MCP-aware AI tools."
         }
       }
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "fregma.mcpServer",
+        "label": "Fregma ORM"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "fregma_validate_model",
+        "displayName": "Validate ORM Model",
+        "toolReferenceName": "fregmaValidate",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(check-all)",
+        "tags": ["orm", "validation"],
+        "modelDescription": "Validate an ORM 2 model from a YAML string or .orm.yaml file path. Returns structured diagnostics including errors and warnings with rule IDs.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            }
+          },
+          "required": ["source"]
+        }
+      },
+      {
+        "name": "fregma_verbalize_model",
+        "displayName": "Verbalize ORM Model",
+        "toolReferenceName": "fregmaVerbalize",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(comment-discussion)",
+        "tags": ["orm", "verbalization"],
+        "modelDescription": "Generate FORML natural-language readings for fact types and constraints in an ORM 2 model. Produces human-readable sentences describing each fact type and its constraints.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            },
+            "factType": {
+              "type": "string",
+              "description": "Specific fact type name to verbalize. Omit to verbalize all fact types."
+            }
+          },
+          "required": ["source"]
+        }
+      },
+      {
+        "name": "fregma_generate_schema",
+        "displayName": "Generate Relational Schema",
+        "toolReferenceName": "fregmaSchema",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(database)",
+        "tags": ["orm", "schema", "ddl"],
+        "modelDescription": "Generate a relational schema from an ORM 2 model. Maps object types and fact types to tables, columns, and keys. Output can be DDL SQL or JSON mapping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["ddl", "json"],
+              "description": "Output format: 'ddl' for CREATE TABLE SQL statements, 'json' for the relational mapping as JSON. Defaults to 'ddl'."
+            }
+          },
+          "required": ["source"]
+        }
+      },
+      {
+        "name": "fregma_diff_models",
+        "displayName": "Diff ORM Models",
+        "toolReferenceName": "fregmaDiff",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(diff)",
+        "tags": ["orm", "diff"],
+        "modelDescription": "Compare two ORM 2 models and return the structural deltas. Shows added, removed, and modified elements with breaking-level indicators (safe, caution, breaking).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "File path or inline YAML for the base (original) model"
+            },
+            "incoming": {
+              "type": "string",
+              "description": "File path or inline YAML for the incoming (changed) model"
+            }
+          },
+          "required": ["base", "incoming"]
+        }
+      },
+      {
+        "name": "fregma_generate_diagram",
+        "displayName": "Generate ORM Diagram",
+        "toolReferenceName": "fregmaDiagram",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(type-hierarchy)",
+        "tags": ["orm", "diagram", "svg"],
+        "modelDescription": "Generate an SVG diagram from an ORM 2 model. Returns SVG markup showing object types, fact types, constraints, and their relationships.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            }
+          },
+          "required": ["source"]
+        }
+      },
+      {
+        "name": "fregma_import_transcript",
+        "displayName": "Import Transcript",
+        "toolReferenceName": "fregmaImport",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(sparkle)",
+        "tags": ["orm", "llm", "transcript"],
+        "modelDescription": "Process a business domain transcript through LLM extraction to produce a formal ORM 2 model in YAML. Uses the configured LLM provider (Copilot by default, no API key needed).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "transcript": {
+              "type": "string",
+              "description": "The transcript text content, or a file path to a text/markdown file containing the transcript"
+            },
+            "modelName": {
+              "type": "string",
+              "description": "Name for the resulting ORM model. Defaults to 'Extracted Model'."
+            }
+          },
+          "required": ["transcript"]
+        }
+      },
+      {
+        "name": "fregma_merge_models",
+        "displayName": "Merge ORM Models",
+        "toolReferenceName": "fregmaMerge",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(git-merge)",
+        "tags": ["orm", "merge"],
+        "modelDescription": "Merge an incoming ORM model into a base model. Accepts all additions and modifications, rejects removals. Returns the merged model as YAML with validation results.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "File path or inline YAML for the base (original) model"
+            },
+            "incoming": {
+              "type": "string",
+              "description": "File path or inline YAML for the incoming model to merge in"
+            }
+          },
+          "required": ["base", "incoming"]
+        }
+      }
+    ],
     "languages": [
       {
         "id": "orm-yaml",
@@ -127,6 +295,8 @@
     "@fregma/core": "0.3.0",
     "@fregma/diagram": "0.2.0",
     "@fregma/llm": "0.3.0",
+    "@fregma/mcp": "0.2.1",
+    "@modelcontextprotocol/sdk": "^1.27.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
@@ -136,7 +306,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.2.3",
-    "@types/vscode": "^1.93.0",
+    "@types/vscode": "^1.99.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.3",

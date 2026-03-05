@@ -1,6 +1,10 @@
 /**
  * MCP server definition. Creates and configures the McpServer with
  * all tools, resources, and prompts.
+ *
+ * Also re-exports execute functions from individual tools so that
+ * consumers (e.g. the VS Code extension) can call them directly
+ * without going through MCP transport.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -11,7 +15,7 @@ import { registerPrompts } from "./prompts/index.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "fregma",
-    version: "0.1.0",
+    version: "0.2.1",
   });
 
   registerTools(server);
@@ -20,3 +24,12 @@ export function createServer(): McpServer {
 
   return server;
 }
+
+// Re-export execute functions for direct invocation (no MCP transport).
+export { executeValidate } from "./tools/validate.js";
+export { executeVerbalize } from "./tools/verbalize.js";
+export { executeSchema } from "./tools/schema.js";
+export { executeDiff } from "./tools/diff.js";
+export { executeDiagram } from "./tools/diagram.js";
+export { executeImport } from "./tools/import.js";
+export { executeMerge } from "./tools/merge.js";
