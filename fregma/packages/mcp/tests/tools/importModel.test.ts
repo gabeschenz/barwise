@@ -213,4 +213,144 @@ components:
       expect(yaml).toMatch(/name:/);
     });
   });
+
+  describe("comprehensive fixtures", () => {
+    it("should handle realistic DDL with multiple tables and FKs", async () => {
+      const ddl = `
+        CREATE TABLE customers (
+          customer_id INT PRIMARY KEY,
+          customer_name VARCHAR(100) NOT NULL,
+          email VARCHAR(255) UNIQUE,
+          status VARCHAR(20)
+        );
+
+        CREATE TABLE orders (
+          order_id INT PRIMARY KEY,
+          customer_id INT NOT NULL,
+          order_date DATE NOT NULL,
+          total_amount DECIMAL(10, 2),
+          FOREIGN KEY (customer_id) REFERENCES customers (customer_id)
+        );
+
+        CREATE TABLE order_items (
+          item_id INT PRIMARY KEY,
+          order_id INT NOT NULL,
+          product_name VARCHAR(100) NOT NULL,
+          quantity INT NOT NULL,
+          unit_price DECIMAL(10, 2),
+          FOREIGN KEY (order_id) REFERENCES orders (order_id)
+        );
+      `;
+
+      const result = await executeImportModel(ddl, "ddl", "Order Management");
+      const yaml = result.content[0]!.text;
+
+      // Should have all three tables
+      expect(yaml).toContain("Customers");
+      expect(yaml).toContain("Orders");
+      expect(yaml).toContain("OrderItems");
+
+      // Should have fact types
+      expect(yaml).toContain("fact_types");
+
+      // Should have confidence
+      expect(yaml).toMatch(/confidence: (high|medium|low)/);
+    });
+
+    it("should handle realistic OpenAPI spec with nested objects", async () => {
+      const spec = JSON.stringify({
+        openapi: "3.0.0",
+        info: {
+          title: "Inventory API",
+          version: "1.0.0",
+        },
+        components: {
+          schemas: {
+            Category: {
+              type: "object",
+              required: ["id", "name"],
+              properties: {
+                id: { type: "integer" },
+                name: { type: "string" },
+                description: { type: "string" },
+              },
+            },
+            Product: {
+              type: "object",
+              required: ["id", "name", "category"],
+              properties: {
+                id: { type: "integer" },
+                name: { type: "string" },
+                sku: { type: "string" },
+                price: { type: "number", format: "decimal" },
+                category: {
+                  $ref: "#/components/schemas/Category",
+                },
+                inStock: { type: "boolean" },
+              },
+            },
+            Warehouse: {
+              type: "object",
+              required: ["id", "name"],
+              properties: {
+                id: { type: "integer" },
+                name: { type: "string" },
+                location: { type: "string" },
+                products: {
+                  type: "array",
+                  items: {
+                    $ref: "#/components/schemas/Product",
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = await executeImportModel(spec, "openapi", "Inventory System");
+      const yaml = result.content[0]!.text;
+
+      // Should have all entities
+      expect(yaml).toContain("Category");
+      expect(yaml).toContain("Product");
+      expect(yaml).toContain("Warehouse");
+
+      // Should have relationships
+      expect(yaml).toContain("fact_types");
+
+      // Should have confidence
+      expect(yaml).toMatch(/confidence: (high|medium)/);
+    });
+
+    it("should include confidence level in output", async () => {
+      const ddl = "CREATE TABLE simple (id INT PRIMARY KEY);";
+      const result = await executeImportModel(ddl, "ddl");
+      const yaml = result.content[0]!.text;
+
+      expect(yaml).toMatch(/confidence: (high|medium|low)/);
+    });
+
+    it("should report warnings in YAML comments", async () => {
+      const spec = JSON.stringify({
+        openapi: "3.0.0",
+        info: { title: "Test", version: "1.0.0" },
+        components: {
+          schemas: {
+            ComplexType: {
+              type: "object",
+              allOf: [{ type: "object" }],
+              properties: { id: { type: "integer" } },
+            },
+          },
+        },
+      });
+
+      const result = await executeImportModel(spec, "openapi");
+      const yaml = result.content[0]!.text;
+
+      expect(yaml).toContain("# Import Warnings:");
+      expect(yaml).toContain("allOf");
+    });
+  });
 });
