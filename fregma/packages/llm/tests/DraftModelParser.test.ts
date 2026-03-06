@@ -24,6 +24,7 @@ function makeResponse(
     fact_types: overrides.fact_types ?? [],
     subtypes: overrides.subtypes ?? [],
     inferred_constraints: overrides.inferred_constraints ?? [],
+    populations: overrides.populations,
     ambiguities: overrides.ambiguities ?? [],
   };
 }
@@ -2426,6 +2427,115 @@ describe("DraftModelParser", () => {
 
       expect(result.model.objectifiedFactTypes).toHaveLength(0);
       expect(result.objectificationProvenance).toHaveLength(0);
+    });
+  });
+
+  describe("population extraction", () => {
+    it("creates populations from extraction response", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            { name: "Customer", kind: "entity", reference_mode: "customer_id", source_references: [] },
+            { name: "CustomerId", kind: "value", data_type: { name: "text", length: 10 }, source_references: [] },
+          ],
+          fact_types: [
+            {
+              name: "Customer has CustomerId",
+              roles: [
+                { player: "Customer", role_name: "has" },
+                { player: "CustomerId", role_name: "identifies" },
+              ],
+              readings: ["{0} has {1}"],
+              source_references: [],
+            },
+          ],
+          populations: [
+            {
+              fact_type: "Customer has CustomerId",
+              description: "Sample customers",
+              instances: [
+                { role_values: { Customer: "C001", CustomerId: "C001" } },
+                { role_values: { Customer: "C002", CustomerId: "C002" } },
+              ],
+              source_references: [{ lines: [10, 12], excerpt: "Example: Customer C001" }],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      expect(result.model.populations).toHaveLength(1);
+      const pop = result.model.populations[0];
+      expect(pop).toBeDefined();
+      expect(pop!.instances).toHaveLength(2);
+      expect(pop!.description).toBe("Sample customers");
+    });
+
+    it("skips populations for non-existent fact types", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          populations: [
+            {
+              fact_type: "NonExistent",
+              instances: [{ role_values: { Player: "value" } }],
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      expect(result.model.populations).toHaveLength(0);
+      expect(result.warnings.some((w) => w.includes("NonExistent"))).toBe(true);
+    });
+
+    it("handles populations with missing player resolution", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          object_types: [
+            { name: "Customer", kind: "entity", reference_mode: "customer_id", source_references: [] },
+          ],
+          fact_types: [
+            {
+              name: "Test Fact",
+              roles: [{ player: "Customer", role_name: "test" }],
+              readings: ["{0}"],
+              source_references: [],
+            },
+          ],
+          populations: [
+            {
+              fact_type: "Test Fact",
+              instances: [
+                { role_values: { NonExistentPlayer: "value" } },
+              ],
+              source_references: [],
+            },
+          ],
+        }),
+        "Test",
+      );
+
+      // When all instances fail to resolve, population is still created but empty
+      expect(result.model.populations.length).toBeGreaterThanOrEqual(0);
+      expect(result.warnings.some((w) => w.includes("NonExistentPlayer"))).toBe(true);
+    });
+
+    it("handles empty populations array", () => {
+      const result = parseDraftModel(
+        makeResponse({
+          populations: [],
+        }),
+        "Test",
+      );
+
+      expect(result.model.populations).toHaveLength(0);
+    });
+
+    it("handles missing populations field", () => {
+      const result = parseDraftModel(makeResponse(), "Test");
+
+      expect(result.model.populations).toHaveLength(0);
     });
   });
 

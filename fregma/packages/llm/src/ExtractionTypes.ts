@@ -156,6 +156,27 @@ export interface Ambiguity {
 }
 
 /**
+ * A single fact instance extracted from an example in the transcript.
+ */
+export interface ExtractedFactInstance {
+  /** Role player name to example value mapping. */
+  readonly role_values: Record<string, string>;
+}
+
+/**
+ * A population (set of sample fact instances) extracted from the transcript.
+ */
+export interface ExtractedPopulation {
+  /** Name of the fact type this population samples. */
+  readonly fact_type: string;
+  /** Optional description of these examples. */
+  readonly description?: string;
+  /** Sample fact instances. */
+  readonly instances: readonly ExtractedFactInstance[];
+  readonly source_references: readonly SourceReference[];
+}
+
+/**
  * The complete structured response from the LLM extraction.
  * This is the JSON shape the LLM is instructed to produce.
  */
@@ -165,6 +186,7 @@ export interface ExtractionResponse {
   readonly subtypes: readonly ExtractedSubtype[];
   readonly inferred_constraints: readonly InferredConstraint[];
   readonly objectified_fact_types?: readonly ExtractedObjectifiedFactType[];
+  readonly populations?: readonly ExtractedPopulation[];
   readonly ambiguities: readonly Ambiguity[];
 }
 
