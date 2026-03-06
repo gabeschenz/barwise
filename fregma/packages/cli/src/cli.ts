@@ -13,6 +13,7 @@ import { registerDiagramCommand } from "./commands/diagram.js";
 import { registerDiffCommand } from "./commands/diff.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerDescribeCommand } from "./commands/describe.js";
+import { registerLineageCommand } from "./commands/lineage.js";
 
 export function createProgram(): Command {
   const program = new Command();
@@ -29,6 +30,7 @@ export function createProgram(): Command {
   registerDiagramCommand(program);
   registerDiffCommand(program);
   registerImportCommand(program);
+  registerLineageCommand(program);
 
   return program;
 }

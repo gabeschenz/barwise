@@ -683,4 +683,64 @@ describe("RelationalMapper", () => {
       expect(schema.sourceModelId).toBe("Order Management");
     });
   });
+
+  describe("traceability (sourceConstraintId)", () => {
+    it("populates sourceConstraintId on FK from uniqueness constraint", () => {
+      // Customer places Order with uniqueness on Order role.
+      // This should create a FK on the order table with sourceConstraintId
+      // pointing to the uniqueness constraint.
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withEntityType("Order", { referenceMode: "order_number" })
+        .withBinaryFactType("Customer places Order", {
+          role1: { player: "Customer", name: "places" },
+          role2: { player: "Order", name: "is placed by" },
+          uniqueness: "role2",
+        })
+        .build();
+
+      // Find the uniqueness constraint ID
+      const ft = model.getFactTypeByName("Customer places Order")!;
+      const uniquenessConstraint = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      )!;
+      expect(uniquenessConstraint).toBeDefined();
+
+      const schema = mapper.map(model);
+      const orderTable = schema.tables.find((t) => t.name === "order")!;
+      expect(orderTable.foreignKeys).toHaveLength(1);
+
+      const fk = orderTable.foreignKeys[0]!;
+      expect(fk.sourceConstraintId).toBeDefined();
+      expect(fk.sourceConstraintId).toBe(uniquenessConstraint.id);
+    });
+
+    it("populates sourceConstraintId on FK from mandatory constraint", () => {
+      // Customer places Order with mandatory on Order role.
+      // The FK is created because of the uniqueness constraint,
+      // but we should still track it.
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withEntityType("Order", { referenceMode: "order_number" })
+        .withBinaryFactType("Customer places Order", {
+          role1: { player: "Customer", name: "places" },
+          role2: { player: "Order", name: "is placed by" },
+          uniqueness: "role2",
+          mandatory: "role2",
+        })
+        .build();
+
+      const ft = model.getFactTypeByName("Customer places Order")!;
+      const uniquenessConstraint = ft.constraints.find(
+        (c) => c.type === "internal_uniqueness",
+      )!;
+
+      const schema = mapper.map(model);
+      const orderTable = schema.tables.find((t) => t.name === "order")!;
+      const fk = orderTable.foreignKeys[0]!;
+
+      // FK is created by uniqueness constraint
+      expect(fk.sourceConstraintId).toBe(uniquenessConstraint.id);
+    });
+  });
 });

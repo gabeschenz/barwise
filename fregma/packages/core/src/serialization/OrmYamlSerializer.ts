@@ -285,43 +285,60 @@ export class OrmYamlSerializer {
   }
 
   private serializeConstraint(c: Constraint): OrmYamlConstraint {
+    let result: OrmYamlConstraint;
     switch (c.type) {
       case "internal_uniqueness": {
         const iuc: OrmYamlConstraint = { type: "internal_uniqueness", roles: [...c.roleIds] };
         if (c.isPreferred) {
           (iuc as { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }).is_preferred = true;
         }
-        return iuc;
+        result = iuc;
+        break;
       }
       case "mandatory":
-        return { type: "mandatory", role: c.roleId };
+        result = { type: "mandatory", role: c.roleId };
+        break;
       case "external_uniqueness":
-        return { type: "external_uniqueness", roles: [...c.roleIds] };
+        result = { type: "external_uniqueness", roles: [...c.roleIds] };
+        break;
       case "value_constraint": {
-        const result: OrmYamlConstraint = {
+        const vc: OrmYamlConstraint = {
           type: "value_constraint",
           values: [...c.values],
         };
         if (c.roleId) {
-          (result as { type: "value_constraint"; role?: string; values: string[] }).role = c.roleId;
+          (vc as { type: "value_constraint"; role?: string; values: string[] }).role = c.roleId;
         }
-        return result;
+        result = vc;
+        break;
       }
       case "disjunctive_mandatory":
-        return { type: "disjunctive_mandatory", roles: [...c.roleIds] };
+        result = { type: "disjunctive_mandatory", roles: [...c.roleIds] };
+        break;
       case "exclusion":
-        return { type: "exclusion", roles: [...c.roleIds] };
+        result = { type: "exclusion", roles: [...c.roleIds] };
+        break;
       case "exclusive_or":
-        return { type: "exclusive_or", roles: [...c.roleIds] };
+        result = { type: "exclusive_or", roles: [...c.roleIds] };
+        break;
       case "subset":
-        return { type: "subset", subset_roles: [...c.subsetRoleIds], superset_roles: [...c.supersetRoleIds] };
+        result = { type: "subset", subset_roles: [...c.subsetRoleIds], superset_roles: [...c.supersetRoleIds] };
+        break;
       case "equality":
-        return { type: "equality", roles_1: [...c.roleIds1], roles_2: [...c.roleIds2] };
+        result = { type: "equality", roles_1: [...c.roleIds1], roles_2: [...c.roleIds2] };
+        break;
       case "ring":
-        return { type: "ring", role_1: c.roleId1, role_2: c.roleId2, ring_type: c.ringType };
+        result = { type: "ring", role_1: c.roleId1, role_2: c.roleId2, ring_type: c.ringType };
+        break;
       case "frequency":
-        return { type: "frequency", role: c.roleId, min: c.min, max: c.max };
+        result = { type: "frequency", role: c.roleId, min: c.min, max: c.max };
+        break;
     }
+    // Add constraint ID if present
+    if (c.id) {
+      (result as { id?: string }).id = c.id;
+    }
+    return result;
   }
 
   private serializeSubtypeFact(sf: SubtypeFact): OrmYamlSubtypeFact {
@@ -474,34 +491,54 @@ export class OrmYamlSerializer {
   }
 
   private deserializeConstraint(c: OrmYamlConstraint): Constraint {
+    let result: Constraint;
+    const id = (c as { id?: string }).id;
+
     switch (c.type) {
       case "internal_uniqueness": {
-        const result: Constraint = { type: "internal_uniqueness", roleIds: c.roles };
+        result = { type: "internal_uniqueness", roleIds: c.roles };
         if (c.is_preferred) {
-          return { ...result, isPreferred: true } as Constraint;
+          result = { ...result, isPreferred: true } as Constraint;
         }
-        return result;
+        break;
       }
       case "mandatory":
-        return { type: "mandatory", roleId: c.role };
+        result = { type: "mandatory", roleId: c.role };
+        break;
       case "external_uniqueness":
-        return { type: "external_uniqueness", roleIds: c.roles };
+        result = { type: "external_uniqueness", roleIds: c.roles };
+        break;
       case "value_constraint":
-        return { type: "value_constraint", roleId: c.role, values: c.values };
+        result = { type: "value_constraint", roleId: c.role, values: c.values };
+        break;
       case "disjunctive_mandatory":
-        return { type: "disjunctive_mandatory", roleIds: c.roles };
+        result = { type: "disjunctive_mandatory", roleIds: c.roles };
+        break;
       case "exclusion":
-        return { type: "exclusion", roleIds: c.roles };
+        result = { type: "exclusion", roleIds: c.roles };
+        break;
       case "exclusive_or":
-        return { type: "exclusive_or", roleIds: c.roles };
+        result = { type: "exclusive_or", roleIds: c.roles };
+        break;
       case "subset":
-        return { type: "subset", subsetRoleIds: c.subset_roles, supersetRoleIds: c.superset_roles };
+        result = { type: "subset", subsetRoleIds: c.subset_roles, supersetRoleIds: c.superset_roles };
+        break;
       case "equality":
-        return { type: "equality", roleIds1: c.roles_1, roleIds2: c.roles_2 };
+        result = { type: "equality", roleIds1: c.roles_1, roleIds2: c.roles_2 };
+        break;
       case "ring":
-        return { type: "ring", roleId1: c.role_1, roleId2: c.role_2, ringType: c.ring_type };
+        result = { type: "ring", roleId1: c.role_1, roleId2: c.role_2, ringType: c.ring_type };
+        break;
       case "frequency":
-        return { type: "frequency", roleId: c.role, min: c.min, max: c.max };
+        result = { type: "frequency", roleId: c.role, min: c.min, max: c.max };
+        break;
     }
+
+    // Preserve ID if present in serialized form
+    if (id) {
+      result = { ...result, id };
+    }
+
+    return result;
   }
 }

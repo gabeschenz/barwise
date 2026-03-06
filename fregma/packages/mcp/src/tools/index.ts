@@ -12,6 +12,8 @@ import { registerImportTool } from "./import.js";
 import { registerMergeTool } from "./merge.js";
 import { registerExportModelTool } from "./exportModel.js";
 import { registerDescribeDomainTool } from "./describeDomain.js";
+import { registerLineageStatusTool } from "./lineageStatus.js";
+import { registerImpactAnalysisTool } from "./impactAnalysis.js";
 
 export function registerTools(server: McpServer): void {
   registerValidateTool(server);
@@ -23,4 +25,6 @@ export function registerTools(server: McpServer): void {
   registerMergeTool(server);
   registerExportModelTool(server);
   registerDescribeDomainTool(server);
+  registerLineageStatusTool(server);
+  registerImpactAnalysisTool(server);
 }

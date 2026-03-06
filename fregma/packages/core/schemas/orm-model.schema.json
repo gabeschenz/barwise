@@ -179,6 +179,10 @@
         {
           "properties": {
             "type": { "const": "internal_uniqueness" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -196,6 +200,10 @@
         {
           "properties": {
             "type": { "const": "mandatory" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "role": {
               "type": "string",
               "minLength": 1,
@@ -208,6 +216,10 @@
         {
           "properties": {
             "type": { "const": "external_uniqueness" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -221,6 +233,10 @@
         {
           "properties": {
             "type": { "const": "value_constraint" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "role": {
               "type": "string",
               "minLength": 1,
@@ -239,6 +255,10 @@
         {
           "properties": {
             "type": { "const": "disjunctive_mandatory" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -252,6 +272,10 @@
         {
           "properties": {
             "type": { "const": "exclusion" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -265,6 +289,10 @@
         {
           "properties": {
             "type": { "const": "exclusive_or" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -278,6 +306,10 @@
         {
           "properties": {
             "type": { "const": "subset" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "subset_roles": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -297,6 +329,10 @@
         {
           "properties": {
             "type": { "const": "equality" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "roles_1": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
@@ -316,6 +352,10 @@
         {
           "properties": {
             "type": { "const": "ring" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "role_1": {
               "type": "string",
               "minLength": 1,
@@ -338,6 +378,10 @@
         {
           "properties": {
             "type": { "const": "frequency" },
+            "id": {
+              "type": "string",
+              "description": "Unique identifier for constraint traceability."
+            },
             "role": {
               "type": "string",
               "minLength": 1,

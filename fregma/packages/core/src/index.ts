@@ -284,8 +284,6 @@ export type {
   ExportOptions,
   ExportResult,
   ConstraintSpec,
-  SourceReference,
-  LineageEntry,
 } from "./export/types.js";
 export {
   formatRegistry,
@@ -309,3 +307,35 @@ export type {
   DomainDescription,
 } from "./describe/index.js";
 export { describeDomain } from "./describe/index.js";
+
+// Lineage
+export type {
+  SourceReference,
+  LineageEntry,
+  ManifestExport,
+  LineageManifest,
+} from "./lineage/types.js";
+export {
+  writeManifest,
+  readManifest,
+  updateManifest,
+  hashModel,
+} from "./lineage/manifest.js";
+export {
+  generateDdlLineage,
+  generateModelLineage,
+} from "./lineage/generate.js";
+export type {
+  StaleArtifact,
+  StalenessReport,
+} from "./lineage/staleness.js";
+export {
+  checkStaleness,
+} from "./lineage/staleness.js";
+export type {
+  AffectedArtifact,
+  ImpactReport,
+} from "./lineage/impact.js";
+export {
+  analyzeImpact,
+} from "./lineage/impact.js";
