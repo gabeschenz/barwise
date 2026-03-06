@@ -9,6 +9,7 @@ import { registerSchemaTool } from "./schema.js";
 import { registerDiffTool } from "./diff.js";
 import { registerDiagramTool } from "./diagram.js";
 import { registerImportTool } from "./import.js";
+import { registerImportModelTool } from "./importModel.js";
 import { registerMergeTool } from "./merge.js";
 
 export function registerTools(server: McpServer): void {
@@ -18,5 +19,6 @@ export function registerTools(server: McpServer): void {
   registerDiffTool(server);
   registerDiagramTool(server);
   registerImportTool(server);
+  registerImportModelTool(server);
   registerMergeTool(server);
 }

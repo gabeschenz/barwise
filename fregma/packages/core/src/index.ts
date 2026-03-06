@@ -272,6 +272,7 @@ export {
   ImportFormatError,
 } from "./import/registry.js";
 export { DdlImportFormat } from "./import/DdlImportFormat.js";
+export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
 
 // Annotation (shared helpers + ORM YAML annotator)
 export {
