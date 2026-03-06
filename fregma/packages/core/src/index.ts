@@ -277,3 +277,20 @@ export {
   type OrmAnnotationOptions,
   type OrmAnnotationResult,
 } from "./annotation/OrmYamlAnnotator.js";
+
+// Export system (unified export formats, registry, and adapters)
+export type {
+  ExportFormatAdapter,
+  ExportOptions,
+  ExportResult,
+  ConstraintSpec,
+  SourceReference,
+  LineageEntry,
+} from "./export/types.js";
+export {
+  formatRegistry,
+  registerFormat,
+  getFormat,
+  listFormats,
+} from "./export/registry.js";
+export { DdlExportFormat, ddlExportFormat } from "./export/DdlExportFormat.js";
