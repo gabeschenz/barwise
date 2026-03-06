@@ -13,29 +13,33 @@ const serializer = new OrmYamlSerializer();
 
 describe("export_model tool", () => {
   const simpleModel = `
-name: Test Model
-object_types:
-  - name: Customer
-    kind: entity
-    is_independent: true
-    reference_mode: cust_id
-  - name: Order
-    kind: entity
-    is_independent: true
-    reference_mode: order_num
-fact_types:
-  - name: Customer places Order
-    roles:
-      - name: places
-        player: Customer
-      - name: is placed by
-        player: Order
-    readings:
-      - template: "{0} places {1}"
-        role_order: [0, 1]
-    constraints:
-      - type: internal_uniqueness
-        covers_roles: [1]
+orm_version: "1.0"
+model:
+  name: Test Model
+  object_types:
+    - id: ot-customer
+      name: Customer
+      kind: entity
+      reference_mode: cust_id
+    - id: ot-order
+      name: Order
+      kind: entity
+      reference_mode: order_num
+  fact_types:
+    - id: ft-customer-places-order
+      name: Customer places Order
+      roles:
+        - id: r-cust-places
+          player: ot-customer
+          role_name: places
+        - id: r-order-placed-by
+          player: ot-order
+          role_name: is placed by
+      readings:
+        - "{0} places {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles: [r-order-placed-by]
 `;
 
   beforeEach(() => {
@@ -106,17 +110,35 @@ fact_types:
 
   describe("strict mode", () => {
     it("returns error when model has validation errors in strict mode", () => {
-      // Create a model with validation errors.
+      // Create a model with ORM validation errors (constraint references non-existent role).
       const invalidModel = `
-name: Invalid Model
-object_types:
-  - name: Customer
-    kind: entity
-    is_independent: true
-fact_types:
-  - name: InvalidFact
-    roles: []
-    readings: []
+orm_version: "1.0"
+model:
+  name: Invalid Model
+  object_types:
+    - id: ot-customer
+      name: Customer
+      kind: entity
+      reference_mode: cust_id
+    - id: ot-order
+      name: Order
+      kind: entity
+      reference_mode: order_num
+  fact_types:
+    - id: ft-invalid
+      name: Customer places Order
+      roles:
+        - id: r-1
+          player: ot-customer
+          role_name: places
+        - id: r-2
+          player: ot-order
+          role_name: is placed by
+      readings:
+        - "{0} places {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles: [r-nonexistent]
 `;
 
       const result = executeExportModel(invalidModel, "ddl", {

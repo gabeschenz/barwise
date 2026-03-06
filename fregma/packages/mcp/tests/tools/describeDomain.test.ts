@@ -9,32 +9,36 @@ import { executeDescribeDomain } from "../../src/tools/describeDomain.js";
 
 describe("describe_domain tool", () => {
   const simpleModel = `
-name: Test Model
-object_types:
-  - name: Customer
-    kind: entity
-    is_independent: true
-    reference_mode: cust_id
-    definition: A person who buys products
-  - name: Order
-    kind: entity
-    is_independent: true
-    reference_mode: order_num
-fact_types:
-  - name: Customer places Order
-    roles:
-      - name: places
-        player: Customer
-      - name: is placed by
-        player: Order
-    readings:
-      - template: "{0} places {1}"
-        role_order: [0, 1]
-    constraints:
-      - type: internal_uniqueness
-        covers_roles: [1]
-      - type: mandatory_role
-        covers_roles: [1]
+orm_version: "1.0"
+model:
+  name: Test Model
+  object_types:
+    - id: ot-customer
+      name: Customer
+      kind: entity
+      reference_mode: cust_id
+      definition: A person who buys products
+    - id: ot-order
+      name: Order
+      kind: entity
+      reference_mode: order_num
+  fact_types:
+    - id: ft-customer-places-order
+      name: Customer places Order
+      roles:
+        - id: r-cust-places
+          player: ot-customer
+          role_name: places
+        - id: r-order-placed-by
+          player: ot-order
+          role_name: is placed by
+      readings:
+        - "{0} places {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles: [r-order-placed-by]
+        - type: mandatory
+          role: r-order-placed-by
 `;
 
   describe("full summary (no focus)", () => {
@@ -111,39 +115,46 @@ fact_types:
 
   describe("includePopulations option", () => {
     const modelWithPopulation = `
-name: Test Model
-object_types:
-  - name: Customer
-    kind: entity
-    is_independent: true
-    reference_mode: cust_id
-  - name: Order
-    kind: entity
-    is_independent: true
-    reference_mode: order_num
-fact_types:
-  - name: Customer places Order
-    roles:
-      - name: places
-        player: Customer
-      - name: is placed by
-        player: Order
-    readings:
-      - template: "{0} places {1}"
-        role_order: [0, 1]
-    constraints:
-      - type: internal_uniqueness
-        covers_roles: [1]
-populations:
-  - fact_type: Customer places Order
-    description: Sample orders
-    instances:
-      - role_values:
-          "0": C001
-          "1": O123
-      - role_values:
-          "0": C001
-          "1": O124
+orm_version: "1.0"
+model:
+  name: Test Model
+  object_types:
+    - id: ot-customer
+      name: Customer
+      kind: entity
+      reference_mode: cust_id
+    - id: ot-order
+      name: Order
+      kind: entity
+      reference_mode: order_num
+  fact_types:
+    - id: ft-customer-places-order
+      name: Customer places Order
+      roles:
+        - id: r-cust-places
+          player: ot-customer
+          role_name: places
+        - id: r-order-placed-by
+          player: ot-order
+          role_name: is placed by
+      readings:
+        - "{0} places {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles: [r-order-placed-by]
+  populations:
+    - id: pop-1
+      fact_type: ft-customer-places-order
+      description: Sample orders
+      instances:
+        - id: inst-1
+          role_values:
+            r-cust-places: C001
+            r-order-placed-by: O123
+        - id: inst-2
+          role_values:
+            r-cust-places: C001
+            r-order-placed-by: O124
 `;
 
     it("includes populations by default", () => {
@@ -168,14 +179,26 @@ populations:
     });
   });
 
-  describe("error handling", () => {
-    it("handles invalid YAML", () => {
-      const invalidYaml = "not: valid: yaml:";
+  describe("minimal model", () => {
+    it("handles minimal valid model", () => {
+      // Minimal valid model with no fact types
+      const minimalModel = `
+orm_version: "1.0"
+model:
+  name: Minimal Model
+  object_types:
+    - id: ot-customer
+      name: Customer
+      kind: entity
+      reference_mode: cust_id
+`;
 
-      const result = executeDescribeDomain(invalidYaml);
+      const result = executeDescribeDomain(minimalModel);
 
       const parsed = JSON.parse(result.content[0]!.text);
-      expect(parsed.error).toBeDefined();
+      expect(parsed.summary).toBeDefined();
+      expect(parsed.entities).toHaveLength(1);
+      expect(parsed.factTypes).toHaveLength(0);
     });
   });
 });
