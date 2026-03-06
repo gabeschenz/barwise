@@ -58,7 +58,14 @@ Analyze the transcript carefully and extract:
    - If stakeholders use alternative names or synonyms for this concept, list them in the aliases array (e.g., aliases: ["Client"] when the primary name is "Customer")
    - Include source references (line numbers and verbatim excerpts)
 
-2. **Fact types**: Identify relationships between object types. For each:
+2. **Populations**: Capture example data mentioned in the transcript. When stakeholders give concrete examples like "Customer Alice placed Order 123" or "Status can be scheduled, completed, or cancelled", record these as sample fact instances. For each population:
+   - Identify the fact type being exemplified
+   - List the role player names and their example values
+   - Include source references
+   - Only capture examples explicitly mentioned in the transcript -- do not invent sample data
+   - Examples serve two purposes: (1) validation -- they can be checked against constraints to verify the model is correct, (2) documentation -- they make abstract fact types concrete for stakeholders and developers
+
+3. **Fact types**: Identify relationships between object types. For each:
    - Provide a descriptive name (e.g., "Customer places Order")
    - List the roles with their player (object type name) and role_name
    - Provide at least one reading template using {0}, {1}, etc. as placeholders
@@ -76,7 +83,7 @@ Analyze the transcript carefully and extract:
 
    When scheduling or assignment constraints involve multiple dimensions (e.g., "a patient can have at most one appointment per date and time slot", "a doctor can have at most one appointment per date and time slot"), these cross-entity constraints require all participating concepts in one fact type. Model a single higher-arity fact type (e.g., "Appointment is for Patient with Doctor on Date at TimeSlot") and apply multiple uniqueness constraints on different role combinations within it. Do NOT model these as separate binary fact types -- the scheduling constraints cannot be expressed on independent binaries.
 
-3. **Objectified fact types**: Identify when a relationship is itself treated as an entity in other relationships. This is called objectification (or nesting). For example, if the transcript discusses "Enrollment" as a concept that has its own properties (grade, semester) AND enrollment represents the relationship "Student enrolls in Course", then "Student enrolls in Course" is objectified as "Enrollment". For each:
+4. **Objectified fact types**: Identify when a relationship is itself treated as an entity in other relationships. This is called objectification (or nesting). For example, if the transcript discusses "Enrollment" as a concept that has its own properties (grade, semester) AND enrollment represents the relationship "Student enrolls in Course", then "Student enrolls in Course" is objectified as "Enrollment". For each:
    - Specify the fact_type name (the underlying relationship, e.g., "Student enrolls in Course")
    - Specify the object_type name (the entity created by objectification, e.g., "Enrollment")
    - Both must appear in the extracted fact_types and object_types respectively
@@ -374,6 +381,46 @@ export function buildResponseSchema(): Record<string, unknown> {
           ],
         },
       },
+      populations: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            fact_type: { type: "string" },
+            description: { type: "string" },
+            instances: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  role_values: {
+                    type: "object",
+                    additionalProperties: { type: "string" },
+                  },
+                },
+                required: ["role_values"],
+              },
+            },
+            source_references: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  lines: {
+                    type: "array",
+                    items: { type: "number" },
+                    minItems: 2,
+                    maxItems: 2,
+                  },
+                  excerpt: { type: "string" },
+                },
+                required: ["lines", "excerpt"],
+              },
+            },
+          },
+          required: ["fact_type", "instances", "source_references"],
+        },
+      },
       ambiguities: {
         type: "array",
         items: {
@@ -437,6 +484,9 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
   const objectifiedFactTypes = Array.isArray(obj["objectified_fact_types"])
     ? obj["objectified_fact_types"]
     : [];
+  const populations = Array.isArray(obj["populations"])
+    ? obj["populations"]
+    : [];
   const ambiguities = Array.isArray(obj["ambiguities"])
     ? obj["ambiguities"]
     : [];
@@ -449,6 +499,7 @@ export function parseExtractionResponse(json: unknown): ExtractionResponse {
       inferredConstraints as ExtractionResponse["inferred_constraints"],
     objectified_fact_types:
       objectifiedFactTypes as ExtractionResponse["objectified_fact_types"],
+    populations: populations as ExtractionResponse["populations"],
     ambiguities: ambiguities as ExtractionResponse["ambiguities"],
   };
 }

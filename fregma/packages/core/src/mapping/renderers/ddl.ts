@@ -5,12 +5,36 @@
  */
 
 import type { RelationalSchema, Table } from "../RelationalSchema.js";
+import type { OrmModel } from "../../model/OrmModel.js";
+import { renderPopulationAsSql } from "../../export/populationRenderer.js";
+
+export interface DdlRenderOptions {
+  /** Include population examples as INSERT statements (default: true). */
+  readonly includeExamples?: boolean;
+}
 
 /**
  * Render a RelationalSchema as SQL DDL.
+ *
+ * @param schema - The relational schema to render
+ * @param model - The source ORM model (required for populations)
+ * @param options - Rendering options
  */
-export function renderDdl(schema: RelationalSchema): string {
-  return schema.tables.map((t) => renderTable(t)).join("\n\n");
+export function renderDdl(
+  schema: RelationalSchema,
+  model?: OrmModel,
+  options?: DdlRenderOptions,
+): string {
+  const includeExamples = options?.includeExamples ?? true;
+  const ddl = schema.tables.map((t) => renderTable(t)).join("\n\n");
+
+  // Append population examples if requested and model is provided
+  if (includeExamples && model) {
+    const examples = renderPopulationAsSql(model, schema);
+    return examples ? ddl + examples : ddl;
+  }
+
+  return ddl;
 }
 
 function renderTable(table: Table): string {

@@ -22,6 +22,8 @@
  */
 
 import type { RelationalSchema, Table } from "../RelationalSchema.js";
+import type { OrmModel } from "../../model/OrmModel.js";
+import { renderPopulationAsOpenApiExamples } from "../../export/populationRenderer.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -33,6 +35,7 @@ export interface OpenApiPropertyType {
   readonly format?: string;
   readonly nullable?: true;
   readonly $ref?: string;
+  readonly example?: unknown;
 }
 
 /** Options for OpenAPI rendering. */
@@ -43,6 +46,8 @@ export interface OpenApiRenderOptions {
   readonly version?: string;
   /** Base path prefix for all endpoints (default: "/"). */
   readonly basePath?: string;
+  /** Include population examples in schemas (default: true). */
+  readonly includeExamples?: boolean;
 }
 
 /** The complete OpenAPI specification document. */
@@ -64,21 +69,49 @@ export interface OpenApiSpec {
 
 /**
  * Render a RelationalSchema as an OpenAPI 3.0.0 specification.
+ *
+ * @param schema - The relational schema to render
+ * @param optionsOrModel - Either rendering options OR the source ORM model (for backward compatibility)
+ * @param maybeOptions - Rendering options (when second param is a model)
  */
 export function renderOpenApi(
   schema: RelationalSchema,
-  options: OpenApiRenderOptions = {},
+  optionsOrModel?: OpenApiRenderOptions | OrmModel,
+  maybeOptions?: OpenApiRenderOptions,
 ): OpenApiSpec {
+  // Handle overloaded parameters for backward compatibility
+  let options: OpenApiRenderOptions;
+  let model: OrmModel | undefined;
+
+  if (!optionsOrModel) {
+    options = {};
+    model = undefined;
+  } else if ('objectTypes' in optionsOrModel) {
+    // Second param is a model
+    model = optionsOrModel;
+    options = maybeOptions ?? {};
+  } else {
+    // Second param is options (original signature)
+    options = optionsOrModel;
+    model = undefined;
+  }
   const title = options.title ?? "ORM API";
   const version = options.version ?? "1.0.0";
   const basePath = normalizePath(options.basePath ?? "/");
+  const includeExamples = options.includeExamples ?? true;
+
+  // Get population examples if requested and model is provided
+  const examples = includeExamples && model
+    ? renderPopulationAsOpenApiExamples(model)
+    : new Map<string, Record<string, unknown>>();
 
   const schemas: Record<string, unknown> = {};
   const paths: Record<string, unknown> = {};
 
   for (const table of schema.tables) {
     const schemaName = toPascalCase(table.name);
-    schemas[schemaName] = renderComponentSchema(table);
+    const example = examples.get(schemaName);
+    schemas[schemaName] = renderComponentSchema(table, example);
 
     const resourcePath = `${basePath}${toKebabCase(table.name)}`;
     const idPath = `${resourcePath}/{${primaryKeyParam(table)}}`;
@@ -106,7 +139,10 @@ export function openApiToJson(spec: OpenApiSpec): string {
 // Schema generation
 // ---------------------------------------------------------------------------
 
-function renderComponentSchema(table: Table): Record<string, unknown> {
+function renderComponentSchema(
+  table: Table,
+  example?: Record<string, unknown>,
+): Record<string, unknown> {
   const properties: Record<string, OpenApiPropertyType> = {};
   const required: string[] = [];
 
@@ -127,7 +163,12 @@ function renderComponentSchema(table: Table): Record<string, unknown> {
       };
       properties[col.name] = prop;
     } else {
-      properties[col.name] = sqlTypeToOpenApi(col.dataType, col.nullable);
+      const prop = sqlTypeToOpenApi(col.dataType, col.nullable);
+      // Add example value if available
+      if (example && example[col.name] !== undefined) {
+        (prop as { example: unknown }).example = example[col.name];
+      }
+      properties[col.name] = prop;
     }
 
     if (!col.nullable) {
@@ -135,11 +176,18 @@ function renderComponentSchema(table: Table): Record<string, unknown> {
     }
   }
 
-  return {
+  const schema: Record<string, unknown> = {
     type: "object",
     properties,
     ...(required.length > 0 ? { required } : {}),
   };
+
+  // Add example object at schema level if available
+  if (example && Object.keys(example).length > 0) {
+    schema.example = example;
+  }
+
+  return schema;
 }
 
 // ---------------------------------------------------------------------------
