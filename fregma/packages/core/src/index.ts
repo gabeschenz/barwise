@@ -258,6 +258,21 @@ export {
   type AnnotationOptions,
 } from "./import/DbtYamlAnnotator.js";
 
+// Import format system
+export type {
+  ImportFormat,
+  ImportOptions,
+  ImportResult,
+} from "./import/types.js";
+export {
+  registerImportFormat,
+  getImportFormat,
+  listImportFormats,
+  clearImportFormats,
+  ImportFormatError,
+} from "./import/registry.js";
+export { DdlImportFormat } from "./import/DdlImportFormat.js";
+
 // Annotation (shared helpers + ORM YAML annotator)
 export {
   stripFregmaComments,
