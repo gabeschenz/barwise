@@ -10,6 +10,8 @@ import { registerDiffTool } from "./diff.js";
 import { registerDiagramTool } from "./diagram.js";
 import { registerImportTool } from "./import.js";
 import { registerMergeTool } from "./merge.js";
+import { registerLineageStatusTool } from "./lineageStatus.js";
+import { registerImpactAnalysisTool } from "./impactAnalysis.js";
 
 export function registerTools(server: McpServer): void {
   registerValidateTool(server);
@@ -19,4 +21,6 @@ export function registerTools(server: McpServer): void {
   registerDiagramTool(server);
   registerImportTool(server);
   registerMergeTool(server);
+  registerLineageStatusTool(server);
+  registerImpactAnalysisTool(server);
 }
