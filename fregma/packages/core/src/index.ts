@@ -277,3 +277,17 @@ export {
   type OrmAnnotationOptions,
   type OrmAnnotationResult,
 } from "./annotation/OrmYamlAnnotator.js";
+
+// Lineage
+export type {
+  SourceReference,
+  LineageEntry,
+  ManifestExport,
+  LineageManifest,
+} from "./lineage/types.js";
+export {
+  writeManifest,
+  readManifest,
+  updateManifest,
+  hashModel,
+} from "./lineage/manifest.js";

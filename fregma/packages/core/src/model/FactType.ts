@@ -65,7 +65,10 @@ export class FactType extends ModelElement {
     }
 
     this._readings = config.readings.map((template) => ({ template }));
-    this._constraints = [...(config.constraints ?? [])];
+    // Assign IDs to constraints that don't have them (for traceability).
+    this._constraints = (config.constraints ?? []).map((c) =>
+      c.id ? c : { ...c, id: crypto.randomUUID() }
+    );
     this._definition = config.definition;
   }
 
