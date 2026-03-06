@@ -115,3 +115,7 @@
 {"actor":"Gabe Schenz","comment":null,"created_at":"2026-03-01T21:45:54Z","event_type":"created","id":115,"issue_id":"FREGMA-bii","new_value":"","old_value":""}
 {"actor":"Gabe Schenz","comment":null,"created_at":"2026-03-01T21:46:05Z","event_type":"created","id":116,"issue_id":"FREGMA-4i9","new_value":"","old_value":""}
 {"actor":"Gabe Schenz","comment":null,"created_at":"2026-03-01T21:46:05Z","event_type":"created","id":117,"issue_id":"FREGMA-8n5","new_value":"","old_value":""}
+{"actor":"Gabe Schenz","comment":null,"created_at":"2026-03-06T11:06:03Z","event_type":"created","id":118,"issue_id":"FREGMA-cff","new_value":"","old_value":""}
+{"actor":"Gabe Schenz","comment":"Added label: mcp","created_at":"2026-03-06T11:06:03Z","event_type":"label_added","id":119,"issue_id":"FREGMA-cff","new_value":null,"old_value":null}
+{"actor":"Gabe Schenz","comment":"Added label: vscode","created_at":"2026-03-06T11:06:03Z","event_type":"label_added","id":120,"issue_id":"FREGMA-cff","new_value":null,"old_value":null}
+{"actor":"Gabe Schenz","comment":"Added label: export","created_at":"2026-03-06T11:06:03Z","event_type":"label_added","id":121,"issue_id":"FREGMA-cff","new_value":null,"old_value":null}
