@@ -18,6 +18,11 @@ export function registerSchemaCommand(program: Command): void {
     .option("--format <format>", "Output format (ddl or json)", "ddl")
     .option("--output <file>", "Write output to file instead of stdout")
     .action(async (file: string, opts: { format: string; output?: string }) => {
+      // Print deprecation notice to stderr.
+      process.stderr.write(
+        "Note: 'fregma schema' is deprecated. Use 'fregma export --format ddl' instead.\n\n",
+      );
+
       try {
         const model = loadModel(file);
         const mapper = new RelationalMapper();

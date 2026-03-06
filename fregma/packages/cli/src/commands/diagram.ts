@@ -15,6 +15,11 @@ export function registerDiagramCommand(program: Command): void {
     .argument("<file>", "Path to .orm.yaml file")
     .option("--output <file>", "Write SVG to file instead of stdout")
     .action(async (file: string, opts: { output?: string }) => {
+      // Print deprecation notice to stderr.
+      process.stderr.write(
+        "Note: 'fregma diagram' is deprecated. Use 'fregma export --format svg' instead (when available).\n\n",
+      );
+
       try {
         const model = loadModel(file);
         const result = await generateDiagram(model);
