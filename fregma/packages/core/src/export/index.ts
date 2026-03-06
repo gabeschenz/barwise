@@ -24,3 +24,7 @@ export {
 
 // Format adapters.
 export { DdlExportFormat, ddlExportFormat } from "./DdlExportFormat.js";
+export {
+  OpenApiExportFormat,
+  openApiExportFormat,
+} from "./OpenApiExportFormat.js";

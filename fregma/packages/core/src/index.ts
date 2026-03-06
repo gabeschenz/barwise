@@ -294,3 +294,18 @@ export {
   listFormats,
 } from "./export/registry.js";
 export { DdlExportFormat, ddlExportFormat } from "./export/DdlExportFormat.js";
+export {
+  OpenApiExportFormat,
+  openApiExportFormat,
+} from "./export/OpenApiExportFormat.js";
+
+// Describe system (domain description and querying)
+export type {
+  DescribeDomainOptions,
+  EntitySummary,
+  FactTypeSummary,
+  ConstraintSummary,
+  PopulationSummary,
+  DomainDescription,
+} from "./describe/index.js";
+export { describeDomain } from "./describe/index.js";

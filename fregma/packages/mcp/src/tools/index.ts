@@ -10,6 +10,8 @@ import { registerDiffTool } from "./diff.js";
 import { registerDiagramTool } from "./diagram.js";
 import { registerImportTool } from "./import.js";
 import { registerMergeTool } from "./merge.js";
+import { registerExportModelTool } from "./exportModel.js";
+import { registerDescribeDomainTool } from "./describeDomain.js";
 
 export function registerTools(server: McpServer): void {
   registerValidateTool(server);
@@ -19,4 +21,6 @@ export function registerTools(server: McpServer): void {
   registerDiagramTool(server);
   registerImportTool(server);
   registerMergeTool(server);
+  registerExportModelTool(server);
+  registerDescribeDomainTool(server);
 }

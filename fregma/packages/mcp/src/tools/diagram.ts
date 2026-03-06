@@ -13,6 +13,7 @@ export function registerDiagramTool(server: McpServer): void {
     {
       title: "Generate ORM Diagram",
       description:
+        "DEPRECATED: Use export_model with format='svg' instead. This tool will be removed in a future version. " +
         "Generate an SVG diagram from an ORM 2 model. " +
         "Returns the SVG markup as text.",
       inputSchema: {
