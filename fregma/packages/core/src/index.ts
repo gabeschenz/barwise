@@ -291,3 +291,21 @@ export {
   updateManifest,
   hashModel,
 } from "./lineage/manifest.js";
+export {
+  generateDdlLineage,
+  generateModelLineage,
+} from "./lineage/generate.js";
+export type {
+  StaleArtifact,
+  StalenessReport,
+} from "./lineage/staleness.js";
+export {
+  checkStaleness,
+} from "./lineage/staleness.js";
+export type {
+  AffectedArtifact,
+  ImpactReport,
+} from "./lineage/impact.js";
+export {
+  analyzeImpact,
+} from "./lineage/impact.js";
