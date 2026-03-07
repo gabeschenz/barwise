@@ -34,4 +34,4 @@ Each mirrors the structure of its corresponding subset test.
 - `npx vitest run` in packages/llm passes (170 + 3 = 173 tests)
 - No lint errors
 
-### Status: Not Started
+### Status: Complete
