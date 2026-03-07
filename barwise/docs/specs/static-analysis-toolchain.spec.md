@@ -67,7 +67,7 @@ in CI (GitHub Actions on every PR).
 - Add `.tsbuildinfo` to .gitignore.
 - Verify Turborepo caching still works correctly with
   incremental output.
-- Status: Not Started
+- Status: Complete
 
 ### Stage 8: publint (package publishing lint)
 
