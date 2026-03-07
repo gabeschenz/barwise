@@ -1,14 +1,15 @@
 # CLAUDE.md
 
-## Project: Fregma
+## Project: Barwise
 
 An ORM 2 (Object-Role Modeling) toolkit for data engineers and
 architects. Includes a VS Code extension, CLI tool, and MCP server.
-Named after Frege + Schema.
+Named after Jon Barwise, whose work on situation semantics
+provides the theoretical foundation for fact-based modeling.
 
 ## Essential Context
 
-Read `fregma/docs/ARCHITECTURE.md` before making any changes. It
+Read `barwise/docs/ARCHITECTURE.md` before making any changes. It
 contains the full system design, metamodel specification, and phasing
 plan.
 
@@ -18,33 +19,33 @@ Each package has its own CLAUDE.md with dependency rules, layout,
 commands, and testing conventions. Read the relevant file before
 working in a package:
 
-- `fregma/packages/core/CLAUDE.md` -- metamodel, validation, verbalization, serialization, mapping
-- `fregma/packages/diagram/CLAUDE.md` -- diagram layout and SVG rendering
-- `fregma/packages/llm/CLAUDE.md` -- LLM transcript extraction
-- `fregma/packages/cli/CLAUDE.md` -- CLI tool (validate, verbalize, schema, export, diagram, diff, import)
-- `fregma/packages/mcp/CLAUDE.md` -- MCP server (tools, resources, prompts)
-- `fregma/packages/vscode/CLAUDE.md` -- VS Code extension integration
+- `barwise/packages/core/CLAUDE.md` -- metamodel, validation, verbalization, serialization, mapping
+- `barwise/packages/diagram/CLAUDE.md` -- diagram layout and SVG rendering
+- `barwise/packages/llm/CLAUDE.md` -- LLM transcript extraction
+- `barwise/packages/cli/CLAUDE.md` -- CLI tool (validate, verbalize, schema, export, diagram, diff, import)
+- `barwise/packages/mcp/CLAUDE.md` -- MCP server (tools, resources, prompts)
+- `barwise/packages/vscode/CLAUDE.md` -- VS Code extension integration
 - `AGENTS.md` -- General guidance on development practices.
 
 ## Dependency Graph
 
 ```
-@fregma/core          (no internal deps)
+@barwise/core          (no internal deps)
   ^
-  |--- @fregma/diagram  (core)
-  |--- @fregma/llm      (core)
-  |--- @fregma/cli      (core, diagram, llm)
-  |--- @fregma/mcp      (core, diagram, llm)
-  |--- fregma-vscode     (core, diagram, llm, mcp)
+  |--- @barwise/diagram  (core)
+  |--- @barwise/llm      (core)
+  |--- @barwise/cli      (core, diagram, llm)
+  |--- @barwise/mcp      (core, diagram, llm)
+  |--- barwise-vscode     (core, diagram, llm, mcp)
 ```
 
-Changes to `@fregma/core` can break all downstream packages. Run the
+Changes to `@barwise/core` can break all downstream packages. Run the
 full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
 All phases are complete. The project has 1,315 passing tests across 6
-packages. The CLI tool (`fregma`) and MCP server (`fregma-mcp`) provide
+packages. The CLI tool (`barwise`) and MCP server (`barwise-mcp`) provide
 the same capabilities as the VS Code extension for terminal and AI
 workflows. The VS Code extension is functional but lacks integration
 tests. NORMA XML import is functional with data type resolution and
@@ -70,15 +71,15 @@ preferred identifier support.
 
 ### Phase 3 -- COMPLETE
 
-11. LLM transcript processing (@fregma/llm) -- DONE
-12. Diagram visualization (@fregma/diagram) -- DONE
+11. LLM transcript processing (@barwise/llm) -- DONE
+12. Diagram visualization (@barwise/diagram) -- DONE
 13. VS Code extension (LSP, commands, webview) -- DONE
 
 ### Phase 4 -- COMPLETE
 
 14. LLM provider expansion (OpenAI, Ollama, factory) -- DONE
-15. CLI tool (@fregma/cli) -- DONE
-16. MCP server (@fregma/mcp) -- DONE
+15. CLI tool (@barwise/cli) -- DONE
+16. MCP server (@barwise/mcp) -- DONE
 
 ### Remaining Work
 
@@ -86,7 +87,7 @@ preferred identifier support.
 - NORMA XML import enhancements (role-level value constraints, external uniqueness import) -- LOW
 - Internal naming audit for semantic precision (FREGMA-93q) -- LOW
 
-## Monorepo Commands (run from `fregma/`)
+## Monorepo Commands (run from `barwise/`)
 
 - `npm run build` -- build all packages (Turborepo, respects dependency order)
 - `npm run test` -- test all packages
@@ -99,7 +100,7 @@ preferred identifier support.
 
 - ALWAYS create a spec file before beginning development.  There should
   be a documented and reviewed plan to ensure the quality of work is high.
-- TypeScript strict mode. Base config in `fregma/tsconfig.base.json`
+- TypeScript strict mode. Base config in `barwise/tsconfig.base.json`
   uses NodeNext module resolution; the vscode package overrides to
   Bundler resolution for esbuild.
 - Vitest for all test packages. Tests co-located under `tests/`
@@ -109,6 +110,6 @@ preferred identifier support.
   by JavaScript or Node core (e.g. use `node:crypto.randomUUID()` not
   `uuid`). High-quality libraries that solve real problems (yaml, ajv)
   are fine.
-- ESLint config is shared at the repo root (`fregma/eslint.config.mjs`).
-- Turborepo (`fregma/turbo.json`) orchestrates build/test/lint with
+- ESLint config is shared at the repo root (`barwise/eslint.config.mjs`).
+- Turborepo (`barwise/turbo.json`) orchestrates build/test/lint with
   correct dependency ordering.

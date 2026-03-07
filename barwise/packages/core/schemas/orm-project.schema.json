@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://barwise.dev/schemas/orm-project.schema.json",
+  "title": "ORM Project Manifest",
+  "description": "Schema for .orm-project.yaml files that define multi-domain ORM projects.",
+  "type": "object",
+  "required": ["project"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The name of the project."
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/domain"
+          },
+          "description": "Domain model references."
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mapping_ref"
+          },
+          "description": "Context mapping file references."
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/product"
+          },
+          "description": "Data product references."
+        },
+        "settings": {
+          "$ref": "#/definitions/settings",
+          "description": "Project-level settings persisted across sessions."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dbt_project_dir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the dbt project root, relative to the project root."
+        },
+        "default_export_format": {
+          "type": "string",
+          "enum": ["dbt", "ddl", "avro"],
+          "description": "Default export format for relational mapping output."
+        },
+        "default_export_dir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default directory for export output, relative to the project root."
+        },
+        "preferred_identifier_strategy": {
+          "type": "string",
+          "enum": ["integer", "uuid"],
+          "description": "Default data type strategy for entity primary key columns when no explicit preferred identifier value type is declared. 'integer' maps to INTEGER (auto-counter), 'uuid' maps to UUID."
+        },
+        "default_llm_model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default LLM model identifier for transcript extraction (e.g. 'claude-sonnet-4-5-20250929', 'gpt-4o', 'gpt-5-mini'). Used as the pre-selected default when the model picker is shown."
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "required": ["path", "context"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path relative to the project root."
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The bounded context name (unique within the project)."
+        }
+      }
+    },
+    "mapping_ref": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path to the .map.yaml file."
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "required": ["path", "context"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path relative to the project root."
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The bounded context name for this data product."
+        },
+        "depends_on": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domains": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Upstream domain contexts."
+            },
+            "mappings": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Upstream mapping names."
+            }
+          }
+        }
+      }
+    }
+  }
+}
