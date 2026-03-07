@@ -15,11 +15,11 @@
     "barwise-mcp": "./dist/bundle/index.cjs"
   },
   "files": [
-    "dist/bundle/index.cjs"
+    "dist"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/gabeschenz/barwise",
+    "url": "git+https://github.com/gabeschenz/barwise.git",
     "directory": "barwise/packages/mcp"
   },
   "keywords": [

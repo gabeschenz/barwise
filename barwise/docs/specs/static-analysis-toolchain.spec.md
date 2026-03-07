@@ -76,7 +76,7 @@ in CI (GitHub Actions on every PR).
   packages (core, diagram, llm, cli, mcp).
 - Add to CI workflow.
 - Fix any issues found (exports, types, main fields).
-- Status: Not Started
+- Status: Complete
 
 ## Commit Strategy
 
