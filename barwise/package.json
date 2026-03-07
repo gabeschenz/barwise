@@ -12,15 +12,21 @@
     "test:watch": "turbo run test:watch",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
-    "knip": "knip"
+    "knip": "knip",
+    "prepare": "cd .. && husky barwise/.husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.0",
+    "husky": "^9.1.7",
     "knip": "^5.86.0",
+    "lint-staged": "^16.3.2",
     "turbo": "^2.3.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.0"
+  },
+  "lint-staged": {
+    "*.ts": "eslint --fix"
   },
   "packageManager": "npm@10.0.0",
   "engines": {

@@ -24,7 +24,7 @@ in CI (GitHub Actions on every PR).
   targets `../../.husky`.
 - lint-staged config: run `eslint --fix` on staged `.ts` files,
   `tsc --noEmit` via turbo, and dprint (once added in Stage 4).
-- Status: Not Started
+- Status: Complete
 
 ### Stage 3: GitHub Actions CI
 
