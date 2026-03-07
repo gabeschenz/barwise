@@ -38,22 +38,22 @@ unchanged.
 - ValidationResult -> SchemaValidationResult
 - validateMergeResult -> getStructuralErrors
 - Build + test core and mcp
-- Status: Not Started
+- Status: Complete
 
 ### Stage 2: Cross-package field renames
 - MergeValidationResult.errors -> .diagnostics
 - ModelDelta.changes -> .changeDescriptions (all 3 delta interfaces)
 - Build + test core, cli, mcp, vscode
-- Status: Not Started
+- Status: Complete
 
 ### Stage 3: FactInstance.values (largest blast radius)
 - FactInstance.values -> .roleValues
 - FactInstanceConfig.values -> .roleValues
 - Update serialization bridge (YAML key stays `values:` on disk)
 - Build + lint + test full monorepo
-- Status: Not Started
+- Status: Complete
 
 ### Stage 4: Verify and ship
 - Full monorepo build, lint, test
 - Single commit, push, PR
-- Status: Not Started
+- Status: Complete

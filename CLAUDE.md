@@ -44,12 +44,13 @@ full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
-All phases are complete. The project has 1,315 passing tests across 6
+All phases are complete. The project has 1,561 passing tests across 6
 packages. The CLI tool (`barwise`) and MCP server (`barwise-mcp`) provide
 the same capabilities as the VS Code extension for terminal and AI
-workflows. The VS Code extension is functional but lacks integration
-tests. NORMA XML import is functional with data type resolution and
-preferred identifier support.
+workflows. Import and export formats (DDL, OpenAPI) are managed through
+a unified format registry (`FormatDescriptor` in `core/src/format/`).
+NORMA XML import is functional with data type resolution and preferred
+identifier support.
 
 ## Milestones
 
@@ -83,9 +84,7 @@ preferred identifier support.
 
 ### Remaining Work
 
-- VS Code integration tests (packages/vscode/tests/ is empty) -- HIGH
 - NORMA XML import enhancements (role-level value constraints, external uniqueness import) -- LOW
-- Internal naming audit for semantic precision (FREGMA-93q) -- LOW
 
 ## Monorepo Commands (run from `barwise/`)
 
