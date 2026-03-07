@@ -258,6 +258,22 @@ export {
   type AnnotationOptions,
 } from "./import/DbtYamlAnnotator.js";
 
+// Import format system
+export type {
+  ImportFormat,
+  ImportOptions,
+  ImportResult,
+} from "./import/types.js";
+export {
+  registerImportFormat,
+  getImportFormat,
+  listImportFormats,
+  clearImportFormats,
+  ImportFormatError,
+} from "./import/registry.js";
+export { DdlImportFormat } from "./import/DdlImportFormat.js";
+export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
+
 // Annotation (shared helpers + ORM YAML annotator)
 export {
   stripFregmaComments,
@@ -277,3 +293,65 @@ export {
   type OrmAnnotationOptions,
   type OrmAnnotationResult,
 } from "./annotation/OrmYamlAnnotator.js";
+
+// Export system (unified export formats, registry, and adapters)
+export type {
+  ExportFormatAdapter,
+  ExportOptions,
+  ExportResult,
+  ConstraintSpec,
+} from "./export/types.js";
+export {
+  formatRegistry,
+  registerFormat,
+  getFormat,
+  listFormats,
+} from "./export/registry.js";
+export { DdlExportFormat, ddlExportFormat } from "./export/DdlExportFormat.js";
+export {
+  OpenApiExportFormat,
+  openApiExportFormat,
+} from "./export/OpenApiExportFormat.js";
+
+// Describe system (domain description and querying)
+export type {
+  DescribeDomainOptions,
+  EntitySummary,
+  FactTypeSummary,
+  ConstraintSummary,
+  PopulationSummary,
+  DomainDescription,
+} from "./describe/index.js";
+export { describeDomain } from "./describe/index.js";
+
+// Lineage
+export type {
+  SourceReference,
+  LineageEntry,
+  ManifestExport,
+  LineageManifest,
+} from "./lineage/types.js";
+export {
+  writeManifest,
+  readManifest,
+  updateManifest,
+  hashModel,
+} from "./lineage/manifest.js";
+export {
+  generateDdlLineage,
+  generateModelLineage,
+} from "./lineage/generate.js";
+export type {
+  StaleArtifact,
+  StalenessReport,
+} from "./lineage/staleness.js";
+export {
+  checkStaleness,
+} from "./lineage/staleness.js";
+export type {
+  AffectedArtifact,
+  ImpactReport,
+} from "./lineage/impact.js";
+export {
+  analyzeImpact,
+} from "./lineage/impact.js";

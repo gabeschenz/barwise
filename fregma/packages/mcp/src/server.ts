@@ -33,3 +33,5 @@ export { executeDiff } from "./tools/diff.js";
 export { executeDiagram } from "./tools/diagram.js";
 export { executeImport } from "./tools/import.js";
 export { executeMerge } from "./tools/merge.js";
+export { executeLineageStatus } from "./tools/lineageStatus.js";
+export { executeImpactAnalysis } from "./tools/impactAnalysis.js";

@@ -175,6 +175,7 @@ export class RelationalMapper {
         role1.id,
         mandatory.role1,
         entityTables,
+        uniqueness.role1Constraint?.id,
       );
     } else if (uniqueness.role2Only) {
       // Uniqueness on role2: FK from table2 -> table1.
@@ -185,6 +186,7 @@ export class RelationalMapper {
         role2.id,
         mandatory.role2,
         entityTables,
+        uniqueness.role2Constraint?.id,
       );
     } else if (uniqueness.both) {
       // Both roles unique (1:1). If one side is mandatory, absorb into that side.
@@ -196,6 +198,7 @@ export class RelationalMapper {
           role1.id,
           true,
           entityTables,
+          uniqueness.role1Constraint?.id,
         );
       } else if (mandatory.role2 && !mandatory.role1) {
         this.addForeignKey(
@@ -205,6 +208,7 @@ export class RelationalMapper {
           role2.id,
           true,
           entityTables,
+          uniqueness.role2Constraint?.id,
         );
       } else {
         // Neither or both mandatory: separate associative table.
@@ -282,6 +286,7 @@ export class RelationalMapper {
     sourceRoleId: string,
     isMandatory: boolean,
     entityTables: Map<string, MutableTable>,
+    sourceConstraintId?: string,
   ): void {
     const sourceTable = entityTables.get(sourceEntityId);
     const targetTable = entityTables.get(targetEntityId);
@@ -308,6 +313,7 @@ export class RelationalMapper {
       columnNames: [finalColName],
       referencedTable: targetTable.name,
       referencedColumns: [...targetTable.primaryKey.columnNames],
+      sourceConstraintId,
     });
   }
 
@@ -390,6 +396,7 @@ export class RelationalMapper {
         columnNames: [subtypePkCol],
         referencedTable: supertypeTable.name,
         referencedColumns: [supertypePkCol],
+        sourceConstraintId: sf.id,
       });
     } else {
       // Separate identification: add a nullable FK column to the supertype.
@@ -409,6 +416,7 @@ export class RelationalMapper {
         columnNames: [fkColName],
         referencedTable: supertypeTable.name,
         referencedColumns: [supertypePkCol],
+        sourceConstraintId: sf.id,
       });
     }
   }
@@ -459,6 +467,7 @@ export class RelationalMapper {
         columnNames: [colName],
         referencedTable: targetTable.name,
         referencedColumns: [refCol],
+        sourceConstraintId: factType.id,
       });
     }
 
@@ -472,9 +481,13 @@ export class RelationalMapper {
     role1Only: boolean;
     role2Only: boolean;
     both: boolean;
+    role1Constraint?: { readonly id: string };
+    role2Constraint?: { readonly id: string };
   } {
     let role1Unique = false;
     let role2Unique = false;
+    let role1Constraint: { readonly id: string } | undefined;
+    let role2Constraint: { readonly id: string } | undefined;
     const role1Id = ft.roles[0]!.id;
     const role2Id = ft.roles[1]!.id;
 
@@ -482,9 +495,15 @@ export class RelationalMapper {
       if (c.type === "internal_uniqueness") {
         if (c.roleIds.length === 1 && c.roleIds[0] === role1Id) {
           role1Unique = true;
+          if (c.id) {
+            role1Constraint = { id: c.id };
+          }
         }
         if (c.roleIds.length === 1 && c.roleIds[0] === role2Id) {
           role2Unique = true;
+          if (c.id) {
+            role2Constraint = { id: c.id };
+          }
         }
       }
     }
@@ -493,6 +512,8 @@ export class RelationalMapper {
       role1Only: role1Unique && !role2Unique,
       role2Only: role2Unique && !role1Unique,
       both: role1Unique && role2Unique,
+      role1Constraint,
+      role2Constraint,
     };
   }
 

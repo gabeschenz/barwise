@@ -53,3 +53,11 @@ export type { OllamaClientOptions } from "./providers/ollama.js";
 // Provider factory
 export { createLlmClient, detectProvider } from "./providers/factory.js";
 export type { ProviderName, ProviderOptions } from "./providers/factory.js";
+
+// Review
+export { reviewModel } from "./review/reviewModel.js";
+export type {
+  ReviewOptions,
+  ReviewSuggestion,
+  ReviewResult,
+} from "./review/reviewModel.js";

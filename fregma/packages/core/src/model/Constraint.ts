@@ -20,6 +20,8 @@
  */
 export interface InternalUniquenessConstraint {
   readonly type: "internal_uniqueness";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Role ids within the same fact type. */
   readonly roleIds: readonly string[];
   /**
@@ -44,6 +46,8 @@ export interface InternalUniquenessConstraint {
  */
 export interface MandatoryRoleConstraint {
   readonly type: "mandatory";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** The single role id that is mandatory. */
   readonly roleId: string;
 }
@@ -60,6 +64,8 @@ export interface MandatoryRoleConstraint {
  */
 export interface ExternalUniquenessConstraint {
   readonly type: "external_uniqueness";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Role ids spanning multiple fact types. */
   readonly roleIds: readonly string[];
 }
@@ -74,6 +80,8 @@ export interface ExternalUniquenessConstraint {
  */
 export interface ValueConstraint {
   readonly type: "value_constraint";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** The role id this constraint applies to (if role-level). */
   readonly roleId?: string;
   /** Allowed values. */
@@ -94,6 +102,8 @@ export interface ValueConstraint {
  */
 export interface DisjunctiveMandatoryConstraint {
   readonly type: "disjunctive_mandatory";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Two or more role ids (may span fact types). */
   readonly roleIds: readonly string[];
 }
@@ -108,6 +118,8 @@ export interface DisjunctiveMandatoryConstraint {
  */
 export interface ExclusionConstraint {
   readonly type: "exclusion";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Two or more role ids (may span fact types). */
   readonly roleIds: readonly string[];
 }
@@ -122,6 +134,8 @@ export interface ExclusionConstraint {
  */
 export interface ExclusiveOrConstraint {
   readonly type: "exclusive_or";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Two or more role ids (may span fact types). */
   readonly roleIds: readonly string[];
 }
@@ -136,6 +150,8 @@ export interface ExclusiveOrConstraint {
  */
 export interface SubsetConstraint {
   readonly type: "subset";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** Role ids forming the subset side. */
   readonly subsetRoleIds: readonly string[];
   /** Role ids forming the superset side. */
@@ -152,6 +168,8 @@ export interface SubsetConstraint {
  */
 export interface EqualityConstraint {
   readonly type: "equality";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** First role sequence. */
   readonly roleIds1: readonly string[];
   /** Second role sequence. */
@@ -184,6 +202,8 @@ export type RingType =
  */
 export interface RingConstraint {
   readonly type: "ring";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** First role id. */
   readonly roleId1: string;
   /** Second role id. */
@@ -201,6 +221,8 @@ export interface RingConstraint {
  */
 export interface FrequencyConstraint {
   readonly type: "frequency";
+  /** Unique identifier for this constraint (for traceability). */
+  readonly id?: string;
   /** The role being frequency-constrained. */
   readonly roleId: string;
   /** Minimum number of times the object must play the role. */

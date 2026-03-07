@@ -13,6 +13,7 @@ export function registerSchemaTool(server: McpServer): void {
     {
       title: "Generate Relational Schema",
       description:
+        "DEPRECATED: Use export_model with format='ddl' instead. This tool will be removed in a future version. " +
         "Generate a relational schema (DDL or JSON) from an ORM 2 model. " +
         "Maps object types and fact types to tables, columns, and keys.",
       inputSchema: {
