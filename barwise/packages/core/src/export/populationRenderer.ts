@@ -7,7 +7,7 @@
 
 import type { RelationalSchema, Table } from "../mapping/RelationalSchema.js";
 import type { OrmModel } from "../model/OrmModel.js";
-import type { FactInstance, Population } from "../model/Population.js";
+import type { FactInstance } from "../model/Population.js";
 
 /**
  * Render populations as SQL INSERT statements.
@@ -72,8 +72,8 @@ export function renderPopulationAsSql(
 function renderInstanceAsInsert(
   instance: FactInstance,
   table: Table,
-  factTypeId: string,
-  model: OrmModel,
+  _factTypeId: string,
+  _model: OrmModel,
 ): string | undefined {
   const columns: string[] = [];
   const values: string[] = [];

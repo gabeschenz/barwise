@@ -49,9 +49,6 @@ export function checkStaleness(
   const staleArtifacts: StaleArtifact[] = [];
   const freshArtifacts: string[] = [];
 
-  // Check if the overall model hash has changed
-  const modelChanged = manifest.sourceModelHash !== currentHash;
-
   for (const exp of manifest.exports) {
     // An artifact is stale if its model hash differs from the current model hash
     if (exp.modelHash !== currentHash) {

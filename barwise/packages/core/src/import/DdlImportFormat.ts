@@ -456,7 +456,7 @@ export class DdlImportFormat implements ImportFormat {
     referencedEntityName: string,
   ): string {
     // Remove common suffixes like "_id"
-    let base = columnName.replace(/_id$/i, "").replace(/_fk$/i, "");
+    const base = columnName.replace(/_id$/i, "").replace(/_fk$/i, "");
 
     // Try to extract a verb if the pattern is verb_entity
     // e.g., "assigned_doctor_id" -> "assigned to"
@@ -513,10 +513,10 @@ export class DdlImportFormat implements ImportFormat {
     if (/^(BLOB|BINARY|BYTEA)/.test(normalized)) {
       return "binary";
     }
-    if (/^UUID/.test(normalized)) {
+    if (normalized.startsWith("UUID")) {
       return "uuid";
     }
-    if (/^MONEY/.test(normalized)) {
+    if (normalized.startsWith("MONEY")) {
       return "money";
     }
 

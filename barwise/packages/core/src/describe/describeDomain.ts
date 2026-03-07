@@ -6,7 +6,6 @@
  * readings, constraints, and optional population data.
  */
 
-import type { Constraint } from "../model/Constraint.js";
 import type { FactType } from "../model/FactType.js";
 import type { ObjectType } from "../model/ObjectType.js";
 import type { OrmModel } from "../model/OrmModel.js";

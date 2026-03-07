@@ -58,7 +58,7 @@ in CI (GitHub Actions on every PR).
   additional correctness issues that ESLint rules miss.
 - Add `npm run oxlint` script.
 - Add to CI workflow and pre-commit hooks.
-- Status: Not Started
+- Status: Complete
 
 ### Stage 7: tsc --incremental
 

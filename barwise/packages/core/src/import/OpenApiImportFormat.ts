@@ -364,8 +364,6 @@ export class OpenApiImportFormat implements ImportFormat {
     if (!referencedEntity) return;
 
     // Array of refs suggests many-to-many
-    const verb = this.pluralToSingularVerb(propName);
-
     const factTypeName = `${entityType.name} has ${referencedEntity.name}`;
 
     try {

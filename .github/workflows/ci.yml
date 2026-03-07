@@ -36,6 +36,8 @@ jobs:
 
       - run: npm run knip
 
+      - run: npm run oxlint
+
       - run: npm run circular
 
       - run: npm run fmt:check
