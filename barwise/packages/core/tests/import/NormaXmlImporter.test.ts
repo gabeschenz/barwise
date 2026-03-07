@@ -370,6 +370,130 @@ describe("NORMA XML Import integration", () => {
     });
   });
 
+  describe("Employee Project model (external uniqueness + role-level value constraint)", () => {
+    const xml = loadFixture("employeeProject.orm");
+    const model = importNormaXml(xml);
+
+    it("imports the model with correct name", () => {
+      expect(model.name).toBe("Employee Project");
+    });
+
+    it("imports the entity type", () => {
+      const employee = model.getObjectTypeByName("Employee");
+      expect(employee).toBeDefined();
+      expect(employee!.kind).toBe("entity");
+    });
+
+    it("imports all value types", () => {
+      const firstName = model.getObjectTypeByName("FirstName");
+      const lastName = model.getObjectTypeByName("LastName");
+      const roleName = model.getObjectTypeByName("RoleName");
+      expect(firstName).toBeDefined();
+      expect(firstName!.kind).toBe("value");
+      expect(lastName).toBeDefined();
+      expect(lastName!.kind).toBe("value");
+      expect(roleName).toBeDefined();
+      expect(roleName!.kind).toBe("value");
+    });
+
+    it("imports all three fact types", () => {
+      expect(model.factTypes).toHaveLength(3);
+      expect(model.getFactTypeByName("Employee has FirstName")).toBeDefined();
+      expect(model.getFactTypeByName("Employee has LastName")).toBeDefined();
+      expect(model.getFactTypeByName("Employee has RoleName")).toBeDefined();
+    });
+
+    it("imports internal uniqueness constraints on each fact type", () => {
+      for (const ftName of [
+        "Employee has FirstName",
+        "Employee has LastName",
+        "Employee has RoleName",
+      ]) {
+        const ft = model.getFactTypeByName(ftName)!;
+        const ucs = ft.constraints.filter(
+          (c) => c.type === "internal_uniqueness",
+        );
+        expect(ucs.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("imports mandatory constraints on each fact type", () => {
+      for (const ftName of [
+        "Employee has FirstName",
+        "Employee has LastName",
+        "Employee has RoleName",
+      ]) {
+        const ft = model.getFactTypeByName(ftName)!;
+        const mcs = ft.constraints.filter((c) => c.type === "mandatory");
+        expect(mcs.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("imports external uniqueness constraint spanning FirstName and LastName", () => {
+      // The external uniqueness constraint should be attached to one of the
+      // fact types that contain a referenced role.
+      const allConstraints = model.factTypes.flatMap((ft) => ft.constraints);
+      const extUcs = allConstraints.filter(
+        (c) => c.type === "external_uniqueness",
+      );
+      expect(extUcs).toHaveLength(1);
+
+      const extUc = extUcs[0]!;
+      if (extUc.type === "external_uniqueness") {
+        // Should reference roles from both the FirstName and LastName fact types.
+        expect(extUc.roleIds).toHaveLength(2);
+        expect(extUc.roleIds).toContain("_r_fn_of");
+        expect(extUc.roleIds).toContain("_r_ln_of");
+      }
+    });
+
+    it("imports role-level value constraint on RoleName role", () => {
+      const ft = model.getFactTypeByName("Employee has RoleName")!;
+      const vcs = ft.constraints.filter((c) => c.type === "value_constraint");
+      expect(vcs).toHaveLength(1);
+
+      const vc = vcs[0]!;
+      if (vc.type === "value_constraint") {
+        expect(vc.roleId).toBe("_r_role_of");
+        expect(vc.values).toEqual(["dev", "qa", "pm"]);
+      }
+    });
+
+    it("does not confuse role-level value constraint with type-level restriction", () => {
+      // The RoleName value type should NOT have a valueConstraint --
+      // the constraint is on the role, not the type.
+      const roleName = model.getObjectTypeByName("RoleName")!;
+      expect(roleName.valueConstraint).toBeUndefined();
+    });
+
+    it("produces a model that passes validation", () => {
+      const errors = validator.errors(model);
+      expect(errors).toHaveLength(0);
+    });
+
+    it("produces a model that can be verbalized", () => {
+      const verbalizations = verbalizer.verbalizeModel(model);
+      expect(verbalizations.length).toBeGreaterThan(0);
+      const texts = verbalizations.map((v) => v.text);
+      expect(texts.some((t) => t.includes("Employee"))).toBe(true);
+    });
+
+    it("produces a model that can be mapped to relational schema", () => {
+      const schema = mapper.map(model);
+      const tableNames = schema.tables.map((t) => t.name);
+      expect(tableNames).toContain("employee");
+    });
+
+    it("produces valid DDL from the mapped schema", () => {
+      const schema = mapper.map(model);
+      const ddl = renderDdl(schema);
+      expect(ddl).toContain("CREATE TABLE employee");
+      const createCount = (ddl.match(/CREATE TABLE/g) ?? []).length;
+      const closeCount = (ddl.match(/\);/g) ?? []).length;
+      expect(closeCount).toBe(createCount);
+    });
+  });
+
   describe("error handling", () => {
     it("throws NormaImportError for invalid XML", () => {
       expect(() => importNormaXml("<not valid")).toThrow(NormaImportError);

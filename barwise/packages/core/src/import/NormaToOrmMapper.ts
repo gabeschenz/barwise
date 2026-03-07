@@ -172,7 +172,7 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
     }
   }
 
-  // ---- Phase 3: Mandatory constraints from NORMA's role IsMandatory flags ----
+  // ---- Phase 3: Post-process top-level constraints not in internalConstraintRefs ----
 
   // Simple mandatory constraints are expressed as role attributes in NORMA
   // and also as top-level MandatoryConstraint elements with IsSimple=true.
@@ -180,6 +180,16 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
   // simple mandatory constraints from the top-level that weren't applied
   // as part of a fact type's internalConstraintRefs.
   addSimpleMandatoryConstraints(doc, model, factTypeIdMap, constraintById);
+
+  // External uniqueness constraints span multiple fact types and are never
+  // listed in any fact type's InternalConstraints section. Process them
+  // as a post-processing pass.
+  addExternalUniquenessConstraints(doc, model);
+
+  // Role-level value constraints may also be defined at the top level
+  // without being referenced from InternalConstraints. Process any
+  // unprocessed value constraints.
+  addRoleLevelValueConstraints(doc, model);
 
   // ---- Phase 4: Subtype Facts ----
 
@@ -505,6 +515,96 @@ function addSimpleMandatoryConstraints(
         if (!alreadyExists) {
           ft.addConstraint({ type: "mandatory", roleId: roleRef });
         }
+      }
+    }
+  }
+}
+
+/**
+ * Add external uniqueness constraints from NORMA's top-level constraint
+ * definitions.
+ *
+ * External uniqueness constraints span multiple fact types and are never
+ * listed in any fact type's InternalConstraints section. This function
+ * finds unprocessed external uniqueness constraints and attaches them
+ * to the first fact type that contains one of the referenced roles.
+ */
+function addExternalUniquenessConstraints(
+  doc: NormaDocument,
+  model: OrmModel,
+): void {
+  // Collect all constraint refs already processed via internalConstraintRefs.
+  const processedRefs = new Set<string>();
+  for (const nft of doc.factTypes) {
+    for (const ref of nft.internalConstraintRefs) {
+      processedRefs.add(ref);
+    }
+  }
+
+  for (const nc of doc.constraints) {
+    if (nc.type !== "uniqueness" || nc.isInternal) continue;
+    if (processedRefs.has(nc.id)) continue;
+
+    // Find the first fact type that contains any of the referenced roles.
+    const ft = model.factTypes.find((f) =>
+      nc.roleRefs.some((roleRef) => f.hasRole(roleRef)),
+    );
+    if (!ft) continue;
+
+    // Check if this constraint is already on the fact type.
+    const alreadyExists = ft.constraints.some(
+      (c) =>
+        c.type === "external_uniqueness" &&
+        c.roleIds.length === nc.roleRefs.length &&
+        c.roleIds.every((id) => nc.roleRefs.includes(id)),
+    );
+    if (!alreadyExists) {
+      ft.addConstraint({
+        type: "external_uniqueness",
+        roleIds: [...nc.roleRefs],
+      });
+    }
+  }
+}
+
+/**
+ * Add role-level value constraints from NORMA's top-level constraint
+ * definitions that weren't already captured by fact type internalConstraintRefs.
+ *
+ * Role-level value constraints restrict the allowed values for a specific
+ * role in a fact type (as opposed to type-level value restrictions on
+ * ValueType objects). They may or may not appear in a fact type's
+ * InternalConstraints section depending on the NORMA version and editor.
+ */
+function addRoleLevelValueConstraints(
+  doc: NormaDocument,
+  model: OrmModel,
+): void {
+  const processedRefs = new Set<string>();
+  for (const nft of doc.factTypes) {
+    for (const ref of nft.internalConstraintRefs) {
+      processedRefs.add(ref);
+    }
+  }
+
+  for (const nc of doc.constraints) {
+    if (nc.type !== "value_constraint") continue;
+    if (processedRefs.has(nc.id)) continue;
+    if (nc.values.length === 0) continue;
+
+    for (const roleRef of nc.roleRefs) {
+      const ft = model.factTypes.find((f) => f.hasRole(roleRef));
+      if (!ft) continue;
+
+      const alreadyExists = ft.constraints.some(
+        (c) => c.type === "value_constraint" && c.roleId === roleRef,
+      );
+      if (!alreadyExists) {
+        ft.addConstraint({
+          type: "value_constraint",
+          roleId: roleRef,
+          values: [...nc.values],
+        });
       }
     }
   }
