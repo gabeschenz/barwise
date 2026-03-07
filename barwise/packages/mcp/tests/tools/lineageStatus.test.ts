@@ -1,8 +1,8 @@
 /**
  * Tests for the lineage_status tool.
  */
-import { hashModel, OrmYamlSerializer, writeManifest } from "@barwise/core";
-import type { LineageManifest, OrmModel } from "@barwise/core";
+import { OrmYamlSerializer, writeManifest } from "@barwise/core";
+import type { LineageManifest } from "@barwise/core";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { dirname, resolve } from "node:path";
@@ -16,7 +16,7 @@ const fixtures = resolve(__dirname, "../fixtures");
 
 describe("lineage_status tool", () => {
   let tempDir: string;
-  const serializer = new OrmYamlSerializer();
+  const _serializer = new OrmYamlSerializer();
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "barwise-mcp-lineage-"));

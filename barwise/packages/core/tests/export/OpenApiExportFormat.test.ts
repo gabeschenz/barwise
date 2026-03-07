@@ -6,7 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { OpenApiExportFormat, openApiExportFormat } from "../../src/export/OpenApiExportFormat.js";
+import { openApiExportFormat } from "../../src/export/OpenApiExportFormat.js";
 import { formatRegistry } from "../../src/export/registry.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 

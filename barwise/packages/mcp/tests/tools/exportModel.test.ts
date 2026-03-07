@@ -9,7 +9,7 @@ import { OrmYamlSerializer } from "@barwise/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { executeExportModel } from "../../src/tools/exportModel.js";
 
-const serializer = new OrmYamlSerializer();
+const _serializer = new OrmYamlSerializer();
 
 describe("export_model tool", () => {
   const simpleModel = `

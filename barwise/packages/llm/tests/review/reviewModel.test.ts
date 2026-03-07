@@ -9,8 +9,7 @@
  *   - Suggestions are correctly categorized
  */
 
-import { FactType, ObjectType, OrmModel, Role } from "@barwise/core";
-import { randomUUID } from "node:crypto";
+import { OrmModel } from "@barwise/core";
 import { describe, expect, it } from "vitest";
 import type { CompletionRequest, LlmClient } from "../../src/LlmClient.js";
 import { reviewModel } from "../../src/review/reviewModel.js";

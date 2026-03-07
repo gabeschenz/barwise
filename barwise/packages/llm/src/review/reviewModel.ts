@@ -250,6 +250,7 @@ function parseReviewResponse(responseContent: string): ReviewResult {
   } catch (e) {
     throw new Error(
       `Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : String(e)}`,
+      { cause: e },
     );
   }
 

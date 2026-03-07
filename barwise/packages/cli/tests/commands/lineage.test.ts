@@ -49,7 +49,7 @@ describe("barwise lineage", () => {
       const modelPath = path.join(tempDir, "test.orm.yaml");
       fs.copyFileSync(`${fixtures}/simple.orm.yaml`, modelPath);
 
-      const model = loadModel(modelPath);
+      const _model = loadModel(modelPath);
 
       // Create manifest with a different hash (simulating old model)
       const oldHash = "a1b2c3d4e5f6000000000000000000000000000000000000000000000000";
