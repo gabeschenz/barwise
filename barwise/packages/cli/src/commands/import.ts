@@ -15,9 +15,8 @@ import {
   diffModels,
   mergeAndValidate,
   annotateOrmYaml,
-  registerImportFormat,
-  DdlImportFormat,
-  OpenApiImportFormat,
+  getImporter,
+  registerBuiltinFormats,
 } from "@barwise/core";
 import { processTranscript, createLlmClient } from "@barwise/llm";
 import type { ProviderName } from "@barwise/llm";
@@ -25,9 +24,8 @@ import { readFile, writeOutput } from "../helpers/io.js";
 
 const serializer = new OrmYamlSerializer();
 
-// Register import formats
-registerImportFormat(new DdlImportFormat());
-registerImportFormat(new OpenApiImportFormat());
+// Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
+registerBuiltinFormats();
 
 /**
  * Slugify a model name for use in output filenames.
@@ -66,12 +64,6 @@ export function registerImportCommand(program: Command): void {
         },
       ) => {
         try {
-          // Dynamically import core imports to access registry
-          const {
-            getImportFormat,
-            OrmYamlSerializer,
-          } = await import("@barwise/core");
-
           const input = readFile(source);
           if (!input.trim()) {
             process.stderr.write("Error: Source file is empty.\n");
@@ -79,7 +71,7 @@ export function registerImportCommand(program: Command): void {
             return;
           }
 
-          const format = getImportFormat(opts.format);
+          const format = getImporter(opts.format);
           if (!format) {
             process.stderr.write(
               `Error: Unknown format "${opts.format}". Available: ddl, openapi\n`,

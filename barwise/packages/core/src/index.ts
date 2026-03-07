@@ -258,21 +258,59 @@ export {
   type AnnotationOptions,
 } from "./import/DbtYamlAnnotator.js";
 
-// Import format system
+// Import format types and implementations
 export type {
   ImportFormat,
   ImportOptions,
   ImportResult,
 } from "./import/types.js";
+export { ImportFormatError } from "./import/registry.js";
+export { DdlImportFormat } from "./import/DdlImportFormat.js";
+export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
+
+// Export format types and implementations
+export type {
+  ExportFormatAdapter,
+  ExportOptions,
+  ExportResult,
+  ConstraintSpec,
+} from "./export/types.js";
+export { DdlExportFormat } from "./export/DdlExportFormat.js";
+export { OpenApiExportFormat } from "./export/OpenApiExportFormat.js";
+
+// Unified format system (registry + descriptors)
+export type { FormatDescriptor } from "./format/types.js";
+export {
+  formatRegistry,
+  FormatRegistryError,
+  registerFormat,
+  getFormat,
+  getImporter,
+  getExporter,
+  listFormats,
+  listImporters,
+  listExporters,
+  clearFormats,
+} from "./format/registry.js";
+export {
+  ddlFormat,
+  openApiFormat,
+  registerBuiltinFormats,
+} from "./format/formats.js";
+
+// Deprecated: old separate registries (use unified format system above)
 export {
   registerImportFormat,
   getImportFormat,
   listImportFormats,
   clearImportFormats,
-  ImportFormatError,
 } from "./import/registry.js";
-export { DdlImportFormat } from "./import/DdlImportFormat.js";
-export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
+export {
+  formatRegistry as exportFormatRegistry,
+  registerFormat as registerExportFormat,
+  getFormat as getExportFormat,
+  listFormats as listExportFormats,
+} from "./export/registry.js";
 
 // Annotation (shared helpers + ORM YAML annotator)
 export {
@@ -293,25 +331,6 @@ export {
   type OrmAnnotationOptions,
   type OrmAnnotationResult,
 } from "./annotation/OrmYamlAnnotator.js";
-
-// Export system (unified export formats, registry, and adapters)
-export type {
-  ExportFormatAdapter,
-  ExportOptions,
-  ExportResult,
-  ConstraintSpec,
-} from "./export/types.js";
-export {
-  formatRegistry,
-  registerFormat,
-  getFormat,
-  listFormats,
-} from "./export/registry.js";
-export { DdlExportFormat, ddlExportFormat } from "./export/DdlExportFormat.js";
-export {
-  OpenApiExportFormat,
-  openApiExportFormat,
-} from "./export/OpenApiExportFormat.js";
 
 // Describe system (domain description and querying)
 export type {
