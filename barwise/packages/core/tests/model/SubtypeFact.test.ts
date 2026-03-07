@@ -12,7 +12,7 @@
  *   - Cascading reference checks on removeObjectType
  *   - Element count includes subtype facts
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { SubtypeFact } from "../../src/model/SubtypeFact.js";
 
@@ -101,7 +101,7 @@ describe("OrmModel subtype facts", () => {
         model.addSubtypeFact({
           subtypeId: "nonexistent",
           supertypeId: person.id,
-        }),
+        })
       ).toThrow("does not exist");
     });
 
@@ -113,7 +113,7 @@ describe("OrmModel subtype facts", () => {
         model.addSubtypeFact({
           subtypeId: employee.id,
           supertypeId: "nonexistent",
-        }),
+        })
       ).toThrow("does not exist");
     });
 
@@ -127,7 +127,7 @@ describe("OrmModel subtype facts", () => {
         model.addSubtypeFact({
           subtypeId: valueName.id,
           supertypeId: person.id,
-        }),
+        })
       ).toThrow("entity type");
     });
 
@@ -141,7 +141,7 @@ describe("OrmModel subtype facts", () => {
         model.addSubtypeFact({
           subtypeId: person.id,
           supertypeId: valueName.id,
-        }),
+        })
       ).toThrow("entity type");
     });
 
@@ -159,7 +159,7 @@ describe("OrmModel subtype facts", () => {
         model.addSubtypeFact({
           subtypeId: employee.id,
           supertypeId: person.id,
-        }),
+        })
       ).toThrow("already exists");
     });
 

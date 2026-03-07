@@ -1,14 +1,14 @@
-import type { OrmModel } from "../model/OrmModel.js";
-import type { FactType } from "../model/FactType.js";
 import type { Constraint } from "../model/Constraint.js";
+import type { FactType } from "../model/FactType.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import {
+  buildVerbalization,
+  kwSeg,
+  refSeg,
+  textSeg,
+  valSeg,
   type Verbalization,
   type VerbalizationSegment,
-  buildVerbalization,
-  textSeg,
-  refSeg,
-  kwSeg,
-  valSeg,
 } from "./Verbalization.js";
 
 /**
@@ -22,9 +22,7 @@ export class ConstraintVerbalizer {
     factType: FactType,
     model: OrmModel,
   ): Verbalization[] {
-    return factType.constraints.map((c) =>
-      this.verbalize(c, factType, model),
-    );
+    return factType.constraints.map((c) => this.verbalize(c, factType, model));
   }
 
   /**
@@ -697,7 +695,7 @@ export class ConstraintVerbalizer {
     roleIds: readonly string[],
     factType: FactType,
     model: OrmModel,
-  ): { name: string; id: string } {
+  ): { name: string; id: string; } {
     for (const rid of roleIds) {
       const role = factType.getRoleById(rid);
       if (role) {
@@ -727,9 +725,9 @@ function extractPredicate(
     const subjectPos = t.indexOf(subjectPlaceholder);
     const objectPos = t.indexOf(objectPlaceholder);
     if (
-      subjectPos >= 0 &&
-      objectPos >= 0 &&
-      subjectPos < objectPos
+      subjectPos >= 0
+      && objectPos >= 0
+      && subjectPos < objectPos
     ) {
       const start = subjectPos + subjectPlaceholder.length;
       return t.slice(start, objectPos).trim();

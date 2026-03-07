@@ -3,17 +3,20 @@
 ## Files to Know
 
 ### Schema Files
+
 - `/packages/core/schemas/orm-model.schema.json` - Domain model schema
 - `/packages/core/schemas/orm-project.schema.json` - Project manifest schema
 - `/packages/core/schemas/context-mapping.schema.json` - Context mapping schema
 
 ### Serializer Code
+
 - `/packages/core/src/serialization/OrmYamlSerializer.ts` - Main serializer
 - `/packages/core/src/serialization/SchemaValidator.ts` - Schema validation (ajv)
 - `/packages/core/src/serialization/ProjectSerializer.ts` - Project manifest handling
 - `/packages/core/src/serialization/MappingSerializer.ts` - Context mapping handling
 
 ### Example Files
+
 - `/examples/transcripts/university-enrollment.orm.yaml` - University enrollment domain
 - `/examples/output/order-management.orm.yaml` - Order management domain
 - `/packages/core/tests/integration/fixtures/orderManagement.orm.yaml` - Test fixture
@@ -52,6 +55,7 @@ model:
 ## Key Classes
 
 ### OrmYamlSerializer
+
 ```typescript
 serialize(model: OrmModel): string
 deserialize(yaml: string): OrmModel
@@ -59,12 +63,14 @@ deserialize(yaml: string): OrmModel
 ```
 
 ### SchemaValidator
+
 ```typescript
 validateModel(data: unknown): ValidationResult
   // Returns { valid: boolean, errors: SchemaError[] }
 ```
 
 ### ProjectSerializer
+
 ```typescript
 serialize(project: OrmProject): string
 deserialize(yaml: string): OrmProject
@@ -72,6 +78,7 @@ getMappingPaths(yaml: string): string[]
 ```
 
 ### MappingSerializer
+
 ```typescript
 serialize(mapping: ContextMapping): string
 deserialize(yaml: string, path: string): ContextMapping
@@ -80,6 +87,7 @@ deserialize(yaml: string, path: string): ContextMapping
 ## Constraint Types in YAML
 
 ### Phase 1 (Core)
+
 ```yaml
 - type: internal_uniqueness
   roles: [role-id-1, role-id-2]
@@ -96,6 +104,7 @@ deserialize(yaml: string, path: string): ContextMapping
 ```
 
 ### Phase 2 (Extended)
+
 ```yaml
 - type: disjunctive_mandatory
   roles: [role-id-1, role-id-2]
@@ -129,16 +138,17 @@ deserialize(yaml: string, path: string): ContextMapping
 
 ```json
 {
-  "ajv": "^8.18.0",    // JSON Schema validation
-  "yaml": "^2.8.2"     // YAML parsing/stringification
+  "ajv": "^8.18.0", // JSON Schema validation
+  "yaml": "^2.8.2" // YAML parsing/stringification
 }
 ```
 
 ## Usage Examples
 
 ### Basic Serialization
+
 ```typescript
-import { OrmYamlSerializer } from '@barwise/core';
+import { OrmYamlSerializer } from "@barwise/core";
 
 const serializer = new OrmYamlSerializer();
 const yaml = serializer.serialize(model);
@@ -146,8 +156,9 @@ const restored = serializer.deserialize(yaml);
 ```
 
 ### Error Handling
+
 ```typescript
-import { DeserializationError } from '@barwise/core';
+import { DeserializationError } from "@barwise/core";
 
 try {
   const model = serializer.deserialize(yaml);
@@ -159,8 +170,9 @@ try {
 ```
 
 ### Project Loading
+
 ```typescript
-import { ProjectSerializer, OrmYamlSerializer } from '@barwise/core';
+import { OrmYamlSerializer, ProjectSerializer } from "@barwise/core";
 
 const projSerializer = new ProjectSerializer();
 const modelSerializer = new OrmYamlSerializer();
@@ -181,6 +193,7 @@ for (const domain of project.domains) {
 ## Status
 
 **Milestone 3 is COMPLETE** with:
+
 - [x] JSON Schema definitions (3 files)
 - [x] Full YAML serialization/deserialization
 - [x] Schema validation with ajv
@@ -200,6 +213,7 @@ for (const domain of project.domains) {
 ## Read the Full Spec
 
 See `MILESTONE3_RESEARCH.md` for:
+
 - Complete schema documentation
 - Architecture rationale
 - Implementation details

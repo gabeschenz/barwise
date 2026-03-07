@@ -3,7 +3,7 @@
  */
 
 import type { OrmModel } from "../model/OrmModel.js";
-import { readManifest, hashModel } from "./manifest.js";
+import { hashModel, readManifest } from "./manifest.js";
 
 /**
  * Information about a stale artifact.
@@ -49,9 +49,6 @@ export function checkStaleness(
   const staleArtifacts: StaleArtifact[] = [];
   const freshArtifacts: string[] = [];
 
-  // Check if the overall model hash has changed
-  const modelChanged = manifest.sourceModelHash !== currentHash;
-
   for (const exp of manifest.exports) {
     // An artifact is stale if its model hash differs from the current model hash
     if (exp.modelHash !== currentHash) {
@@ -59,7 +56,9 @@ export function checkStaleness(
         artifact: exp.artifact,
         format: exp.format,
         exportedAt: exp.exportedAt,
-        reason: `model hash changed from ${exp.modelHash.substring(0, 8)}... to ${currentHash.substring(0, 8)}...`,
+        reason: `model hash changed from ${exp.modelHash.substring(0, 8)}... to ${
+          currentHash.substring(0, 8)
+        }...`,
       });
     } else {
       freshArtifacts.push(exp.artifact);

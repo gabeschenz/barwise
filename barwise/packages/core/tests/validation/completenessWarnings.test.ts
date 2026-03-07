@@ -11,9 +11,9 @@
  *   - Value types without a declared data type (info)
  *   - Entity types with zero or multiple preferred identifiers (info/warning)
  */
-import { describe, it, expect } from "vitest";
-import { completenessWarnings } from "../../src/validation/rules/completenessWarnings.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { completenessWarnings } from "../../src/validation/rules/completenessWarnings.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("completenessWarnings", () => {
@@ -81,8 +81,7 @@ describe("completenessWarnings", () => {
 
       const diagnostics = completenessWarnings(model);
       const missing = diagnostics.filter(
-        (d) =>
-          d.ruleId === "completeness/missing-object-type-definition",
+        (d) => d.ruleId === "completeness/missing-object-type-definition",
       );
       expect(missing).toHaveLength(1);
       expect(missing[0]!.severity).toBe("info");
@@ -101,8 +100,7 @@ describe("completenessWarnings", () => {
 
       const diagnostics = completenessWarnings(model);
       const missing = diagnostics.filter(
-        (d) =>
-          d.ruleId === "completeness/missing-object-type-definition",
+        (d) => d.ruleId === "completeness/missing-object-type-definition",
       );
       expect(missing).toHaveLength(2);
     });
@@ -126,8 +124,7 @@ describe("completenessWarnings", () => {
 
       const diagnostics = completenessWarnings(model);
       const noConstraints = diagnostics.filter(
-        (d) =>
-          d.ruleId === "completeness/fact-type-without-constraints",
+        (d) => d.ruleId === "completeness/fact-type-without-constraints",
       );
       expect(noConstraints).toHaveLength(1);
       expect(noConstraints[0]!.severity).toBe("warning");
@@ -153,8 +150,7 @@ describe("completenessWarnings", () => {
 
       const diagnostics = completenessWarnings(model);
       const noConstraints = diagnostics.filter(
-        (d) =>
-          d.ruleId === "completeness/fact-type-without-constraints",
+        (d) => d.ruleId === "completeness/fact-type-without-constraints",
       );
       expect(noConstraints).toHaveLength(0);
     });
@@ -389,8 +385,8 @@ describe("completenessWarnings", () => {
       // only entity types are checked.
       const valuePrefWarning = diagnostics.filter(
         (d) =>
-          d.ruleId === "completeness/missing-preferred-identifier" &&
-          d.message.includes("Name"),
+          d.ruleId === "completeness/missing-preferred-identifier"
+          && d.message.includes("Name"),
       );
       expect(valuePrefWarning).toHaveLength(0);
     });

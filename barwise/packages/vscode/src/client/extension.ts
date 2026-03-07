@@ -6,12 +6,12 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node.js";
+import { ExportCommand } from "../commands/ExportCommand.js";
+import { ImportCommand } from "../commands/ImportCommand.js";
 import { NewProjectCommand } from "../commands/NewProjectCommand.js";
+import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
 import { ValidateModelCommand } from "../commands/ValidateModelCommand.js";
 import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
-import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
-import { ImportCommand } from "../commands/ImportCommand.js";
-import { ExportCommand } from "../commands/ExportCommand.js";
 import { registerMcpServerProvider } from "../mcp/McpServerProvider.js";
 import { registerLanguageModelTools } from "../mcp/ToolRegistration.js";
 

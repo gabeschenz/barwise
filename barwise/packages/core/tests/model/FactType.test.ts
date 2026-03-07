@@ -10,7 +10,7 @@
  *   - Definition getter/setter
  *   - Validation of required fields (at least one role, one reading)
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { FactType } from "../../src/model/FactType.js";
 
 describe("FactType", () => {

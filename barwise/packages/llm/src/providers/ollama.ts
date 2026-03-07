@@ -9,7 +9,7 @@
  */
 
 import OpenAI from "openai";
-import type { LlmClient, CompletionRequest, CompletionResponse } from "../LlmClient.js";
+import type { CompletionRequest, CompletionResponse, LlmClient } from "../LlmClient.js";
 
 export interface OllamaClientOptions {
   /** Ollama server URL. Defaults to "http://localhost:11434". */
@@ -63,10 +63,12 @@ export class OllamaLlmClient implements LlmClient {
     return {
       content: response.choices[0]?.message?.content ?? "",
       modelUsed: this.model,
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+        }
+        : undefined,
       latencyMs,
     };
   }
@@ -100,10 +102,12 @@ export class OllamaLlmClient implements LlmClient {
     return {
       content: extractJson(content),
       modelUsed: this.model,
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+        }
+        : undefined,
       latencyMs,
     };
   }

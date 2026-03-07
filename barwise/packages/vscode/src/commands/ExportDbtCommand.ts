@@ -5,14 +5,9 @@
  * dbt artifacts (schema.yml + model SQL files), writes them into a
  * target dbt project directory, and runs the export annotator.
  */
-import * as vscode from "vscode";
+import { annotateDbtExport, OrmYamlSerializer, RelationalMapper, renderDbt } from "@barwise/core";
 import * as path from "node:path";
-import {
-  OrmYamlSerializer,
-  RelationalMapper,
-  renderDbt,
-  annotateDbtExport,
-} from "@barwise/core";
+import * as vscode from "vscode";
 
 const serializer = new OrmYamlSerializer();
 const mapper = new RelationalMapper();
@@ -58,8 +53,8 @@ export class ExportDbtCommand {
       );
     } catch {
       vscode.window.showErrorMessage(
-        "No dbt_project.yml found in the selected directory. " +
-          "Please select a valid dbt project root.",
+        "No dbt_project.yml found in the selected directory. "
+          + "Please select a valid dbt project root.",
       );
       return;
     }
@@ -102,7 +97,9 @@ export class ExportDbtCommand {
     // Step 7: Report.
     const todos = annotations.filter((a) => a.severity === "todo").length;
     const notes = annotations.filter((a) => a.severity === "note").length;
-    let msg = `Exported ${dbt.models.length} model(s) to ${path.relative(dbtRoot.fsPath, modelsDir.fsPath)}/`;
+    let msg = `Exported ${dbt.models.length} model(s) to ${
+      path.relative(dbtRoot.fsPath, modelsDir.fsPath)
+    }/`;
     if (todos > 0 || notes > 0) {
       msg += ` (${todos} TODO(s), ${notes} NOTE(s) annotated)`;
     }

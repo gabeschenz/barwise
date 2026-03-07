@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    "packages/core": {},
+    "packages/diagram": {},
+    "packages/llm": {},
+    "packages/cli": {},
+    "packages/mcp": {
+      "entry": ["src/index.ts", "src/bundle-entry.ts"]
+    },
+    "packages/vscode": {
+      "entry": [
+        "src/client/extension.ts",
+        "src/server/OrmLanguageServer.ts",
+        "src/mcp/stdio-entry.ts"
+      ],
+      "ignore": [
+        ".vscode-test.mjs",
+        "tests/integration/**"
+      ],
+      "ignoreDependencies": [
+        "@types/mocha",
+        "@vscode/test-electron",
+        "mocha"
+      ]
+    }
+  }
+}

@@ -9,11 +9,10 @@
  *   - Suggestions are correctly categorized
  */
 
-import { describe, it, expect } from "vitest";
+import { OrmModel } from "@barwise/core";
+import { describe, expect, it } from "vitest";
+import type { CompletionRequest, LlmClient } from "../../src/LlmClient.js";
 import { reviewModel } from "../../src/review/reviewModel.js";
-import type { LlmClient, CompletionRequest } from "../../src/LlmClient.js";
-import { OrmModel, ObjectType, FactType, Role } from "@barwise/core";
-import { randomUUID } from "node:crypto";
 
 /**
  * Mock LLM client that returns canned responses.

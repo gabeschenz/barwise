@@ -13,14 +13,11 @@
  *   - Options (title, version, basePath)
  *   - openApiToJson produces valid formatted JSON
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
-import {
-  renderOpenApi,
-  openApiToJson,
-} from "../../src/mapping/renderers/openapi.js";
+import { openApiToJson, renderOpenApi } from "../../src/mapping/renderers/openapi.js";
 import type { OpenApiSpec } from "../../src/mapping/renderers/openapi.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 

@@ -5,7 +5,7 @@
  * models based on focus parameters.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { describeDomain } from "../../src/describe/describeDomain.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
@@ -53,9 +53,7 @@ describe("describeDomain", () => {
 
       // Check fact type summaries.
       expect(description.factTypes).toHaveLength(2);
-      const apptFt = description.factTypes.find((ft) =>
-        ft.name.includes("has Appointment"),
-      );
+      const apptFt = description.factTypes.find((ft) => ft.name.includes("has Appointment"));
       expect(apptFt).toBeDefined();
       expect(apptFt?.arity).toBe(2);
       expect(apptFt?.involvedEntities).toContain("Patient");

@@ -6,14 +6,10 @@
  * an ORM model, annotates the original YAML files in place, and
  * opens the resulting .orm.yaml.
  */
-import * as vscode from "vscode";
-import * as path from "node:path";
-import {
-  importDbtProject,
-  OrmYamlSerializer,
-  annotateDbtYaml,
-} from "@barwise/core";
+import { annotateDbtYaml, importDbtProject, OrmYamlSerializer } from "@barwise/core";
 import type { DbtImportReport, ReportEntry } from "@barwise/core";
+import * as path from "node:path";
+import * as vscode from "vscode";
 
 const serializer = new OrmYamlSerializer();
 
@@ -38,8 +34,8 @@ export class ImportDbtCommand {
       );
     } catch {
       vscode.window.showErrorMessage(
-        "No dbt_project.yml found in the selected directory. " +
-          "Please select a valid dbt project root.",
+        "No dbt_project.yml found in the selected directory. "
+          + "Please select a valid dbt project root.",
       );
       return;
     }
@@ -100,8 +96,7 @@ export class ImportDbtCommand {
     const modelName = await vscode.window.showInputBox({
       prompt: "Name for the imported ORM model",
       value: dbtDirName,
-      validateInput: (v) =>
-        v.trim().length === 0 ? "Model name is required" : null,
+      validateInput: (v) => v.trim().length === 0 ? "Model name is required" : null,
     });
 
     if (!modelName) return;

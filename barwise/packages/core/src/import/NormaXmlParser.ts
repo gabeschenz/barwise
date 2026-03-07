@@ -8,20 +8,20 @@
  */
 import { XMLParser } from "fast-xml-parser";
 import type {
-  NormaDocument,
-  NormaDataType,
-  NormaEntityType,
-  NormaValueType,
-  NormaObjectifiedType,
-  NormaFactType,
-  NormaRole,
-  NormaMultiplicity,
-  NormaReadingOrder,
-  NormaReading,
-  NormaSubtypeFact,
   NormaConstraint,
+  NormaDataType,
+  NormaDocument,
+  NormaEntityType,
+  NormaFactType,
+  NormaMultiplicity,
+  NormaObjectifiedType,
+  NormaReading,
+  NormaReadingOrder,
   NormaRingType,
+  NormaRole,
+  NormaSubtypeFact,
   NormaValueConstraintInline,
+  NormaValueType,
 } from "./NormaXmlTypes.js";
 
 /**
@@ -276,7 +276,9 @@ function parseFactTypes(
   return asArray(facts["Fact"]).map((ft) => {
     const factRoles = child(ft, "FactRoles") as Record<string, unknown> | undefined;
     const readingOrders = child(ft, "ReadingOrders") as Record<string, unknown> | undefined;
-    const internalConstraints = child(ft, "InternalConstraints") as Record<string, unknown> | undefined;
+    const internalConstraints = child(ft, "InternalConstraints") as
+      | Record<string, unknown>
+      | undefined;
     const defs = parseDefinitionText(ft);
 
     return {
@@ -308,11 +310,16 @@ function parseRoles(
 
 function parseMultiplicity(raw: string | undefined): NormaMultiplicity {
   switch (raw) {
-    case "ZeroToOne": return "ZeroToOne";
-    case "ZeroToMany": return "ZeroToMany";
-    case "ExactlyOne": return "ExactlyOne";
-    case "OneToMany": return "OneToMany";
-    default: return "Unspecified";
+    case "ZeroToOne":
+      return "ZeroToOne";
+    case "ZeroToMany":
+      return "ZeroToMany";
+    case "ExactlyOne":
+      return "ExactlyOne";
+    case "OneToMany":
+      return "OneToMany";
+    default:
+      return "Unspecified";
   }
 }
 
@@ -365,16 +372,18 @@ function parseInternalConstraintRefs(
 ): string[] {
   if (!ic) return [];
   const refs: string[] = [];
-  for (const tag of [
-    "UniquenessConstraint",
-    "MandatoryConstraint",
-    "FrequencyConstraint",
-    "RingConstraint",
-    "ValueConstraint",
-    "SubsetConstraint",
-    "ExclusionConstraint",
-    "EqualityConstraint",
-  ]) {
+  for (
+    const tag of [
+      "UniquenessConstraint",
+      "MandatoryConstraint",
+      "FrequencyConstraint",
+      "RingConstraint",
+      "ValueConstraint",
+      "SubsetConstraint",
+      "ExclusionConstraint",
+      "EqualityConstraint",
+    ]
+  ) {
     for (const el of asArray(ic[tag])) {
       const ref = attr(el, "ref");
       if (ref) refs.push(ref);
@@ -448,9 +457,8 @@ function parseConstraints(
       id: attr(uc, "id") ?? "",
       name: attr(uc, "Name") ?? "",
       isInternal: attr(uc, "IsInternal") === "true",
-      isPreferred:
-        attr(uc, "IsPreferred") === "true" ||
-        asArray(uc["PreferredIdentifierFor"]).length > 0,
+      isPreferred: attr(uc, "IsPreferred") === "true"
+        || asArray(uc["PreferredIdentifierFor"]).length > 0,
       roleRefs,
     });
   }

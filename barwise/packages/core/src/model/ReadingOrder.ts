@@ -48,8 +48,8 @@ export function validateReadingTemplate(
   for (let i = 0; i < roleCount; i++) {
     if (!foundIndices.has(i)) {
       errors.push(
-        `Reading template "${template}" is missing placeholder {${i}} ` +
-          `(expected ${roleCount} role references).`,
+        `Reading template "${template}" is missing placeholder {${i}} `
+          + `(expected ${roleCount} role references).`,
       );
     }
   }
@@ -58,8 +58,8 @@ export function validateReadingTemplate(
   for (const index of foundIndices) {
     if (index >= roleCount) {
       errors.push(
-        `Reading template "${template}" references {${index}} but the ` +
-          `fact type only has ${roleCount} roles.`,
+        `Reading template "${template}" references {${index}} but the `
+          + `fact type only has ${roleCount} roles.`,
       );
     }
   }

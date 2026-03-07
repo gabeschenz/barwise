@@ -21,23 +21,23 @@ integrated into VS Code.
 Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type
 "ORM" to see all available commands:
 
-| Command | Description |
-|---------|-------------|
-| ORM: New Project | Scaffold a new `.orm-project.yaml` and `.orm.yaml` |
-| ORM: Validate Model | Run full structural and constraint validation |
-| ORM: Verbalize Model | Generate natural-language readings |
-| ORM: Show Diagram | Open an ORM diagram in a webview panel |
-| ORM: Import... | Import from transcript or dbt project |
-| ORM: Export... | Export to dbt, DDL, or other formats |
+| Command              | Description                                        |
+| -------------------- | -------------------------------------------------- |
+| ORM: New Project     | Scaffold a new `.orm-project.yaml` and `.orm.yaml` |
+| ORM: Validate Model  | Run full structural and constraint validation      |
+| ORM: Verbalize Model | Generate natural-language readings                 |
+| ORM: Show Diagram    | Open an ORM diagram in a webview panel             |
+| ORM: Import...       | Import from transcript or dbt project              |
+| ORM: Export...       | Export to dbt, DDL, or other formats               |
 
 ## Configuration
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `barwise.llmProvider` | `copilot` | LLM provider: `copilot` (free with GitHub Copilot) or `anthropic` |
-| `barwise.anthropicApiKey` | | Anthropic API key (only when provider is `anthropic`) |
-| `barwise.anthropicModel` | `claude-sonnet-4-5-20250929` | Anthropic model ID |
-| `barwise.copilotModelFamily` | | Preferred Copilot model family |
+| Setting                      | Default                      | Description                                                       |
+| ---------------------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `barwise.llmProvider`        | `copilot`                    | LLM provider: `copilot` (free with GitHub Copilot) or `anthropic` |
+| `barwise.anthropicApiKey`    |                              | Anthropic API key (only when provider is `anthropic`)             |
+| `barwise.anthropicModel`     | `claude-sonnet-4-5-20250929` | Anthropic model ID                                                |
+| `barwise.copilotModelFamily` |                              | Preferred Copilot model family                                    |
 
 A project-level default LLM model can be set in `.orm-project.yaml`
 under `settings.default_llm_model`. The model picker at extraction

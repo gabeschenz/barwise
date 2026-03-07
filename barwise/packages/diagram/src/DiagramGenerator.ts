@@ -1,9 +1,9 @@
 import type { OrmModel } from "@barwise/core";
+import type { OrmGraph } from "./graph/GraphTypes.js";
 import { modelToGraph } from "./graph/ModelToGraph.js";
 import { layoutGraph } from "./layout/ElkLayoutEngine.js";
-import { renderSvg } from "./render/SvgRenderer.js";
 import type { PositionedGraph } from "./layout/LayoutTypes.js";
-import type { OrmGraph } from "./graph/GraphTypes.js";
+import { renderSvg } from "./render/SvgRenderer.js";
 
 /**
  * The result of diagram generation, containing both the SVG output

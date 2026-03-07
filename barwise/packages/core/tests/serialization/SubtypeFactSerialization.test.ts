@@ -7,7 +7,7 @@
  *   - Multiple subtype facts round-trip correctly
  *   - Models without subtype facts still round-trip
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 

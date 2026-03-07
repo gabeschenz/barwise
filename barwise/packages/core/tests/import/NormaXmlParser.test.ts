@@ -5,8 +5,8 @@
  * intermediate representation. Uses hand-crafted XML fixtures that
  * mirror NORMA's documented format without embedding NORMA source.
  */
-import { describe, it, expect } from "vitest";
-import { parseNormaXml, NormaParseError } from "../../src/import/NormaXmlParser.js";
+import { describe, expect, it } from "vitest";
+import { NormaParseError, parseNormaXml } from "../../src/import/NormaXmlParser.js";
 
 /** Minimal valid NORMA XML wrapper. */
 function wrap(body: string): string {

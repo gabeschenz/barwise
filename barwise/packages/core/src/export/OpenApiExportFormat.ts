@@ -7,15 +7,11 @@
  * - Option forwarding (title, version, basePath)
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
-import type {
-  ExportFormatAdapter,
-  ExportOptions,
-  ExportResult,
-} from "./types.js";
 import { RelationalMapper } from "../mapping/RelationalMapper.js";
-import { renderOpenApi, openApiToJson } from "../mapping/renderers/openapi.js";
+import { openApiToJson, renderOpenApi } from "../mapping/renderers/openapi.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import { ValidationEngine } from "../validation/ValidationEngine.js";
+import type { ExportFormatAdapter, ExportOptions, ExportResult } from "./types.js";
 
 /**
  * OpenAPI 3.0 export format.
@@ -67,10 +63,11 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
     // Alternatively, we could include it in the description field, but that's
     // not ideal. For now, just include errors as a warning string in the result
     // if they exist.
-    const validationWarnings =
-      errors.length > 0
-        ? `/* Validation warnings:\n${errors.map((e) => ` * ERROR: ${e.message}`).join("\n")}\n */\n\n`
-        : "";
+    const validationWarnings = errors.length > 0
+      ? `/* Validation warnings:\n${
+        errors.map((e) => ` * ERROR: ${e.message}`).join("\n")
+      }\n */\n\n`
+      : "";
 
     return {
       text: validationWarnings + text,

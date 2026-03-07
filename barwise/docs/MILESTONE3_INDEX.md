@@ -5,37 +5,43 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 ## Three Documentation Levels
 
 ### 1. Start Here: MILESTONE3_FINDINGS.md
+
 **For:** Quick understanding of what Milestone 3 is and its current status
 **Contains:**
+
 - Executive summary
 - 10 key findings
 - Implementation status checklist
 - Code statistics
 - Next steps for extension
-**Read time:** 10 minutes
+  **Read time:** 10 minutes
 
 **Location:** `docs/MILESTONE3_FINDINGS.md`
 
 ---
 
 ### 2. For Development: MILESTONE3_QUICK_REFERENCE.md
+
 **For:** Developers working with serialization code
 **Contains:**
+
 - File locations (schemas, serializers, examples)
 - Core YAML structure template
 - All constraint types (Phase 1 and Phase 2)
 - Key class interfaces
 - Usage code examples
 - Status checklist
-**Read time:** 5 minutes (lookup reference)
+  **Read time:** 5 minutes (lookup reference)
 
 **Location:** `docs/MILESTONE3_QUICK_REFERENCE.md`
 
 ---
 
 ### 3. For Deep Understanding: MILESTONE3_RESEARCH.md
+
 **For:** Complete technical reference and design decisions
 **Contains:**
+
 - 13 detailed sections
 - Architecture specification
 - Complete JSON Schema documentation
@@ -45,7 +51,7 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 - Testing strategy
 - Integration points
 - Code examples
-**Read time:** 30 minutes (comprehensive reference)
+  **Read time:** 30 minutes (comprehensive reference)
 
 **Location:** `docs/MILESTONE3_RESEARCH.md`
 
@@ -53,22 +59,23 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 
 ## Quick Facts
 
-| Aspect | Details |
-|--------|---------|
-| **Status** | Complete and production-ready |
-| **Schema Version** | 1.0 |
-| **Implementation** | 788 lines TypeScript + 612 lines JSON Schema |
-| **Dependencies** | ajv (validation), yaml (parsing) |
-| **Round-Trip** | Guaranteed lossless serialization |
-| **Constraint Types** | 12 total (4 Phase 1, 8 Phase 2) |
-| **Example Files** | 10+ complete models provided |
-| **Test Coverage** | 95%+ for serialization code |
+| Aspect               | Details                                      |
+| -------------------- | -------------------------------------------- |
+| **Status**           | Complete and production-ready                |
+| **Schema Version**   | 1.0                                          |
+| **Implementation**   | 788 lines TypeScript + 612 lines JSON Schema |
+| **Dependencies**     | ajv (validation), yaml (parsing)             |
+| **Round-Trip**       | Guaranteed lossless serialization            |
+| **Constraint Types** | 12 total (4 Phase 1, 8 Phase 2)              |
+| **Example Files**    | 10+ complete models provided                 |
+| **Test Coverage**    | 95%+ for serialization code                  |
 
 ---
 
 ## Core Files
 
 ### Serialization Code
+
 - `OrmYamlSerializer.ts` - Main round-trip serialization (390 lines)
 - `SchemaValidator.ts` - JSON Schema validation (55 lines)
 - `ProjectSerializer.ts` - Project manifest handling (184 lines)
@@ -77,6 +84,7 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 **Location:** `/packages/core/src/serialization/`
 
 ### JSON Schemas
+
 - `orm-model.schema.json` - Domain model definition (407 lines)
 - `orm-project.schema.json` - Project manifest definition (109 lines)
 - `context-mapping.schema.json` - Context mapping definition (96 lines)
@@ -84,6 +92,7 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 **Location:** `/packages/core/schemas/`
 
 ### Example Files
+
 - `university-enrollment.orm.yaml` - University domain
 - `order-management.orm.yaml` - E-commerce domain
 - `clinic-appointments.orm.yaml` - Healthcare domain
@@ -96,6 +105,7 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 ## What Milestone 3 Provides
 
 ### Completed Features
+
 - JSON Schema definitions for all file types
 - Full YAML round-trip serialization
 - Schema validation before model construction
@@ -108,6 +118,7 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 - Example models demonstrating all features
 
 ### Not Yet Implemented
+
 - Schema versioning and migration (1.0 → 1.1+)
 - NORMA XML import (low priority)
 - Analytical model derivation metadata
@@ -119,18 +130,21 @@ Welcome to the comprehensive Milestone 3 (JSON Schema and YAML Serialization) do
 ## Understanding the Architecture
 
 ### Why YAML?
+
 - Human-readable text format
 - Meaningful diffs in version control
 - Familiar to data engineers (dbt, Airflow)
 - Supports inline comments
 
 ### JSON Schema Purpose
+
 - File validation on load
 - VS Code autocomplete support (with Red Hat YAML extension)
 - LLM output constraint specification
 - Multi-file reference contract definition
 
 ### Round-Trip Guarantee
+
 ```
 OrmModel (in memory)
     ↓
@@ -158,8 +172,9 @@ Result is identical to original
 ## Usage Quick Start
 
 ### Basic Serialization
+
 ```typescript
-import { OrmYamlSerializer } from '@barwise/core';
+import { OrmYamlSerializer } from "@barwise/core";
 
 const serializer = new OrmYamlSerializer();
 
@@ -177,8 +192,9 @@ try {
 ```
 
 ### Project Loading
+
 ```typescript
-import { ProjectSerializer, OrmYamlSerializer } from '@barwise/core';
+import { OrmYamlSerializer, ProjectSerializer } from "@barwise/core";
 
 const projSerializer = new ProjectSerializer();
 const modelSerializer = new OrmYamlSerializer();
@@ -198,10 +214,12 @@ for (const domain of project.domains) {
 ## Dependencies
 
 **Runtime:**
+
 - `ajv@^8.18.0` - JSON Schema validation
 - `yaml@^2.8.2` - YAML parsing and stringification
 
 **No additional dependencies allowed per project guidelines:**
+
 - UUID generation uses native `node:crypto.randomUUID()`
 - File I/O handled by extension/CLI layer (not in core)
 
@@ -210,6 +228,7 @@ for (const domain of project.domains) {
 ## Testing
 
 ### What's Tested
+
 - All serializer classes (unit tests)
 - Round-trip fidelity (serialize → deserialize → identical)
 - Schema validation (valid and invalid YAML)
@@ -218,10 +237,12 @@ for (const domain of project.domains) {
 - Error handling and messages
 
 ### Coverage Target
+
 - Serialization: **95%+** (data loss is unacceptable)
 - Integration tests verify lossless conversion
 
 ### Test Files
+
 - `packages/core/tests/serialization/` - Unit tests
 - `packages/core/tests/integration/roundTrip.test.ts` - Round-trip verification
 - `packages/core/tests/integration/fixtures/` - Example files and test data

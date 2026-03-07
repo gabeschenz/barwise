@@ -10,9 +10,9 @@
  * listing importers vs. exporters.
  */
 
-import type { FormatDescriptor } from "./types.js";
-import type { ImportFormat } from "../import/types.js";
 import type { ExportFormatAdapter } from "../export/types.js";
+import type { ImportFormat } from "../import/types.js";
+import type { FormatDescriptor } from "./types.js";
 
 /**
  * Error thrown when a format registry operation fails.

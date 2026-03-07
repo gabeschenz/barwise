@@ -9,10 +9,10 @@
  *   - Ring constraints requiring a self-referencing fact type
  *   - Subset/equality role-set matching
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { Constraint } from "../../src/model/Constraint.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
-import type { Constraint } from "../../src/model/Constraint.js";
 
 /**
  * Builds a binary "Person drives Car" model with one attached constraint.

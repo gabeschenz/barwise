@@ -7,13 +7,13 @@
  * core structure should be preserved.
  */
 
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
-import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
-import { renderDdl } from "../../src/mapping/renderers/ddl.js";
-import { renderOpenApi, openApiToJson } from "../../src/mapping/renderers/openapi.js";
+import { describe, expect, it } from "vitest";
 import { DdlImportFormat } from "../../src/import/DdlImportFormat.js";
 import { OpenApiImportFormat } from "../../src/import/OpenApiImportFormat.js";
+import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
+import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+import { openApiToJson, renderOpenApi } from "../../src/mapping/renderers/openapi.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("Round-trip tests", () => {
   describe("DDL round-trip", () => {
@@ -48,14 +48,14 @@ describe("Round-trip tests", () => {
 
       // Verify entity types exist
       const originalEntities = originalModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
       const importedEntities = importedModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
 
       expect(importedEntities.length).toBeGreaterThanOrEqual(
-        originalEntities.length
+        originalEntities.length,
       );
 
       // Verify entity names are preserved (case-insensitive)
@@ -97,18 +97,18 @@ describe("Round-trip tests", () => {
 
       // Should have both entities
       const entities = importedModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
       expect(entities.length).toBeGreaterThanOrEqual(2);
 
       // Should have a fact type connecting them
       const connectingFacts = importedModel.factTypes.filter(
         (ft) =>
-          ft.roles.length === 2 &&
-          ft.roles.every((r) => {
+          ft.roles.length === 2
+          && ft.roles.every((r) => {
             const player = importedModel.getObjectType(r.playerId);
             return player?.kind === "entity";
-          })
+          }),
       );
 
       expect(connectingFacts.length).toBeGreaterThan(0);
@@ -141,10 +141,10 @@ describe("Round-trip tests", () => {
 
       // Should have mandatory constraint
       const allConstraints = importedModel.factTypes.flatMap(
-        (ft) => ft.constraints
+        (ft) => ft.constraints,
       );
       const mandatoryConstraints = allConstraints.filter(
-        (c) => c.type === "mandatory"
+        (c) => c.type === "mandatory",
       );
 
       expect(mandatoryConstraints.length).toBeGreaterThan(0);
@@ -188,14 +188,14 @@ describe("Round-trip tests", () => {
 
       // Verify entity types exist
       const originalEntities = originalModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
       const importedEntities = importedModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
 
       expect(importedEntities.length).toBeGreaterThanOrEqual(
-        originalEntities.length
+        originalEntities.length,
       );
 
       // Verify entity names are preserved
@@ -242,18 +242,18 @@ describe("Round-trip tests", () => {
 
       // Should have both entities
       const entities = importedModel.objectTypes.filter(
-        (ot) => ot.kind === "entity"
+        (ot) => ot.kind === "entity",
       );
       expect(entities.length).toBeGreaterThanOrEqual(2);
 
       // Should have connecting fact types
       const connectingFacts = importedModel.factTypes.filter(
         (ft) =>
-          ft.roles.length === 2 &&
-          ft.roles.every((r) => {
+          ft.roles.length === 2
+          && ft.roles.every((r) => {
             const player = importedModel.getObjectType(r.playerId);
             return player?.kind === "entity";
-          })
+          }),
       );
 
       expect(connectingFacts.length).toBeGreaterThan(0);
@@ -322,7 +322,7 @@ describe("Round-trip tests", () => {
 
       // Should have multiple relationships to User
       const userEntity = model.objectTypes.find(
-        (ot) => ot.kind === "entity" && ot.name.toLowerCase().includes("user")
+        (ot) => ot.kind === "entity" && ot.name.toLowerCase().includes("user"),
       );
       expect(userEntity).toBeDefined();
 

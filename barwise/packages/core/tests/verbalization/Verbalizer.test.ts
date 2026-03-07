@@ -8,9 +8,9 @@
  *   - verbalizeFactType returns sentences for a single fact type by ID
  *   - Sub-verbalizer access (factTypes, constraints)
  */
-import { describe, it, expect } from "vitest";
-import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("Verbalizer", () => {

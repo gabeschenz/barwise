@@ -2,9 +2,9 @@
  * Tests for the review_model tool.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { executeReview } from "../../src/tools/review.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -32,6 +32,7 @@ barwise validate model.orm.yaml --no-warnings
 ```
 
 Options:
+
 - `--format <text|json>` -- output format (default: text)
 - `--no-warnings` -- suppress warnings, show errors only
 
@@ -48,6 +49,7 @@ barwise verbalize university.orm.yaml --format json
 ```
 
 Options:
+
 - `--format <text|json>` -- output format (default: text)
 - `--fact-type <name>` -- verbalize a specific fact type only
 
@@ -62,6 +64,7 @@ barwise schema university.orm.yaml --output schema.sql
 ```
 
 Options:
+
 - `--format <ddl|json>` -- DDL SQL or JSON mapping (default: ddl)
 - `--output <file>` -- write to file instead of stdout
 
@@ -76,11 +79,13 @@ barwise export dbt model.orm.yaml --output-dir dbt/models
 ```
 
 Subcommands:
+
 - `yaml` -- re-serialize as .orm.yaml (normalize/reformat)
 - `json` -- serialize as JSON
 - `dbt` -- generate dbt model YAML and SQL files
 
 Options:
+
 - `--output <file>` -- write to file (yaml, json)
 - `--output-dir <dir>` -- output directory for dbt files (default: `.`)
 
@@ -94,6 +99,7 @@ barwise diagram university.orm.yaml --output university.svg
 ```
 
 Options:
+
 - `--output <file>` -- write SVG to file instead of stdout
 
 ### diff
@@ -107,6 +113,7 @@ barwise diff old.orm.yaml new.orm.yaml --no-synonyms
 ```
 
 Options:
+
 - `--format <text|json>` -- output format (default: text)
 - `--no-synonyms` -- hide synonym/rename candidates
 
@@ -121,6 +128,7 @@ barwise import transcript notes.txt --provider ollama --base-url http://localhos
 ```
 
 Options:
+
 - `--output <file>` -- write .orm.yaml to file instead of stdout
 - `--provider <anthropic|openai|ollama>` -- LLM provider (auto-detects
   from env vars if omitted)
@@ -131,6 +139,7 @@ Options:
 - `--no-annotate` -- skip TODO/NOTE annotations in output
 
 Provider auto-detection checks environment variables in order:
+
 1. `ANTHROPIC_API_KEY` set -- uses Anthropic (Claude)
 2. `OPENAI_API_KEY` set -- uses OpenAI
 3. Neither set -- uses Ollama (local, no key required)

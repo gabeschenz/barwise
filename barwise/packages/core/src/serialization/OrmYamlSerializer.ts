@@ -1,17 +1,14 @@
-import { stringify, parse } from "yaml";
-import { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType, ConceptualDataTypeName } from "../model/ObjectType.js";
-import type { FactType } from "../model/FactType.js";
-import type { SubtypeFact } from "../model/SubtypeFact.js";
-import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
-import type { Population, FactInstance } from "../model/Population.js";
-import type { Role } from "../model/Role.js";
-import type { Definition } from "../model/Definition.js";
+import { parse, stringify } from "yaml";
 import type { Constraint, RingType } from "../model/Constraint.js";
-import {
-  SchemaValidator,
-  type SchemaValidationResult,
-} from "./SchemaValidator.js";
+import type { Definition } from "../model/Definition.js";
+import type { FactType } from "../model/FactType.js";
+import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import type { ConceptualDataTypeName, ObjectType } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
+import type { FactInstance, Population } from "../model/Population.js";
+import type { Role } from "../model/Role.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
+import { type SchemaValidationResult, SchemaValidator } from "./SchemaValidator.js";
 
 /**
  * The shape of a parsed .orm.yaml document. This mirrors the JSON Schema
@@ -39,8 +36,8 @@ interface OrmYamlObjectType {
   reference_mode?: string;
   definition?: string;
   source_context?: string;
-  value_constraint?: { values: string[] };
-  data_type?: { name: string; length?: number; scale?: number };
+  value_constraint?: { values: string[]; };
+  data_type?: { name: string; length?: number; scale?: number; };
   aliases?: string[];
 }
 
@@ -60,17 +57,17 @@ interface OrmYamlRole {
 }
 
 type OrmYamlConstraint =
-  | { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }
-  | { type: "mandatory"; role: string }
-  | { type: "external_uniqueness"; roles: string[] }
-  | { type: "value_constraint"; role?: string; values: string[] }
-  | { type: "disjunctive_mandatory"; roles: string[] }
-  | { type: "exclusion"; roles: string[] }
-  | { type: "exclusive_or"; roles: string[] }
-  | { type: "subset"; subset_roles: string[]; superset_roles: string[] }
-  | { type: "equality"; roles_1: string[]; roles_2: string[] }
-  | { type: "ring"; role_1: string; role_2: string; ring_type: RingType }
-  | { type: "frequency"; role: string; min: number; max: number | "unbounded" };
+  | { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean; }
+  | { type: "mandatory"; role: string; }
+  | { type: "external_uniqueness"; roles: string[]; }
+  | { type: "value_constraint"; role?: string; values: string[]; }
+  | { type: "disjunctive_mandatory"; roles: string[]; }
+  | { type: "exclusion"; roles: string[]; }
+  | { type: "exclusive_or"; roles: string[]; }
+  | { type: "subset"; subset_roles: string[]; superset_roles: string[]; }
+  | { type: "equality"; roles_1: string[]; roles_2: string[]; }
+  | { type: "ring"; role_1: string; role_2: string; ring_type: RingType; }
+  | { type: "frequency"; role: string; min: number; max: number | "unbounded"; };
 
 interface OrmYamlSubtypeFact {
   id: string;
@@ -155,7 +152,9 @@ export class OrmYamlSerializer {
     const result = this.validator.validateModel(raw);
     if (!result.valid) {
       throw new DeserializationError(
-        `YAML does not conform to orm-model schema: ${result.errors.map((e) => `${e.path}: ${e.message}`).join("; ")}`,
+        `YAML does not conform to orm-model schema: ${
+          result.errors.map((e) => `${e.path}: ${e.message}`).join("; ")
+        }`,
         result,
       );
     }
@@ -180,44 +179,34 @@ export class OrmYamlSerializer {
 
     const objectTypes = model.objectTypes;
     if (objectTypes.length > 0) {
-      doc.model.object_types = objectTypes.map((ot) =>
-        this.serializeObjectType(ot),
-      );
+      doc.model.object_types = objectTypes.map((ot) => this.serializeObjectType(ot));
     }
 
     const factTypes = model.factTypes;
     if (factTypes.length > 0) {
-      doc.model.fact_types = factTypes.map((ft) =>
-        this.serializeFactType(ft),
-      );
+      doc.model.fact_types = factTypes.map((ft) => this.serializeFactType(ft));
     }
 
     const subtypeFacts = model.subtypeFacts;
     if (subtypeFacts.length > 0) {
-      doc.model.subtype_facts = subtypeFacts.map((sf) =>
-        this.serializeSubtypeFact(sf),
-      );
+      doc.model.subtype_facts = subtypeFacts.map((sf) => this.serializeSubtypeFact(sf));
     }
 
     const objectifiedFactTypes = model.objectifiedFactTypes;
     if (objectifiedFactTypes.length > 0) {
       doc.model.objectified_fact_types = objectifiedFactTypes.map((oft) =>
-        this.serializeObjectifiedFactType(oft),
+        this.serializeObjectifiedFactType(oft)
       );
     }
 
     const populations = model.populations;
     if (populations.length > 0) {
-      doc.model.populations = populations.map((p) =>
-        this.serializePopulation(p),
-      );
+      doc.model.populations = populations.map((p) => this.serializePopulation(p));
     }
 
     const definitions = model.definitions;
     if (definitions.length > 0) {
-      doc.model.definitions = definitions.map((d) =>
-        this.serializeDefinition(d),
-      );
+      doc.model.definitions = definitions.map((d) => this.serializeDefinition(d));
     }
 
     return doc;
@@ -243,7 +232,7 @@ export class OrmYamlSerializer {
       result.value_constraint = { values: [...ot.valueConstraint.values] };
     }
     if (ot.dataType) {
-      const dt: { name: string; length?: number; scale?: number } = { name: ot.dataType.name };
+      const dt: { name: string; length?: number; scale?: number; } = { name: ot.dataType.name };
       if (ot.dataType.length !== undefined) dt.length = ot.dataType.length;
       if (ot.dataType.scale !== undefined) dt.scale = ot.dataType.scale;
       result.data_type = dt;
@@ -268,9 +257,7 @@ export class OrmYamlSerializer {
     }
 
     if (ft.constraints.length > 0) {
-      result.constraints = ft.constraints.map((c) =>
-        this.serializeConstraint(c),
-      );
+      result.constraints = ft.constraints.map((c) => this.serializeConstraint(c));
     }
 
     return result;
@@ -290,7 +277,8 @@ export class OrmYamlSerializer {
       case "internal_uniqueness": {
         const iuc: OrmYamlConstraint = { type: "internal_uniqueness", roles: [...c.roleIds] };
         if (c.isPreferred) {
-          (iuc as { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean }).is_preferred = true;
+          (iuc as { type: "internal_uniqueness"; roles: string[]; is_preferred?: boolean; })
+            .is_preferred = true;
         }
         result = iuc;
         break;
@@ -307,7 +295,7 @@ export class OrmYamlSerializer {
           values: [...c.values],
         };
         if (c.roleId) {
-          (vc as { type: "value_constraint"; role?: string; values: string[] }).role = c.roleId;
+          (vc as { type: "value_constraint"; role?: string; values: string[]; }).role = c.roleId;
         }
         result = vc;
         break;
@@ -322,7 +310,11 @@ export class OrmYamlSerializer {
         result = { type: "exclusive_or", roles: [...c.roleIds] };
         break;
       case "subset":
-        result = { type: "subset", subset_roles: [...c.subsetRoleIds], superset_roles: [...c.supersetRoleIds] };
+        result = {
+          type: "subset",
+          subset_roles: [...c.subsetRoleIds],
+          superset_roles: [...c.supersetRoleIds],
+        };
         break;
       case "equality":
         result = { type: "equality", roles_1: [...c.roleIds1], roles_2: [...c.roleIds2] };
@@ -336,7 +328,7 @@ export class OrmYamlSerializer {
     }
     // Add constraint ID if present
     if (c.id) {
-      (result as { id?: string }).id = c.id;
+      (result as { id?: string; }).id = c.id;
     }
     return result;
   }
@@ -415,10 +407,10 @@ export class OrmYamlSerializer {
           : undefined,
         dataType: otDoc.data_type
           ? {
-              name: otDoc.data_type.name as ConceptualDataTypeName,
-              length: otDoc.data_type.length,
-              scale: otDoc.data_type.scale,
-            }
+            name: otDoc.data_type.name as ConceptualDataTypeName,
+            length: otDoc.data_type.length,
+            scale: otDoc.data_type.scale,
+          }
           : undefined,
         aliases: otDoc.aliases,
       });
@@ -426,9 +418,7 @@ export class OrmYamlSerializer {
 
     // Add fact types.
     for (const ftDoc of doc.model.fact_types ?? []) {
-      const constraints = (ftDoc.constraints ?? []).map((c) =>
-        this.deserializeConstraint(c),
-      );
+      const constraints = (ftDoc.constraints ?? []).map((c) => this.deserializeConstraint(c));
 
       model.addFactType({
         id: ftDoc.id,
@@ -492,7 +482,7 @@ export class OrmYamlSerializer {
 
   private deserializeConstraint(c: OrmYamlConstraint): Constraint {
     let result: Constraint;
-    const id = (c as { id?: string }).id;
+    const id = (c as { id?: string; }).id;
 
     switch (c.type) {
       case "internal_uniqueness": {
@@ -521,7 +511,11 @@ export class OrmYamlSerializer {
         result = { type: "exclusive_or", roleIds: c.roles };
         break;
       case "subset":
-        result = { type: "subset", subsetRoleIds: c.subset_roles, supersetRoleIds: c.superset_roles };
+        result = {
+          type: "subset",
+          subsetRoleIds: c.subset_roles,
+          supersetRoleIds: c.superset_roles,
+        };
         break;
       case "equality":
         result = { type: "equality", roleIds1: c.roles_1, roleIds2: c.roles_2 };

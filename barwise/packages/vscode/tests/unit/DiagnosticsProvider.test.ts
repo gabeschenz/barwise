@@ -5,12 +5,12 @@
  * instance. We mock the LSP Connection and construct TextDocument objects
  * directly from the vscode-languageserver-textdocument package.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DiagnosticsProvider } from "../../src/server/DiagnosticsProvider.js";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,7 +47,7 @@ describe("DiagnosticsProvider", () => {
     expect(call.uri).toBe(doc.uri);
     // A valid simple model should have no errors (may have warnings).
     const errors = call.diagnostics.filter(
-      (d: { severity: number }) => d.severity === 1, // DiagnosticSeverity.Error
+      (d: { severity: number; }) => d.severity === 1, // DiagnosticSeverity.Error
     );
     expect(errors).toHaveLength(0);
   });
@@ -60,7 +60,7 @@ describe("DiagnosticsProvider", () => {
     const call = connection.sendDiagnostics.mock.calls[0]![0]!;
     // Should have at least one error for the dangling role player.
     const errors = call.diagnostics.filter(
-      (d: { severity: number }) => d.severity === 1,
+      (d: { severity: number; }) => d.severity === 1,
     );
     expect(errors.length).toBeGreaterThan(0);
   });
@@ -108,15 +108,15 @@ describe("DiagnosticsProvider", () => {
 
     const call = connection.sendDiagnostics.mock.calls[0]![0]!;
     const errors = call.diagnostics.filter(
-      (d: { severity: number }) => d.severity === 1,
+      (d: { severity: number; }) => d.severity === 1,
     );
     expect(errors.length).toBeGreaterThan(0);
 
     // The constraint error references ft-has-age which contains an
     // internal uniqueness constraint pointing at a role from another
     // fact type. ft-has-age is at line 30 (0-indexed) in the fixture.
-    const constraintError = errors.find((d: { message: string }) =>
-      d.message.includes("r-person-name"),
+    const constraintError = errors.find((d: { message: string; }) =>
+      d.message.includes("r-person-name")
     );
     expect(constraintError).toBeDefined();
     expect(constraintError.range.start.line).toBeGreaterThan(0);

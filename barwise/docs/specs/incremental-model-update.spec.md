@@ -98,19 +98,19 @@ The new `constraintKey(c, roles)` accepts the fact type's roles array
 and maps each role ID to its 0-based index. The key is then built per
 constraint type using only semantic properties:
 
-| Constraint type | Key components |
-|---|---|
-| `internal_uniqueness` | type, sorted role indices, isPreferred |
-| `mandatory` | type, role index |
-| `external_uniqueness` | type, sorted role indices |
-| `value_constraint` | type, role index (if present), sorted values |
-| `disjunctive_mandatory` | type, sorted role indices |
-| `exclusion` | type, sorted role indices |
-| `exclusive_or` | type, sorted role indices |
-| `subset` | type, subset indices, superset indices (order preserved) |
-| `equality` | type, indices1, indices2 (order preserved) |
-| `ring` | type, index1, index2, ringType |
-| `frequency` | type, role index, min, max |
+| Constraint type         | Key components                                           |
+| ----------------------- | -------------------------------------------------------- |
+| `internal_uniqueness`   | type, sorted role indices, isPreferred                   |
+| `mandatory`             | type, role index                                         |
+| `external_uniqueness`   | type, sorted role indices                                |
+| `value_constraint`      | type, role index (if present), sorted values             |
+| `disjunctive_mandatory` | type, sorted role indices                                |
+| `exclusion`             | type, sorted role indices                                |
+| `exclusive_or`          | type, sorted role indices                                |
+| `subset`                | type, subset indices, superset indices (order preserved) |
+| `equality`              | type, indices1, indices2 (order preserved)               |
+| `ring`                  | type, index1, index2, ringType                           |
+| `frequency`             | type, role index, min, max                               |
 
 For role IDs not found in the fact type's roles (cross-fact-type
 constraints like external uniqueness), the raw ID is kept as-is.
@@ -138,6 +138,7 @@ array) that it forwards to `constraintKey`.
 #### Files
 
 ##### Modified files
+
 - `packages/core/src/diff/ModelDiff.ts` -- rewrite `constraintKey()`,
   update `diffConstraints()` signature to accept roles
 - `packages/core/tests/diff/ModelDiff.test.ts` -- add constraint
@@ -187,6 +188,7 @@ export interface SynonymCandidate {
 ```
 
 `ModelDiffResult` gains an optional field:
+
 ```typescript
 export interface ModelDiffResult {
   readonly deltas: readonly ModelDelta[];
@@ -311,6 +313,7 @@ appropriate `accepted` set and alias additions.
 #### Files
 
 ##### Modified files
+
 - `packages/core/src/diff/ModelDiff.ts` -- add `SynonymCandidate`
   type, extend `ModelDiffResult`, add `detectSynonymCandidates()`
   called at the end of `diffModels()`
@@ -349,30 +352,30 @@ caution.
 
 ##### Delta kind rules
 
-| Kind | Default level | Notes |
-|---|---|---|
-| `unchanged` | safe | Nothing changed |
-| `added` | safe | New elements are additive |
-| `removed` | breaking | Removing an element can break references |
-| `modified` | (per change) | Depends on what changed |
+| Kind        | Default level | Notes                                    |
+| ----------- | ------------- | ---------------------------------------- |
+| `unchanged` | safe          | Nothing changed                          |
+| `added`     | safe          | New elements are additive                |
+| `removed`   | breaking      | Removing an element can break references |
+| `modified`  | (per change)  | Depends on what changed                  |
 
 ##### Modification change rules
 
-| Change pattern | Level | Rationale |
-|---|---|---|
-| `definition changed` | safe | Documentation only |
-| `aliases changed` | safe | Metadata only |
-| `source context:` | safe | Metadata only |
-| `data type:` / `data type added` / `data type removed` | caution | May affect downstream mappings |
-| `reference mode:` | caution | Changes identification scheme |
-| `value constraint changed` | caution | Changes allowed values |
-| `readings changed` | safe | Verbalization only |
-| `role N: name` | safe | Verbalization only |
-| `role N: player` | breaking | Changes the relationship structure |
-| `kind:` | breaking | Entity/value switch changes semantics |
-| `arity:` | breaking | Structural change to fact type |
-| `constraints added` | caution | New rules on existing data |
-| `constraints removed` | caution | Relaxed rules, may indicate misunderstanding |
+| Change pattern                                         | Level    | Rationale                                    |
+| ------------------------------------------------------ | -------- | -------------------------------------------- |
+| `definition changed`                                   | safe     | Documentation only                           |
+| `aliases changed`                                      | safe     | Metadata only                                |
+| `source context:`                                      | safe     | Metadata only                                |
+| `data type:` / `data type added` / `data type removed` | caution  | May affect downstream mappings               |
+| `reference mode:`                                      | caution  | Changes identification scheme                |
+| `value constraint changed`                             | caution  | Changes allowed values                       |
+| `readings changed`                                     | safe     | Verbalization only                           |
+| `role N: name`                                         | safe     | Verbalization only                           |
+| `role N: player`                                       | breaking | Changes the relationship structure           |
+| `kind:`                                                | breaking | Entity/value switch changes semantics        |
+| `arity:`                                               | breaking | Structural change to fact type               |
+| `constraints added`                                    | caution  | New rules on existing data                   |
+| `constraints removed`                                  | caution  | Relaxed rules, may indicate misunderstanding |
 
 Changes not matching any pattern default to `caution` (unknown changes
 deserve attention).
@@ -408,6 +411,7 @@ diff engine. The result is stored on the delta itself.
 #### Files
 
 ##### Modified files
+
 - `packages/core/src/diff/ModelDiff.ts` -- add `BreakingLevel` type,
   `breakingLevel` field to delta interfaces,
   `classifyBreakingLevel()` function
@@ -498,6 +502,7 @@ who want merge without validation (tests, programmatic use).
 #### Files
 
 ##### Modified files
+
 - `packages/core/src/diff/ModelMerge.ts` -- add
   `validateMergeResult()`, `mergeAndValidate()`,
   `MergeValidationResult` type
@@ -548,11 +553,11 @@ improvements, all in the VS Code package (no core changes):
 Replace the plain +/-/~ icons with breaking-level-aware codicon
 icons for richer visual feedback:
 
-| Breaking level | Icon | Visual |
-|---|---|---|
-| breaking | `$(warning)` | Warning triangle |
-| caution | `$(info)` | Info circle |
-| safe | `$(check)` | Checkmark |
+| Breaking level | Icon         | Visual           |
+| -------------- | ------------ | ---------------- |
+| breaking       | `$(warning)` | Warning triangle |
+| caution        | `$(info)`    | Info circle      |
+| safe           | `$(check)`   | Checkmark        |
 
 The `kind` description is replaced with a more descriptive string
 combining the delta kind and breaking level (e.g. "removed - breaking",
@@ -583,9 +588,12 @@ combining the delta kind and breaking level (e.g. "removed - breaking",
 ```typescript
 function breakingIcon(level: BreakingLevel): string {
   switch (level) {
-    case "breaking": return "$(warning)";
-    case "caution": return "$(info)";
-    case "safe": return "$(check)";
+    case "breaking":
+      return "$(warning)";
+    case "caution":
+      return "$(info)";
+    case "safe":
+      return "$(check)";
   }
 }
 ```
@@ -607,6 +615,7 @@ changes are UI-only (QuickPick presentation, message dialogs) and
 cannot be tested without the VS Code runtime.
 
 **Manual verification**:
+
 1. Import a transcript against an existing model with breaking
    changes (entity removal, arity change). Verify the QuickPick
    groups deltas into Breaking/Caution/Safe sections with separators.
@@ -621,6 +630,7 @@ cannot be tested without the VS Code runtime.
 #### Files
 
 ##### Modified files
+
 - `packages/vscode/src/commands/ImportTranscriptCommand.ts` -- all
   changes are in this file: updated imports, `breakingIcon()`,
   updated `reviewDeltas()` with grouping and synonym annotations,
@@ -642,6 +652,7 @@ cannot be tested without the VS Code runtime.
 ## Files (Stage 1)
 
 ### Modified files
+
 - `packages/core/src/model/ObjectType.ts` -- add aliases field
 - `packages/core/src/serialization/OrmYamlSerializer.ts` -- serialize/deserialize aliases
 - `packages/core/schemas/orm-model.schema.json` -- add aliases to schema
@@ -653,5 +664,6 @@ cannot be tested without the VS Code runtime.
 - `packages/core/tests/diff/ModelMerge.test.ts` -- alias merge tests
 
 ### New files
+
 - `packages/core/tests/serialization/AliasesSerialization.test.ts` -- round-trip tests
 - `docs/specs/incremental-model-update.spec.md` -- this file

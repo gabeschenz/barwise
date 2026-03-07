@@ -1,17 +1,17 @@
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
+  type CompletionItem,
   createConnection,
-  TextDocuments,
-  ProposedFeatures,
+  type Hover,
   type InitializeParams,
   type InitializeResult,
-  TextDocumentSyncKind,
-  type CompletionItem,
-  type Hover,
+  ProposedFeatures,
   type TextDocumentPositionParams,
+  TextDocuments,
+  TextDocumentSyncKind,
 } from "vscode-languageserver/node.js";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { DiagnosticsProvider } from "./DiagnosticsProvider.js";
 import { CompletionProvider } from "./CompletionProvider.js";
+import { DiagnosticsProvider } from "./DiagnosticsProvider.js";
 import { HoverProvider } from "./HoverProvider.js";
 
 const connection = createConnection(ProposedFeatures.all);

@@ -58,9 +58,8 @@ function checkFactTypesWithoutConstraints(model: OrmModel): Diagnostic[] {
     if (ft.constraints.length === 0) {
       diagnostics.push({
         severity: "warning",
-        message:
-          `Fact type "${ft.name}" has no constraints. ` +
-          `Most fact types need at least a uniqueness constraint.`,
+        message: `Fact type "${ft.name}" has no constraints. `
+          + `Most fact types need at least a uniqueness constraint.`,
         elementId: ft.id,
         ruleId: "completeness/fact-type-without-constraints",
       });
@@ -83,8 +82,7 @@ function checkIsolatedObjectTypes(model: OrmModel): Diagnostic[] {
     if (participations.length === 0) {
       diagnostics.push({
         severity: "info",
-        message:
-          `Object type "${ot.name}" does not participate in any fact type.`,
+        message: `Object type "${ot.name}" does not participate in any fact type.`,
         elementId: ot.id,
         ruleId: "completeness/isolated-object-type",
       });
@@ -105,9 +103,8 @@ function checkMissingValueTypeDataType(model: OrmModel): Diagnostic[] {
     if (ot.kind === "value" && !ot.dataType) {
       diagnostics.push({
         severity: "info",
-        message:
-          `Value type "${ot.name}" has no data type. ` +
-          `The relational mapper will default to TEXT.`,
+        message: `Value type "${ot.name}" has no data type. `
+          + `The relational mapper will default to TEXT.`,
         elementId: ot.id,
         ruleId: "completeness/missing-value-type-data-type",
       });
@@ -143,18 +140,16 @@ function checkPreferredIdentifiers(model: OrmModel): Diagnostic[] {
     if (preferredCount === 0) {
       diagnostics.push({
         severity: "info",
-        message:
-          `Entity type "${ot.name}" has no preferred identifier. ` +
-          `The relational mapper will use a heuristic to determine the primary key.`,
+        message: `Entity type "${ot.name}" has no preferred identifier. `
+          + `The relational mapper will use a heuristic to determine the primary key.`,
         elementId: ot.id,
         ruleId: "completeness/missing-preferred-identifier",
       });
     } else if (preferredCount > 1) {
       diagnostics.push({
         severity: "warning",
-        message:
-          `Entity type "${ot.name}" has ${preferredCount} preferred identifiers. ` +
-          `Each entity should have exactly one.`,
+        message: `Entity type "${ot.name}" has ${preferredCount} preferred identifiers. `
+          + `Each entity should have exactly one.`,
         elementId: ot.id,
         ruleId: "completeness/multiple-preferred-identifiers",
       });

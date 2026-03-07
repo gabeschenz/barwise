@@ -7,12 +7,12 @@
  * verify serialization, deserialization, round-trip fidelity, and
  * error handling for invalid YAML and schema violations.
  */
-import { describe, it, expect } from "vitest";
-import {
-  MappingSerializer,
-  MappingDeserializationError,
-} from "../../src/serialization/MappingSerializer.js";
+import { describe, expect, it } from "vitest";
 import { ContextMapping } from "../../src/model/ContextMapping.js";
+import {
+  MappingDeserializationError,
+  MappingSerializer,
+} from "../../src/serialization/MappingSerializer.js";
 
 describe("MappingSerializer", () => {
   const serializer = new MappingSerializer();
@@ -133,15 +133,15 @@ mapping:
     });
 
     it("throws on invalid YAML", () => {
-      expect(() =>
-        serializer.deserialize("{{{{", "./test.map.yaml"),
-      ).toThrow(MappingDeserializationError);
+      expect(() => serializer.deserialize("{{{{", "./test.map.yaml")).toThrow(
+        MappingDeserializationError,
+      );
     });
 
     it("throws on schema validation failure", () => {
-      expect(() =>
-        serializer.deserialize("foo: bar", "./test.map.yaml"),
-      ).toThrow(MappingDeserializationError);
+      expect(() => serializer.deserialize("foo: bar", "./test.map.yaml")).toThrow(
+        MappingDeserializationError,
+      );
     });
 
     it("throws when required fields are missing", () => {
@@ -149,9 +149,9 @@ mapping:
 mapping:
   source_context: "crm"
 `;
-      expect(() =>
-        serializer.deserialize(yaml, "./test.map.yaml"),
-      ).toThrow(MappingDeserializationError);
+      expect(() => serializer.deserialize(yaml, "./test.map.yaml")).toThrow(
+        MappingDeserializationError,
+      );
     });
   });
 

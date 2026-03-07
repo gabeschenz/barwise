@@ -82,9 +82,9 @@ bundle time.
   2. **MCP stdio server** (`registerMcpServerDefinitionProvider`) --
      spawns `dist/mcp/index.js` as a child process for external MCP
      clients that discover servers through VS Code.
-  The `barwise.enableMcpServer` setting controls both mechanisms.
-  Tool declarations live in `package.json` under
-  `contributes.languageModelTools`.
+     The `barwise.enableMcpServer` setting controls both mechanisms.
+     Tool declarations live in `package.json` under
+     `contributes.languageModelTools`.
 
 ## Testing
 
@@ -112,11 +112,11 @@ Test fixtures live in `tests/fixtures/` (`.orm.yaml` files).
 
 ## Dependencies
 
-| Direction | Package | What is used |
-|-----------|---------|--------------|
-| Upstream  | `@barwise/core` | Model types, validation, verbalization, serialization, mapping |
-| Upstream  | `@barwise/diagram` | `generateDiagram` for webview SVG rendering |
-| Upstream  | `@barwise/llm` | `processTranscript`, `LlmClient` interface, extraction types |
-| Upstream  | `@barwise/mcp` | `createServer` for MCP stdio server; `execute*` functions for Language Model Tools |
-| External  | `vscode` | Editor API (provided at runtime, not bundled) |
-| External  | `vscode-languageserver/client` | LSP protocol implementation |
+| Direction | Package                        | What is used                                                                       |
+| --------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| Upstream  | `@barwise/core`                | Model types, validation, verbalization, serialization, mapping                     |
+| Upstream  | `@barwise/diagram`             | `generateDiagram` for webview SVG rendering                                        |
+| Upstream  | `@barwise/llm`                 | `processTranscript`, `LlmClient` interface, extraction types                       |
+| Upstream  | `@barwise/mcp`                 | `createServer` for MCP stdio server; `execute*` functions for Language Model Tools |
+| External  | `vscode`                       | Editor API (provided at runtime, not bundled)                                      |
+| External  | `vscode-languageserver/client` | LSP protocol implementation                                                        |

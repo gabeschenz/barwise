@@ -2,8 +2,8 @@
  * Lineage generation: traces exported artifacts back to source ORM elements.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
 import type { RelationalSchema } from "../mapping/RelationalSchema.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import type { LineageEntry, SourceReference } from "./types.js";
 
 /**
@@ -26,8 +26,8 @@ export function generateDdlLineage(
     const sources = new Map<string, SourceReference>();
 
     // The table itself traces back to an entity type or fact type
-    const sourceElement = model.getObjectType(table.sourceElementId) ??
-                          model.getFactType(table.sourceElementId);
+    const sourceElement = model.getObjectType(table.sourceElementId)
+      ?? model.getFactType(table.sourceElementId);
 
     if (sourceElement) {
       const elementType = model.getObjectType(table.sourceElementId)
@@ -260,7 +260,10 @@ export function generateModelLineage(
 /**
  * Helper to generate a readable name for a constraint.
  */
-function getConstraintName(constraint: { type: string; id?: string }, factType: { name: string }): string {
+function getConstraintName(
+  constraint: { type: string; id?: string; },
+  factType: { name: string; },
+): string {
   switch (constraint.type) {
     case "internal_uniqueness":
       return `UC: ${factType.name}`;

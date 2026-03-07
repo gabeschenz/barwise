@@ -40,9 +40,8 @@ function checkDanglingRoleReferences(model: OrmModel): Diagnostic[] {
       if (!model.getObjectType(role.playerId)) {
         diagnostics.push({
           severity: "error",
-          message:
-            `Role "${role.name}" in fact type "${ft.name}" references ` +
-            `object type id "${role.playerId}" which does not exist in the model.`,
+          message: `Role "${role.name}" in fact type "${ft.name}" references `
+            + `object type id "${role.playerId}" which does not exist in the model.`,
           elementId: ft.id,
           ruleId: "structural/dangling-role-reference",
         });
@@ -68,9 +67,8 @@ function checkDuplicateObjectTypeNames(model: OrmModel): Diagnostic[] {
     if (existing) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Duplicate object type name "${ot.name}". ` +
-          `Another object type with this name already exists (id: ${existing}).`,
+        message: `Duplicate object type name "${ot.name}". `
+          + `Another object type with this name already exists (id: ${existing}).`,
         elementId: ot.id,
         ruleId: "structural/duplicate-object-type-name",
       });
@@ -94,9 +92,8 @@ function checkDuplicateFactTypeNames(model: OrmModel): Diagnostic[] {
     if (existing) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Duplicate fact type name "${ft.name}". ` +
-          `Another fact type with this name already exists (id: ${existing}).`,
+        message: `Duplicate fact type name "${ft.name}". `
+          + `Another fact type with this name already exists (id: ${existing}).`,
         elementId: ft.id,
         ruleId: "structural/duplicate-fact-type-name",
       });
@@ -120,9 +117,8 @@ function checkBinaryFactTypeReadings(model: OrmModel): Diagnostic[] {
     if (ft.arity === 2 && ft.readings.length < 2) {
       diagnostics.push({
         severity: "warning",
-        message:
-          `Binary fact type "${ft.name}" has only ${ft.readings.length} reading. ` +
-          `Binary fact types typically have both a forward and inverse reading.`,
+        message: `Binary fact type "${ft.name}" has only ${ft.readings.length} reading. `
+          + `Binary fact types typically have both a forward and inverse reading.`,
         elementId: ft.id,
         ruleId: "structural/binary-missing-inverse-reading",
       });
@@ -144,18 +140,16 @@ function checkSubtypeFactReferences(model: OrmModel): Diagnostic[] {
     if (!subtype) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Subtype fact references subtype id "${sf.subtypeId}" ` +
-          `which does not exist in the model.`,
+        message: `Subtype fact references subtype id "${sf.subtypeId}" `
+          + `which does not exist in the model.`,
         elementId: sf.id,
         ruleId: "structural/subtype-dangling-subtype",
       });
     } else if (subtype.kind !== "entity") {
       diagnostics.push({
         severity: "error",
-        message:
-          `Subtype fact references "${subtype.name}" as subtype, ` +
-          `but it is a ${subtype.kind} type. Only entity types can participate in subtype relationships.`,
+        message: `Subtype fact references "${subtype.name}" as subtype, `
+          + `but it is a ${subtype.kind} type. Only entity types can participate in subtype relationships.`,
         elementId: sf.id,
         ruleId: "structural/subtype-not-entity",
       });
@@ -165,18 +159,16 @@ function checkSubtypeFactReferences(model: OrmModel): Diagnostic[] {
     if (!supertype) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Subtype fact references supertype id "${sf.supertypeId}" ` +
-          `which does not exist in the model.`,
+        message: `Subtype fact references supertype id "${sf.supertypeId}" `
+          + `which does not exist in the model.`,
         elementId: sf.id,
         ruleId: "structural/subtype-dangling-supertype",
       });
     } else if (supertype.kind !== "entity") {
       diagnostics.push({
         severity: "error",
-        message:
-          `Subtype fact references "${supertype.name}" as supertype, ` +
-          `but it is a ${supertype.kind} type. Only entity types can participate in subtype relationships.`,
+        message: `Subtype fact references "${supertype.name}" as supertype, `
+          + `but it is a ${supertype.kind} type. Only entity types can participate in subtype relationships.`,
         elementId: sf.id,
         ruleId: "structural/subtype-not-entity",
       });
@@ -255,9 +247,8 @@ function checkObjectifiedFactTypeReferences(model: OrmModel): Diagnostic[] {
     if (!factType) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Objectified fact type references fact type id "${oft.factTypeId}" ` +
-          `which does not exist in the model.`,
+        message: `Objectified fact type references fact type id "${oft.factTypeId}" `
+          + `which does not exist in the model.`,
         elementId: oft.id,
         ruleId: "structural/objectified-dangling-fact-type",
       });
@@ -268,18 +259,16 @@ function checkObjectifiedFactTypeReferences(model: OrmModel): Diagnostic[] {
     if (!objectType) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Objectified fact type references object type id "${oft.objectTypeId}" ` +
-          `which does not exist in the model.`,
+        message: `Objectified fact type references object type id "${oft.objectTypeId}" `
+          + `which does not exist in the model.`,
         elementId: oft.id,
         ruleId: "structural/objectified-dangling-object-type",
       });
     } else if (objectType.kind !== "entity") {
       diagnostics.push({
         severity: "error",
-        message:
-          `Objectified fact type references "${objectType.name}" as the entity type, ` +
-          `but it is a ${objectType.kind} type. Only entity types can be objectifications.`,
+        message: `Objectified fact type references "${objectType.name}" as the entity type, `
+          + `but it is a ${objectType.kind} type. Only entity types can be objectifications.`,
         elementId: oft.id,
         ruleId: "structural/objectified-not-entity",
       });
@@ -289,8 +278,7 @@ function checkObjectifiedFactTypeReferences(model: OrmModel): Diagnostic[] {
     if (seenFactTypes.has(oft.factTypeId)) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Fact type id "${oft.factTypeId}" is objectified more than once.`,
+        message: `Fact type id "${oft.factTypeId}" is objectified more than once.`,
         elementId: oft.id,
         ruleId: "structural/duplicate-objectification",
       });

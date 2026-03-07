@@ -1,9 +1,9 @@
 /**
  * Tests for the generate_diagram tool.
  */
-import { describe, it, expect } from "vitest";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { executeDiagram } from "../../src/tools/diagram.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

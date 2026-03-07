@@ -7,10 +7,10 @@
  *   - DDL rendering includes FK constraints for subtype relationships
  *   - ModelBuilder withSubtypeFact() integration
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 

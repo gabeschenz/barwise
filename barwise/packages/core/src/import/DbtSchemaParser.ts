@@ -14,9 +14,9 @@
 
 import { parse } from "yaml";
 import type {
-  DbtProjectDocument,
-  DbtModel,
   DbtColumn,
+  DbtModel,
+  DbtProjectDocument,
   DbtSource,
   DbtSourceTable,
   DbtTest,
@@ -93,8 +93,7 @@ export function parseDbtSchema(
 
 function parseModel(raw: Record<string, unknown>): DbtModel {
   const name = String(raw.name ?? "");
-  const description =
-    typeof raw.description === "string" ? raw.description : undefined;
+  const description = typeof raw.description === "string" ? raw.description : undefined;
   const columns = parseColumns(raw.columns);
 
   // Model-level tests: dbt >= 1.8 uses data_tests, older uses tests.
@@ -120,10 +119,8 @@ function parseColumns(raw: unknown): DbtColumn[] {
 
 function parseColumn(raw: Record<string, unknown>): DbtColumn {
   const name = String(raw.name ?? "");
-  const description =
-    typeof raw.description === "string" ? raw.description : undefined;
-  const dataType =
-    typeof raw.data_type === "string" ? raw.data_type : undefined;
+  const description = typeof raw.description === "string" ? raw.description : undefined;
+  const dataType = typeof raw.data_type === "string" ? raw.data_type : undefined;
 
   // Column-level tests: dbt >= 1.8 uses data_tests, older uses tests.
   const rawTests = raw.data_tests ?? raw.tests;
@@ -175,10 +172,9 @@ function parseObjectTest(raw: Record<string, unknown>): DbtTest[] {
   const tests: DbtTest[] = [];
 
   for (const [key, value] of Object.entries(raw)) {
-    const config =
-      value !== null && typeof value === "object" && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : {};
+    const config = value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
 
     switch (key) {
       case "not_null":
@@ -221,8 +217,7 @@ function parseObjectTest(raw: Record<string, unknown>): DbtTest[] {
 
 function parseSource(raw: Record<string, unknown>): DbtSource {
   const name = String(raw.name ?? "");
-  const description =
-    typeof raw.description === "string" ? raw.description : undefined;
+  const description = typeof raw.description === "string" ? raw.description : undefined;
 
   const tables: DbtSourceTable[] = [];
   if (Array.isArray(raw.tables)) {
@@ -238,8 +233,7 @@ function parseSource(raw: Record<string, unknown>): DbtSource {
 
 function parseSourceTable(raw: Record<string, unknown>): DbtSourceTable {
   const name = String(raw.name ?? "");
-  const description =
-    typeof raw.description === "string" ? raw.description : undefined;
+  const description = typeof raw.description === "string" ? raw.description : undefined;
   const columns = parseColumns(raw.columns);
   return { name, description, columns };
 }

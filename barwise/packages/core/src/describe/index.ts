@@ -3,12 +3,12 @@
  */
 
 export type {
+  ConstraintSummary,
   DescribeDomainOptions,
+  DomainDescription,
   EntitySummary,
   FactTypeSummary,
-  ConstraintSummary,
   PopulationSummary,
-  DomainDescription,
 } from "./describeDomain.js";
 
 export { describeDomain } from "./describeDomain.js";

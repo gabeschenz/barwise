@@ -4,7 +4,7 @@
  * Uses vi.mock to replace the OpenAI SDK with a mock that records
  * calls and returns canned responses. No real API calls are made.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompletionRequest } from "../../src/LlmClient.js";
 
 // Mock the OpenAI SDK before importing the provider.
@@ -15,7 +15,7 @@ vi.mock("openai", () => {
     default: class MockOpenAI {
       apiKey: string | undefined;
       chat = { completions: { create: mockCreate } };
-      constructor(options?: { apiKey?: string }) {
+      constructor(options?: { apiKey?: string; }) {
         this.apiKey = options?.apiKey;
       }
     },

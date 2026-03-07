@@ -2,11 +2,11 @@
  * review_model tool: LLM-powered semantic review of an ORM model.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { reviewModel } from "@barwise/llm";
 import type { ProviderName } from "@barwise/llm";
 import { createLlmClient } from "@barwise/llm";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerReviewTool(server: McpServer): void {
@@ -14,12 +14,11 @@ export function registerReviewTool(server: McpServer): void {
     "review_model",
     {
       title: "Review ORM Model",
-      description:
-        "Use an LLM to review an ORM model for semantic quality. " +
-        "Provides suggestions about naming, completeness, normalization, " +
-        "constraints, and definitions. Distinct from validation (which checks " +
-        "structural rules) -- review gives subjective modeling advice. " +
-        "Requires an LLM provider configured via environment variables.",
+      description: "Use an LLM to review an ORM model for semantic quality. "
+        + "Provides suggestions about naming, completeness, normalization, "
+        + "constraints, and definitions. Distinct from validation (which checks "
+        + "structural rules) -- review gives subjective modeling advice. "
+        + "Requires an LLM provider configured via environment variables.",
       inputSchema: {
         source: z
           .string()
@@ -54,7 +53,7 @@ export async function executeReview(
   focus?: string,
   provider?: ProviderName,
   model?: string,
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   const ormModel = resolveSource(source);
 
   const client = createLlmClient({

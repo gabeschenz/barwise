@@ -4,10 +4,10 @@
  * Lineage tracking and staleness detection.
  */
 
+import { analyzeImpact, checkStaleness, readManifest } from "@barwise/core";
 import type { Command } from "commander";
-import { checkStaleness, analyzeImpact, readManifest } from "@barwise/core";
-import { loadModel } from "../helpers/io.js";
 import { dirname, resolve } from "node:path";
+import { loadModel } from "../helpers/io.js";
 
 export function registerLineageCommand(program: Command): void {
   const lineage = program
@@ -20,7 +20,7 @@ export function registerLineageCommand(program: Command): void {
     .description("Check staleness of exported artifacts")
     .argument("<source>", "Path to .orm.yaml file")
     .option("--format <format>", "Output format (text or json)", "text")
-    .action(async (source: string, opts: { format: string }) => {
+    .action(async (source: string, opts: { format: string; }) => {
       try {
         const model = loadModel(source);
         const dir = dirname(resolve(source));
@@ -81,7 +81,7 @@ export function registerLineageCommand(program: Command): void {
     .requiredOption("--element <id>", "Element ID to analyze")
     .option("--format <format>", "Output format (text or json)", "text")
     .action(
-      async (source: string, opts: { element: string; format: string }) => {
+      async (source: string, opts: { element: string; format: string; }) => {
         try {
           const dir = dirname(resolve(source));
           const report = analyzeImpact(dir, opts.element);
@@ -123,7 +123,7 @@ export function registerLineageCommand(program: Command): void {
     .description("Show the lineage manifest")
     .argument("<source>", "Path to .orm.yaml file")
     .option("--format <format>", "Output format (text or json)", "text")
-    .action(async (source: string, opts: { format: string }) => {
+    .action(async (source: string, opts: { format: string; }) => {
       try {
         const dir = dirname(resolve(source));
         const manifest = readManifest(dir);

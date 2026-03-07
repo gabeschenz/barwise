@@ -8,15 +8,15 @@
  * the prompt construction, LLM call, response parsing, and model building.
  */
 
-import type { LlmClient } from "./LlmClient.js";
-import type { DraftModelResult, ExtractionResponse } from "./ExtractionTypes.js";
+import { parseDraftModel } from "./DraftModelParser.js";
 import {
+  buildResponseSchema,
   buildSystemPrompt,
   buildUserMessage,
-  buildResponseSchema,
   parseExtractionResponse,
 } from "./ExtractionPrompt.js";
-import { parseDraftModel } from "./DraftModelParser.js";
+import type { DraftModelResult, ExtractionResponse } from "./ExtractionTypes.js";
+import type { LlmClient } from "./LlmClient.js";
 
 export interface ProcessorOptions {
   /** Name for the resulting model. Defaults to "Extracted Model". */

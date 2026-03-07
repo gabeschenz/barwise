@@ -20,7 +20,7 @@
  * Nullable columns become Avro unions: ["null", type].
  */
 
-import type { RelationalSchema, Table, Column } from "../RelationalSchema.js";
+import type { Column, RelationalSchema, Table } from "../RelationalSchema.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -31,7 +31,7 @@ import type { RelationalSchema, Table, Column } from "../RelationalSchema.js";
  */
 export type AvroFieldType =
   | string
-  | { readonly type: string; readonly logicalType: string };
+  | { readonly type: string; readonly logicalType: string; };
 
 /**
  * A single Avro schema field.
@@ -80,7 +80,7 @@ export function renderAvro(
   options: AvroRenderOptions = {},
 ): AvroSchemaSet {
   const schemas: AvroSchema[] = schema.tables.map((table) =>
-    renderTableSchema(table, options.namespace),
+    renderTableSchema(table, options.namespace)
   );
   return { schemas };
 }
@@ -100,9 +100,7 @@ function renderTableSchema(
   table: Table,
   namespace?: string,
 ): AvroSchema {
-  const fields: AvroField[] = table.columns.map((col) =>
-    renderField(col, table),
-  );
+  const fields: AvroField[] = table.columns.map((col) => renderField(col, table));
 
   const schema: AvroSchema = {
     type: "record",

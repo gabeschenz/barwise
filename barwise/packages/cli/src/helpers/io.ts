@@ -2,9 +2,9 @@
  * File I/O helpers for the CLI.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
 import { OrmYamlSerializer } from "@barwise/core";
 import type { OrmModel } from "@barwise/core";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const serializer = new OrmYamlSerializer();
 
@@ -29,14 +29,6 @@ export function loadModel(filePath: string): OrmModel {
   } catch (err) {
     throw new Error(`Failed to parse ${filePath}: ${(err as Error).message}`, { cause: err });
   }
-}
-
-/**
- * Serialize and write an ORM model to a .orm.yaml file.
- */
-export function writeModel(filePath: string, model: OrmModel): void {
-  const yaml = serializer.serialize(model);
-  writeFileSync(filePath, yaml, "utf-8");
 }
 
 /**

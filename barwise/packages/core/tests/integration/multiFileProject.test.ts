@@ -11,18 +11,18 @@
  *   - Cross-domain qualified-reference resolution (e.g. "crm:Customer")
  *   - Per-domain validation, verbalization, and DDL generation
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
-import { ProjectSerializer } from "../../src/serialization/ProjectSerializer.js";
-import { MappingSerializer } from "../../src/serialization/MappingSerializer.js";
-import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
-import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDdl } from "../../src/mapping/renderers/ddl.js";
 import { OrmProject } from "../../src/model/OrmProject.js";
+import { MappingSerializer } from "../../src/serialization/MappingSerializer.js";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+import { ProjectSerializer } from "../../src/serialization/ProjectSerializer.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const modelSerializer = new OrmYamlSerializer();

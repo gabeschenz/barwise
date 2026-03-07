@@ -1,11 +1,7 @@
-import {
-  CompletionItem,
-  CompletionItemKind,
-  type Position,
-} from "vscode-languageserver/node.js";
-import type { TextDocument } from "vscode-languageserver-textdocument";
-import { parse } from "yaml";
 import { OrmYamlSerializer } from "@barwise/core";
+import type { TextDocument } from "vscode-languageserver-textdocument";
+import { CompletionItem, CompletionItemKind, type Position } from "vscode-languageserver/node.js";
+import { parse } from "yaml";
 
 /**
  * Provides completion items for .orm.yaml files.
@@ -58,7 +54,7 @@ export class CompletionProvider {
   private objectTypeCompletions(text: string): CompletionItem[] {
     try {
       const doc = parse(text) as Record<string, unknown>;
-      const model = (doc as { model?: { object_types?: Array<{ id: string; name: string }> } })
+      const model = (doc as { model?: { object_types?: Array<{ id: string; name: string; }>; }; })
         .model;
       if (!model?.object_types) return [];
 

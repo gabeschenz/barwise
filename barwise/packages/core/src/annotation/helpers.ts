@@ -25,8 +25,7 @@ export function formatBarwiseComment(
   severity: AnnotationSeverity,
   message: string,
 ): string {
-  const prefix =
-    severity === "note" ? "# NOTE(barwise):" : "# TODO(barwise):";
+  const prefix = severity === "note" ? "# NOTE(barwise):" : "# TODO(barwise):";
   return `${prefix} ${message}`;
 }
 

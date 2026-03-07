@@ -5,14 +5,10 @@
  * export formats (DDL, OpenAPI, etc.) by name.
  */
 
+import { getExporter, listExporters, registerBuiltinFormats } from "@barwise/core";
 import type { Command } from "commander";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import {
-  getExporter,
-  listExporters,
-  registerBuiltinFormats,
-} from "@barwise/core";
 import { loadModel } from "../helpers/io.js";
 
 // Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.

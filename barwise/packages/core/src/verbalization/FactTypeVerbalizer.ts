@@ -1,11 +1,11 @@
-import type { OrmModel } from "../model/OrmModel.js";
 import type { FactType } from "../model/FactType.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import {
+  buildVerbalization,
+  refSeg,
+  textSeg,
   type Verbalization,
   type VerbalizationSegment,
-  buildVerbalization,
-  textSeg,
-  refSeg,
 } from "./Verbalization.js";
 
 /**
@@ -23,7 +23,7 @@ export class FactTypeVerbalizer {
    */
   verbalizeAll(factType: FactType, model: OrmModel): Verbalization[] {
     return factType.readings.map((reading) =>
-      this.verbalizeReading(factType, reading.template, model),
+      this.verbalizeReading(factType, reading.template, model)
     );
   }
 

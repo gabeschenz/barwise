@@ -1,10 +1,6 @@
-import { Hover, type Position } from "vscode-languageserver/node.js";
+import { type OrmModel, OrmYamlSerializer, Verbalizer } from "@barwise/core";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import {
-  OrmYamlSerializer,
-  Verbalizer,
-  type OrmModel,
-} from "@barwise/core";
+import { Hover, type Position } from "vscode-languageserver/node.js";
 
 /**
  * Provides hover information for .orm.yaml files.
@@ -48,7 +44,7 @@ export class HoverProvider {
   }
 
   private objectTypeHover(
-    ot: { id: string; name: string; kind: string; definition?: string },
+    ot: { id: string; name: string; kind: string; definition?: string; },
     model: OrmModel,
   ): Hover {
     const lines: string[] = [];

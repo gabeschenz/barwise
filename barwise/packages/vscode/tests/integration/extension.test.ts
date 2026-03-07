@@ -7,8 +7,8 @@
  * commands handle edge cases correctly.
  */
 import * as assert from "node:assert/strict";
-import * as vscode from "vscode";
 import * as path from "node:path";
+import * as vscode from "vscode";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -177,10 +177,10 @@ suite("Diagnostics", () => {
     // The error should mention the dangling reference.
     const hasRefError = errors.some(
       (d) =>
-        d.message.toLowerCase().includes("object type") ||
-        d.message.toLowerCase().includes("dangling") ||
-        d.message.toLowerCase().includes("not found") ||
-        d.message.toLowerCase().includes("reference"),
+        d.message.toLowerCase().includes("object type")
+        || d.message.toLowerCase().includes("dangling")
+        || d.message.toLowerCase().includes("not found")
+        || d.message.toLowerCase().includes("reference"),
     );
     assert.ok(
       hasRefError,
@@ -470,9 +470,7 @@ suite("Completions", () => {
     // Find a player: line.
     const text = editor.document.getText();
     const lines = text.split("\n");
-    const playerLineIdx = lines.findIndex((l) =>
-      l.trim().startsWith("player:"),
-    );
+    const playerLineIdx = lines.findIndex((l) => l.trim().startsWith("player:"));
     assert.ok(
       playerLineIdx >= 0,
       "Should find a player: line in the fixture",
@@ -480,17 +478,16 @@ suite("Completions", () => {
 
     const position = new vscode.Position(playerLineIdx, 18);
 
-    const completions =
-      await vscode.commands.executeCommand<vscode.CompletionList>(
-        "vscode.executeCompletionItemProvider",
-        editor.document.uri,
-        position,
-      );
+    const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+      "vscode.executeCompletionItemProvider",
+      editor.document.uri,
+      position,
+    );
 
     // Should have completion items from our provider.
     assert.ok(completions, "Should return completions");
     const labels = completions.items.map((c) =>
-      typeof c.label === "string" ? c.label : c.label.label,
+      typeof c.label === "string" ? c.label : c.label.label
     );
     assert.ok(
       labels.includes("ot-customer") || labels.includes("ot-name"),
@@ -506,9 +503,7 @@ suite("Completions", () => {
 
     const text = editor.document.getText();
     const lines = text.split("\n");
-    const playerLineIdx = lines.findIndex((l) =>
-      l.trim().startsWith("player:"),
-    );
+    const playerLineIdx = lines.findIndex((l) => l.trim().startsWith("player:"));
     assert.ok(
       playerLineIdx >= 0,
       "Should find a player: line in multi-fact fixture",
@@ -516,16 +511,15 @@ suite("Completions", () => {
 
     const position = new vscode.Position(playerLineIdx, 18);
 
-    const completions =
-      await vscode.commands.executeCommand<vscode.CompletionList>(
-        "vscode.executeCompletionItemProvider",
-        editor.document.uri,
-        position,
-      );
+    const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+      "vscode.executeCompletionItemProvider",
+      editor.document.uri,
+      position,
+    );
 
     assert.ok(completions, "Should return completions for multi-fact model");
     const labels = completions.items.map((c) =>
-      typeof c.label === "string" ? c.label : c.label.label,
+      typeof c.label === "string" ? c.label : c.label.label
     );
 
     // Multi-fact model has four object types.
@@ -605,9 +599,7 @@ suite("Hover", () => {
     // Find a line with player: "ot-customer".
     const text = editor.document.getText();
     const lines = text.split("\n");
-    const playerLineIdx = lines.findIndex((l) =>
-      l.includes("ot-customer"),
-    );
+    const playerLineIdx = lines.findIndex((l) => l.includes("ot-customer"));
     assert.ok(
       playerLineIdx >= 0,
       "Should find ot-customer reference in fixture",

@@ -1,7 +1,7 @@
 /**
  * Tests for the import_model tool.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { executeImportModel } from "../../src/tools/importModel.js";
 
 describe("import_model tool", () => {

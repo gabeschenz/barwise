@@ -6,8 +6,8 @@
  * spawns it as a child process and routes MCP tool calls through stdio.
  */
 
-import * as path from "node:path";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
 
 /**
@@ -43,9 +43,9 @@ export function registerMcpServerProvider(
 
         if (!fs.existsSync(mcpModule)) {
           void vscode.window.showErrorMessage(
-            "Barwise: bundled MCP server not found at " +
-              mcpModule +
-              ". Try rebuilding the extension (node esbuild.mjs).",
+            "Barwise: bundled MCP server not found at "
+              + mcpModule
+              + ". Try rebuilding the extension (node esbuild.mjs).",
           );
           return [];
         }

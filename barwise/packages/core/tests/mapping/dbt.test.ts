@@ -11,11 +11,11 @@
  *   - Custom source name option
  *   - Disabling relationship test generation
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDbt } from "../../src/mapping/renderers/dbt.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 
@@ -122,7 +122,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; data_type: string }>;
+          columns: Array<{ name: string; data_type: string; }>;
         }>;
       };
 
@@ -143,7 +143,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; tests?: unknown[] }>;
+          columns: Array<{ name: string; tests?: unknown[]; }>;
         }>;
       };
 
@@ -166,7 +166,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; tests?: unknown[] }>;
+          columns: Array<{ name: string; tests?: unknown[]; }>;
         }>;
       };
 
@@ -196,7 +196,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; tests?: unknown[] }>;
+          columns: Array<{ name: string; tests?: unknown[]; }>;
         }>;
       };
 
@@ -206,7 +206,7 @@ describe("dbt renderer", () => {
       )!;
       const relTest = fkCol.tests?.find(
         (t) => typeof t === "object" && t !== null && "relationships" in t,
-      ) as { relationships: { to: string; field: string } } | undefined;
+      ) as { relationships: { to: string; field: string; }; } | undefined;
 
       expect(relTest).toBeDefined();
       expect(relTest!.relationships.to).toBe("ref('customer')");
@@ -230,7 +230,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; tests?: unknown[] }>;
+          columns: Array<{ name: string; tests?: unknown[]; }>;
         }>;
       };
 
@@ -261,7 +261,7 @@ describe("dbt renderer", () => {
       const parsed = parse(dbt.schemaYaml) as {
         models: Array<{
           name: string;
-          columns: Array<{ name: string; tests?: unknown[] }>;
+          columns: Array<{ name: string; tests?: unknown[]; }>;
         }>;
       };
 

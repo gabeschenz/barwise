@@ -14,17 +14,17 @@
  * A standard dbt test on a column.
  */
 export type DbtStandardTest =
-  | { readonly type: "not_null" }
-  | { readonly type: "unique" }
+  | { readonly type: "not_null"; }
+  | { readonly type: "unique"; }
   | {
-      readonly type: "accepted_values";
-      readonly values: readonly string[];
-    }
+    readonly type: "accepted_values";
+    readonly values: readonly string[];
+  }
   | {
-      readonly type: "relationships";
-      readonly to: string; // model name extracted from ref('model_name')
-      readonly field: string; // referenced column name
-    };
+    readonly type: "relationships";
+    readonly to: string; // model name extracted from ref('model_name')
+    readonly field: string; // referenced column name
+  };
 
 /**
  * A custom or macro-based test (e.g. expression_is_true, dbt_utils tests).

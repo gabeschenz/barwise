@@ -12,18 +12,13 @@
  * Returns a freshly constructed OrmModel (no mutation of inputs).
  */
 
-import { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType } from "../model/ObjectType.js";
 import type { FactTypeConfig } from "../model/FactType.js";
+import type { ObjectType } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
 import type { RoleConfig } from "../model/Role.js";
 import type { Diagnostic } from "../validation/Diagnostic.js";
 import { structuralRules } from "../validation/rules/structural.js";
-import type {
-  ModelDelta,
-  ObjectTypeDelta,
-  FactTypeDelta,
-  DefinitionDelta,
-} from "./ModelDiff.js";
+import type { DefinitionDelta, FactTypeDelta, ModelDelta, ObjectTypeDelta } from "./ModelDiff.js";
 
 /**
  * Build a merged OrmModel from the existing model plus a set of accepted
@@ -354,8 +349,7 @@ export function mergeAndValidate(
   try {
     model = mergeModels(existing, incoming, deltas, accepted);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error ? err.message : String(err);
     return {
       model: null,
       diagnostics: [

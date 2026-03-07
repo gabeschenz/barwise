@@ -12,17 +12,21 @@
  * constraint role references cannot be resolved against the fact type --
  * important because LLM-generated constraints may have mismatched IDs.
  */
-import { describe, it, expect } from "vitest";
-import { OrmModel } from "../../src/model/OrmModel.js";
-import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
+import { describe, expect, it } from "vitest";
 import type { Constraint } from "../../src/model/Constraint.js";
 import type { FactType } from "../../src/model/FactType.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
 
 const verbalizer = new ConstraintVerbalizer();
 
-function buildBinaryModel(): { model: OrmModel; ft: FactType } {
+function buildBinaryModel(): { model: OrmModel; ft: FactType; } {
   const model = new OrmModel({ name: "Test" });
-  const customer = model.addObjectType({ name: "Customer", kind: "entity", referenceMode: "customer_id" });
+  const customer = model.addObjectType({
+    name: "Customer",
+    kind: "entity",
+    referenceMode: "customer_id",
+  });
   const order = model.addObjectType({ name: "Order", kind: "entity", referenceMode: "order_id" });
   const ft = model.addFactType({
     name: "Customer places Order",
@@ -36,9 +40,13 @@ function buildBinaryModel(): { model: OrmModel; ft: FactType } {
   return { model, ft };
 }
 
-function buildSelfRefModel(): { model: OrmModel; ft: FactType } {
+function buildSelfRefModel(): { model: OrmModel; ft: FactType; } {
   const model = new OrmModel({ name: "Test" });
-  const person = model.addObjectType({ name: "Person", kind: "entity", referenceMode: "person_id" });
+  const person = model.addObjectType({
+    name: "Person",
+    kind: "entity",
+    referenceMode: "person_id",
+  });
   const ft = model.addFactType({
     name: "Person is parent of Person",
     roles: [
@@ -145,7 +153,11 @@ describe("Phase 2 constraint verbalization", () => {
     const model = new OrmModel({ name: "Test" });
     const emp = model.addObjectType({ name: "Employee", kind: "entity", referenceMode: "emp_id" });
     const proj = model.addObjectType({ name: "Project", kind: "entity", referenceMode: "proj_id" });
-    const dept = model.addObjectType({ name: "Department", kind: "entity", referenceMode: "dept_id" });
+    const dept = model.addObjectType({
+      name: "Department",
+      kind: "entity",
+      referenceMode: "dept_id",
+    });
     const ft = model.addFactType({
       name: "Employee works on Project in Department",
       roles: [

@@ -9,11 +9,11 @@
  *   - Associative tables for many-to-many relationships
  *   - Value-type columns (absorbed into the entity table)
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 
@@ -65,7 +65,10 @@ describe("DDL renderer", () => {
 
     // The FK column on order table should be nullable (no NOT NULL).
     const lines = ddl.split("\n");
-    const _fkLine = lines.find((l) => l.includes("customer_id") && !l.includes("PRIMARY KEY") && !l.includes("FOREIGN KEY") && l.includes("TEXT"));
+    const _fkLine = lines.find((l) =>
+      l.includes("customer_id") && !l.includes("PRIMARY KEY") && !l.includes("FOREIGN KEY")
+      && l.includes("TEXT")
+    );
     // For the customer table itself, the PK column has NOT NULL.
     // For the order table, the FK column should be nullable.
     // We verify the order table's FK column is nullable by checking
@@ -93,7 +96,11 @@ describe("DDL renderer", () => {
 
   it("renders value type columns", () => {
     const model = new OrmModel({ name: "Test" });
-    const customer = model.addObjectType({ name: "Customer", kind: "entity", referenceMode: "customer_id" });
+    const customer = model.addObjectType({
+      name: "Customer",
+      kind: "entity",
+      referenceMode: "customer_id",
+    });
     const name = model.addObjectType({ name: "Name", kind: "value" });
     model.addFactType({
       name: "Customer has Name",

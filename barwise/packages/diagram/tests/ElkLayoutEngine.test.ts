@@ -7,7 +7,7 @@
  * These tests mock ELK to return edges without sections, verifying that
  * the fallback produces valid point arrays rather than crashing.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { OrmGraph } from "../src/graph/GraphTypes.js";
 
 // Controls what the mock ELK returns. Tests can override this per-test.
@@ -15,9 +15,9 @@ let mockLayoutImpl: (graph: Record<string, unknown>) => Promise<Record<string, u
 
 // Default implementation: returns positioned nodes but edges without sections.
 const defaultMockLayout = async (graph: Record<string, unknown>) => {
-  const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+  const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
     ?? [];
-  const edges = (graph.edges as Array<{ id: string; sources: string[]; targets: string[] }>)
+  const edges = (graph.edges as Array<{ id: string; sources: string[]; targets: string[]; }>)
     ?? [];
 
   return {
@@ -210,7 +210,7 @@ describe("ElkLayoutEngine", () => {
   it("handles ELK returning nodes without position properties", async () => {
     // Override mock to return children that lack x/y/width/height.
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string }>) ?? [];
+      const children = (graph.children as Array<{ id: string; }>) ?? [];
       return {
         children: children.map((c) => ({ id: c.id })),
         edges: [],
@@ -268,8 +268,9 @@ describe("ElkLayoutEngine", () => {
   it("handles ELK returning edges with sections and bend points", async () => {
     // Override mock to return edges WITH sections (the non-fallback path).
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>) ?? [];
-      const edges = (graph.edges as Array<{ id: string }>) ?? [];
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
+        ?? [];
+      const edges = (graph.edges as Array<{ id: string; }>) ?? [];
       return {
         children: children.map((c, i) => ({
           id: c.id,
@@ -342,8 +343,9 @@ describe("ElkLayoutEngine", () => {
   it("handles ELK sections with no bend points", async () => {
     // Override mock to return sections without bendPoints key.
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>) ?? [];
-      const edges = (graph.edges as Array<{ id: string }>) ?? [];
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
+        ?? [];
+      const edges = (graph.edges as Array<{ id: string; }>) ?? [];
       return {
         children: children.map((c, i) => ({
           id: c.id,
@@ -469,35 +471,106 @@ describe("sortNodesByConnectivity", () => {
         { kind: "object_type", id: "ot-custname", name: "CustomerName", objectTypeKind: "value" },
         // Fact types
         {
-          kind: "fact_type", id: "ft-order-status", name: "Order has OrderStatus",
+          kind: "fact_type",
+          id: "ft-order-status",
+          name: "Order has OrderStatus",
           roles: [
-            { roleId: "r1", roleName: "has", playerId: "ot-order", playerName: "Order", hasUniqueness: true, isMandatory: false },
-            { roleId: "r2", roleName: "of", playerId: "ot-status", playerName: "OrderStatus", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "has",
+              playerId: "ot-order",
+              playerName: "Order",
+              hasUniqueness: true,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "of",
+              playerId: "ot-status",
+              playerName: "OrderStatus",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
         {
-          kind: "fact_type", id: "ft-order-product", name: "Order contains Product in Quantity",
+          kind: "fact_type",
+          id: "ft-order-product",
+          name: "Order contains Product in Quantity",
           roles: [
-            { roleId: "r3", roleName: "contains", playerId: "ot-order", playerName: "Order", hasUniqueness: false, isMandatory: false },
-            { roleId: "r4", roleName: "contained-in", playerId: "ot-product", playerName: "Product", hasUniqueness: false, isMandatory: false },
-            { roleId: "r5", roleName: "in-quantity", playerId: "ot-qty", playerName: "Quantity", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r3",
+              roleName: "contains",
+              playerId: "ot-order",
+              playerName: "Order",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r4",
+              roleName: "contained-in",
+              playerId: "ot-product",
+              playerName: "Product",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r5",
+              roleName: "in-quantity",
+              playerId: "ot-qty",
+              playerName: "Quantity",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
         {
-          kind: "fact_type", id: "ft-cust-order", name: "Customer places Order",
+          kind: "fact_type",
+          id: "ft-cust-order",
+          name: "Customer places Order",
           roles: [
-            { roleId: "r6", roleName: "places", playerId: "ot-customer", playerName: "Customer", hasUniqueness: false, isMandatory: false },
-            { roleId: "r7", roleName: "placed-by", playerId: "ot-order", playerName: "Order", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r6",
+              roleName: "places",
+              playerId: "ot-customer",
+              playerName: "Customer",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r7",
+              roleName: "placed-by",
+              playerId: "ot-order",
+              playerName: "Order",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
         {
-          kind: "fact_type", id: "ft-cust-name", name: "Customer has CustomerName",
+          kind: "fact_type",
+          id: "ft-cust-name",
+          name: "Customer has CustomerName",
           roles: [
-            { roleId: "r8", roleName: "has", playerId: "ot-customer", playerName: "Customer", hasUniqueness: true, isMandatory: false },
-            { roleId: "r9", roleName: "of", playerId: "ot-custname", playerName: "CustomerName", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r8",
+              roleName: "has",
+              playerId: "ot-customer",
+              playerName: "Customer",
+              hasUniqueness: true,
+              isMandatory: false,
+            },
+            {
+              roleId: "r9",
+              roleName: "of",
+              playerId: "ot-custname",
+              playerName: "CustomerName",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
@@ -540,13 +613,12 @@ describe("sortNodesByConnectivity", () => {
     //   -> spans: |2-1|=1, |2-0|+|0-3|=2+3=5(ternary spread), |4-2|=2, |4-5|=1
     //   Total binary distances = 1+2+0+3+2+1 = 9
     // The sorted order should produce a lower total.
-    const totalSpan =
-      Math.abs(orderIdx - statusIdx) +          // Order-OrderStatus
-      Math.abs(orderIdx - productIdx) +          // Order-Product
-      Math.abs(productIdx - qtyIdx) +            // Product-Quantity
-      Math.abs(orderIdx - qtyIdx) +              // Order-Quantity
-      Math.abs(custIdx - orderIdx) +             // Customer-Order
-      Math.abs(custIdx - custNameIdx);           // Customer-CustomerName
+    const totalSpan = Math.abs(orderIdx - statusIdx) // Order-OrderStatus
+      + Math.abs(orderIdx - productIdx) // Order-Product
+      + Math.abs(productIdx - qtyIdx) // Product-Quantity
+      + Math.abs(orderIdx - qtyIdx) // Order-Quantity
+      + Math.abs(custIdx - orderIdx) // Customer-Order
+      + Math.abs(custIdx - custNameIdx); // Customer-CustomerName
     // With 6 nodes, theoretical minimum total span is ~6. Assert it's
     // well below the unsorted worst case (~15).
     expect(totalSpan).toBeLessThanOrEqual(12);
@@ -570,18 +642,50 @@ describe("sortNodesByConnectivity", () => {
         { kind: "object_type", id: "ot-c", name: "C", objectTypeKind: "entity" },
         { kind: "object_type", id: "ot-isolated", name: "Isolated", objectTypeKind: "entity" },
         {
-          kind: "fact_type", id: "ft-ab", name: "A relates B",
+          kind: "fact_type",
+          id: "ft-ab",
+          name: "A relates B",
           roles: [
-            { roleId: "r1", roleName: "r1", playerId: "ot-a", playerName: "A", hasUniqueness: false, isMandatory: false },
-            { roleId: "r2", roleName: "r2", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "r1",
+              playerId: "ot-a",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "r2",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
         {
-          kind: "fact_type", id: "ft-bc", name: "B relates C",
+          kind: "fact_type",
+          id: "ft-bc",
+          name: "B relates C",
           roles: [
-            { roleId: "r3", roleName: "r3", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
-            { roleId: "r4", roleName: "r4", playerId: "ot-c", playerName: "C", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r3",
+              roleName: "r3",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r4",
+              roleName: "r4",
+              playerId: "ot-c",
+              playerName: "C",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
@@ -609,20 +713,57 @@ describe("sortNodesByConnectivity", () => {
         { kind: "object_type", id: "ot-1", name: "A", objectTypeKind: "entity" },
         { kind: "object_type", id: "ot-2", name: "B", objectTypeKind: "entity" },
         { kind: "object_type", id: "ot-3", name: "C", objectTypeKind: "entity" },
-        { kind: "constraint", id: "c-1", constraintKind: "external_uniqueness", roleIds: ["r1", "r3"] },
         {
-          kind: "fact_type", id: "ft-1", name: "A relates B",
+          kind: "constraint",
+          id: "c-1",
+          constraintKind: "external_uniqueness",
+          roleIds: ["r1", "r3"],
+        },
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "A relates B",
           roles: [
-            { roleId: "r1", roleName: "r1", playerId: "ot-1", playerName: "A", hasUniqueness: false, isMandatory: false },
-            { roleId: "r2", roleName: "r2", playerId: "ot-2", playerName: "B", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "r1",
+              playerId: "ot-1",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "r2",
+              playerId: "ot-2",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
         {
-          kind: "fact_type", id: "ft-2", name: "B relates C",
+          kind: "fact_type",
+          id: "ft-2",
+          name: "B relates C",
           roles: [
-            { roleId: "r3", roleName: "r3", playerId: "ot-2", playerName: "B", hasUniqueness: false, isMandatory: false },
-            { roleId: "r4", roleName: "r4", playerId: "ot-3", playerName: "C", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r3",
+              roleName: "r3",
+              playerId: "ot-2",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r4",
+              roleName: "r4",
+              playerId: "ot-3",
+              playerName: "C",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },

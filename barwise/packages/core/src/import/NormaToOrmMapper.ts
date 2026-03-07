@@ -8,26 +8,23 @@
  * We do not embed or redistribute any NORMA source code or XSD schemas.
  * These mappings are derived from publicly documented format information.
  */
-import { OrmModel } from "../model/OrmModel.js";
 import type { Constraint } from "../model/Constraint.js";
+import type { ConceptualDataTypeName, DataTypeDef } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
 import type { RoleConfig } from "../model/Role.js";
 import type {
-  ConceptualDataTypeName,
-  DataTypeDef,
-} from "../model/ObjectType.js";
-import type {
-  NormaDocument,
   NormaConstraint,
-  NormaUniquenessConstraint,
-  NormaMandatoryConstraint,
-  NormaFrequencyConstraint,
-  NormaValueConstraint,
-  NormaSubsetConstraint,
-  NormaExclusionConstraint,
-  NormaEqualityConstraint,
-  NormaRingConstraint,
-  NormaFactType,
   NormaDataType,
+  NormaDocument,
+  NormaEqualityConstraint,
+  NormaExclusionConstraint,
+  NormaFactType,
+  NormaFrequencyConstraint,
+  NormaMandatoryConstraint,
+  NormaRingConstraint,
+  NormaSubsetConstraint,
+  NormaUniquenessConstraint,
+  NormaValueConstraint,
 } from "./NormaXmlTypes.js";
 
 /**
@@ -89,10 +86,9 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
       name: vt.name,
       kind: "value",
       definition: vt.definition,
-      valueConstraint:
-        vt.valueConstraint && vt.valueConstraint.values.length > 0
-          ? { values: vt.valueConstraint.values }
-          : undefined,
+      valueConstraint: vt.valueConstraint && vt.valueConstraint.values.length > 0
+        ? { values: vt.valueConstraint.values }
+        : undefined,
       dataType: resolveDataType(vt.dataTypeRef, vt.dataTypeLength, vt.dataTypeScale, dataTypeById),
     });
     objectTypeIdMap.set(vt.id, ot.id);
@@ -123,8 +119,8 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
       const playerId = objectTypeIdMap.get(nr.playerRef);
       if (!playerId) {
         throw new NormaMappingError(
-          `Role "${nr.name}" in fact type "${nft.name}" references ` +
-            `unknown object type "${nr.playerRef}".`,
+          `Role "${nr.name}" in fact type "${nft.name}" references `
+            + `unknown object type "${nr.playerRef}".`,
         );
       }
       return {
@@ -503,9 +499,7 @@ function addSimpleMandatoryConstraints(
         if (!role) continue;
 
         // Find the corresponding Barwise fact type.
-        const ft = model.factTypes.find((f) =>
-          f.roles.some((r) => r.id === roleRef),
-        );
+        const ft = model.factTypes.find((f) => f.roles.some((r) => r.id === roleRef));
         if (!ft) continue;
 
         // Check if this mandatory constraint is already on the fact type.
@@ -546,17 +540,15 @@ function addExternalUniquenessConstraints(
     if (processedRefs.has(nc.id)) continue;
 
     // Find the first fact type that contains any of the referenced roles.
-    const ft = model.factTypes.find((f) =>
-      nc.roleRefs.some((roleRef) => f.hasRole(roleRef)),
-    );
+    const ft = model.factTypes.find((f) => nc.roleRefs.some((roleRef) => f.hasRole(roleRef)));
     if (!ft) continue;
 
     // Check if this constraint is already on the fact type.
     const alreadyExists = ft.constraints.some(
       (c) =>
-        c.type === "external_uniqueness" &&
-        c.roleIds.length === nc.roleRefs.length &&
-        c.roleIds.every((id) => nc.roleRefs.includes(id)),
+        c.type === "external_uniqueness"
+        && c.roleIds.length === nc.roleRefs.length
+        && c.roleIds.every((id) => nc.roleRefs.includes(id)),
     );
     if (!alreadyExists) {
       ft.addConstraint({
@@ -680,7 +672,7 @@ function resolveDataType(
 
   const conceptualName = normaKindToConceptual[normaDt.kind] ?? "other";
 
-  const result: { name: ConceptualDataTypeName; length?: number; scale?: number } = {
+  const result: { name: ConceptualDataTypeName; length?: number; scale?: number; } = {
     name: conceptualName,
   };
   if (length !== undefined) result.length = length;

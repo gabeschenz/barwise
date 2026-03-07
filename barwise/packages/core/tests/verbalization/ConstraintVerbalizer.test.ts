@@ -9,9 +9,9 @@
  *   - Value constraint verbalization (enumerated allowed values)
  *   - Structured segments linking text spans to model elements
  */
-import { describe, it, expect } from "vitest";
-import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { ConstraintVerbalizer } from "../../src/verbalization/ConstraintVerbalizer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("ConstraintVerbalizer", () => {

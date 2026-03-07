@@ -9,11 +9,11 @@
  *   - buildResponseSchema produces a valid JSON Schema with required fields
  *   - parseExtractionResponse handles well-formed, sparse, and invalid input
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  buildResponseSchema,
   buildSystemPrompt,
   buildUserMessage,
-  buildResponseSchema,
   parseExtractionResponse,
 } from "../src/ExtractionPrompt.js";
 

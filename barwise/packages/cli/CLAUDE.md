@@ -51,8 +51,8 @@ npx tsc --noEmit            # type-check only
 
 ## Dependencies
 
-| Direction | Package | What is used |
-|-----------|---------|--------------|
-| Upstream  | `@barwise/core` | Model, validation, verbalization, mapping, diff, serialization |
-| Upstream  | `@barwise/diagram` | `generateDiagram` for SVG output |
-| Upstream  | `@barwise/llm` | `processTranscript`, `createLlmClient`, provider factory |
+| Direction | Package            | What is used                                                   |
+| --------- | ------------------ | -------------------------------------------------------------- |
+| Upstream  | `@barwise/core`    | Model, validation, verbalization, mapping, diff, serialization |
+| Upstream  | `@barwise/diagram` | `generateDiagram` for SVG output                               |
+| Upstream  | `@barwise/llm`     | `processTranscript`, `createLlmClient`, provider factory       |

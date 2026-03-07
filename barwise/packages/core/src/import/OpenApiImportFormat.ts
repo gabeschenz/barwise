@@ -16,10 +16,10 @@
  * LLM enrichment phase (not implemented here) can improve naming and add definitions.
  */
 
-import type { ImportFormat, ImportOptions, ImportResult } from "./types.js";
-import { OrmModel } from "../model/OrmModel.js";
-import type { ConceptualDataTypeName } from "../model/ObjectType.js";
 import { parse as parseYaml } from "yaml";
+import type { ConceptualDataTypeName } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
+import type { ImportFormat, ImportOptions, ImportResult } from "./types.js";
 
 /**
  * A parsed OpenAPI schema object.
@@ -40,7 +40,7 @@ interface ParsedProperty {
   readonly format?: string;
   readonly enum?: readonly unknown[];
   readonly $ref?: string;
-  readonly items?: { readonly $ref?: string; readonly type?: string };
+  readonly items?: { readonly $ref?: string; readonly type?: string; };
   readonly description?: string;
   readonly minLength?: number;
   readonly maxLength?: number;
@@ -52,8 +52,7 @@ interface ParsedProperty {
  */
 export class OpenApiImportFormat implements ImportFormat {
   readonly name = "openapi";
-  readonly description =
-    "Import OpenAPI 3.0/3.1 specification (YAML or JSON) into an ORM model";
+  readonly description = "Import OpenAPI 3.0/3.1 specification (YAML or JSON) into an ORM model";
 
   parse(input: string, options?: ImportOptions): ImportResult {
     const warnings: string[] = [];
@@ -201,9 +200,11 @@ export class OpenApiImportFormat implements ImportFormat {
 
     // Warn about unsupported features
     if (spec.components?.schemas) {
-      for (const [schemaName, schemaDef] of Object.entries(
-        spec.components.schemas,
-      )) {
+      for (
+        const [schemaName, schemaDef] of Object.entries(
+          spec.components.schemas,
+        )
+      ) {
         const schema = schemaDef as any;
         if (schema.oneOf || schema.anyOf || schema.allOf) {
           warnings.push(
@@ -288,7 +289,7 @@ export class OpenApiImportFormat implements ImportFormat {
    */
   private createRefFactType(
     model: OrmModel,
-    entityType: { readonly id: string; readonly name: string },
+    entityType: { readonly id: string; readonly name: string; },
     referencedEntityId: string,
     propName: string,
     propDef: ParsedProperty,
@@ -341,7 +342,9 @@ export class OpenApiImportFormat implements ImportFormat {
       });
     } catch (err) {
       warnings.push(
-        `Failed to create fact type for $ref property ${propName}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to create fact type for $ref property ${propName}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -351,7 +354,7 @@ export class OpenApiImportFormat implements ImportFormat {
    */
   private createArrayRefFactType(
     model: OrmModel,
-    entityType: { readonly id: string; readonly name: string },
+    entityType: { readonly id: string; readonly name: string; },
     referencedEntityId: string,
     propName: string,
     propDef: ParsedProperty,
@@ -361,8 +364,6 @@ export class OpenApiImportFormat implements ImportFormat {
     if (!referencedEntity) return;
 
     // Array of refs suggests many-to-many
-    const verb = this.pluralToSingularVerb(propName);
-
     const factTypeName = `${entityType.name} has ${referencedEntity.name}`;
 
     try {
@@ -389,7 +390,9 @@ export class OpenApiImportFormat implements ImportFormat {
       });
     } catch (err) {
       warnings.push(
-        `Failed to create fact type for array $ref property ${propName}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to create fact type for array $ref property ${propName}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -399,7 +402,7 @@ export class OpenApiImportFormat implements ImportFormat {
    */
   private createPropertyFactType(
     model: OrmModel,
-    entityType: { readonly id: string; readonly name: string },
+    entityType: { readonly id: string; readonly name: string; },
     propName: string,
     propDef: ParsedProperty,
     requiredProps: readonly string[],
@@ -415,10 +418,9 @@ export class OpenApiImportFormat implements ImportFormat {
     let valueType = model.getObjectTypeByName(valueTypeName);
     if (!valueType) {
       // Check for enum values
-      const valueConstraint =
-        propDef.enum && propDef.enum.length > 0
-          ? { values: propDef.enum.map((v) => String(v)) }
-          : undefined;
+      const valueConstraint = propDef.enum && propDef.enum.length > 0
+        ? { values: propDef.enum.map((v) => String(v)) }
+        : undefined;
 
       valueType = model.addObjectType({
         name: valueTypeName,
@@ -465,7 +467,9 @@ export class OpenApiImportFormat implements ImportFormat {
       });
     } catch (err) {
       warnings.push(
-        `Failed to create fact type for property ${propName}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to create fact type for property ${propName}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -559,8 +563,8 @@ export class OpenApiImportFormat implements ImportFormat {
     if (parts.length === 0) return str;
 
     return (
-      parts[0]!.toLowerCase() +
-      parts
+      parts[0]!.toLowerCase()
+      + parts
         .slice(1)
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join("")

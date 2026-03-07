@@ -7,8 +7,8 @@
 
 import type { LlmClient } from "../LlmClient.js";
 import { AnthropicLlmClient } from "./anthropic.js";
-import { OpenAILlmClient } from "./openai.js";
 import { OllamaLlmClient } from "./ollama.js";
+import { OpenAILlmClient } from "./openai.js";
 
 export type ProviderName = "anthropic" | "openai" | "ollama";
 

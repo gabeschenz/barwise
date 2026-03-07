@@ -4,10 +4,10 @@
  * Verifies that TODO/NOTE comments are injected at the correct
  * positions in dbt schema YAML files based on import report entries.
  */
-import { describe, it, expect } from "vitest";
-import { annotateDbtYaml } from "../../src/import/DbtYamlAnnotator.js";
+import { describe, expect, it } from "vitest";
 import type { DbtImportReport } from "../../src/import/DbtImportReport.js";
 import type { ReportEntry } from "../../src/import/DbtImportReport.js";
+import { annotateDbtYaml } from "../../src/import/DbtYamlAnnotator.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,7 +83,11 @@ models:
   describe("column-level annotations", () => {
     it("injects a TODO comment after a column with a gap", () => {
       const report = makeReport(
-        gap("stg_orders", 'No data_type for column "status" in model or source definitions.', "status"),
+        gap(
+          "stg_orders",
+          'No data_type for column "status" in model or source definitions.',
+          "status",
+        ),
       );
       const result = annotateDbtYaml(SIMPLE_YAML, report);
 
@@ -117,7 +121,7 @@ models:
 
     it("injects NOTE comments for info entries when includeInfoNotes is true", () => {
       const report = makeReport(
-        info("stg_orders", 'Resolved from source: varchar(20).', "status"),
+        info("stg_orders", "Resolved from source: varchar(20).", "status"),
       );
       const result = annotateDbtYaml(SIMPLE_YAML, report, {
         includeInfoNotes: true,
@@ -149,14 +153,15 @@ models:
   describe("model-level annotations", () => {
     it("injects a TODO comment after a model name for model-level entries", () => {
       const report = makeReport(
-        warning("stg_orders", 'Model-level custom test "expression_is_true" -- manual review needed.'),
+        warning(
+          "stg_orders",
+          'Model-level custom test "expression_is_true" -- manual review needed.',
+        ),
       );
       const result = annotateDbtYaml(SIMPLE_YAML, report);
 
       const lines = result.split("\n");
-      const modelIdx = lines.findIndex((l) =>
-        l.includes("- name: stg_orders"),
-      );
+      const modelIdx = lines.findIndex((l) => l.includes("- name: stg_orders"));
       expect(modelIdx).toBeGreaterThan(-1);
       expect(lines[modelIdx + 1]).toContain("# TODO(barwise):");
       expect(lines[modelIdx + 1]).toContain("expression_is_true");
@@ -193,15 +198,11 @@ models:
       const lines = result.split("\n");
 
       // customer_name should get annotated in stg_customers context.
-      const custNameIdx = lines.findIndex((l) =>
-        l.includes("- name: customer_name"),
-      );
+      const custNameIdx = lines.findIndex((l) => l.includes("- name: customer_name"));
       expect(lines[custNameIdx + 1]).toContain("# TODO(barwise):");
 
       // status should get annotated in stg_orders context.
-      const statusIdx = lines.findIndex((l) =>
-        l.includes("- name: status"),
-      );
+      const statusIdx = lines.findIndex((l) => l.includes("- name: status"));
       expect(lines[statusIdx + 1]).toContain("# TODO(barwise):");
     });
 
@@ -214,9 +215,7 @@ models:
 
       // customer_name should NOT have a comment.
       const lines = result.split("\n");
-      const custNameIdx = lines.findIndex((l) =>
-        l.includes("- name: customer_name"),
-      );
+      const custNameIdx = lines.findIndex((l) => l.includes("- name: customer_name"));
       expect(lines[custNameIdx + 1]).not.toContain("# TODO(barwise):");
     });
   });

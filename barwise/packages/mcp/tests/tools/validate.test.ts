@@ -1,10 +1,10 @@
 /**
  * Tests for the validate_model tool.
  */
-import { describe, it, expect } from "vitest";
-import { resolve, dirname } from "node:path";
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { executeValidate } from "../../src/tools/validate.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -28,9 +28,7 @@ describe("validate_model tool", () => {
   it("returns errors for an invalid model", () => {
     // The invalid fixture has a dangling player reference, which
     // triggers a deserialization error. executeValidate should throw.
-    expect(() =>
-      executeValidate(`${fixtures}/invalid.orm.yaml`),
-    ).toThrow();
+    expect(() => executeValidate(`${fixtures}/invalid.orm.yaml`)).toThrow();
   });
 
   it("returns diagnostics with ruleId and message", () => {

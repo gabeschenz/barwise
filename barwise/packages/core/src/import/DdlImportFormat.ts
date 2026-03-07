@@ -17,9 +17,9 @@
  * here) can improve naming and add definitions.
  */
 
-import type { ImportFormat, ImportOptions, ImportResult } from "./types.js";
-import { OrmModel } from "../model/OrmModel.js";
 import type { ConceptualDataTypeName } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
+import type { ImportFormat, ImportOptions, ImportResult } from "./types.js";
 
 /**
  * A parsed CREATE TABLE statement.
@@ -55,8 +55,7 @@ interface ParsedForeignKey {
  */
 export class DdlImportFormat implements ImportFormat {
   readonly name = "ddl";
-  readonly description =
-    "Import SQL DDL (CREATE TABLE statements) into an ORM model";
+  readonly description = "Import SQL DDL (CREATE TABLE statements) into an ORM model";
 
   parse(input: string, options?: ImportOptions): ImportResult {
     const warnings: string[] = [];
@@ -106,9 +105,7 @@ export class DdlImportFormat implements ImportFormat {
         }
 
         // Check if this column is a foreign key
-        const fk = table.foreignKeys.find((fk) =>
-          fk.columns.includes(column.name),
-        );
+        const fk = table.foreignKeys.find((fk) => fk.columns.includes(column.name));
 
         if (fk) {
           // Foreign key: create a fact type between entities
@@ -150,8 +147,7 @@ export class DdlImportFormat implements ImportFormat {
     const tables: ParsedTable[] = [];
 
     // Match CREATE TABLE statements (case-insensitive, multiline)
-    const createTablePattern =
-      /CREATE\s+TABLE\s+(?:"?(\w+)"?)\s*\(([\s\S]*?)\);/gi;
+    const createTablePattern = /CREATE\s+TABLE\s+(?:"?(\w+)"?)\s*\(([\s\S]*?)\);/gi;
     let match: RegExpExecArray | null;
 
     while ((match = createTablePattern.exec(input)) !== null) {
@@ -163,7 +159,9 @@ export class DdlImportFormat implements ImportFormat {
         tables.push(table);
       } catch (err) {
         warnings.push(
-          `Failed to parse table "${tableName}": ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to parse table "${tableName}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
         );
       }
     }
@@ -265,9 +263,10 @@ export class DdlImportFormat implements ImportFormat {
   private parseColumnDefinition(def: string): ParsedColumn | null {
     // Match: column_name TYPE[(length)] [NOT NULL] [PRIMARY KEY] [UNIQUE]
     const match =
-      /^(?:"?(\w+)"?)\s+(\w+)(?:\([\d,\s]+\))?(?:\s+(NOT\s+NULL|NULL|PRIMARY\s+KEY|UNIQUE))*$/i.exec(
-        def.trim(),
-      );
+      /^(?:"?(\w+)"?)\s+(\w+)(?:\([\d,\s]+\))?(?:\s+(NOT\s+NULL|NULL|PRIMARY\s+KEY|UNIQUE))*$/i
+        .exec(
+          def.trim(),
+        );
     if (!match) return null;
 
     const name = match[1]!;
@@ -295,10 +294,9 @@ export class DdlImportFormat implements ImportFormat {
    */
   private parseForeignKey(constraint: string): ParsedForeignKey | null {
     // Match: FOREIGN KEY (col1, col2) REFERENCES table (ref1, ref2)
-    const match =
-      /FOREIGN\s+KEY\s*\((.*?)\)\s*REFERENCES\s+(?:"?(\w+)"?)\s*\((.*?)\)/i.exec(
-        constraint,
-      );
+    const match = /FOREIGN\s+KEY\s*\((.*?)\)\s*REFERENCES\s+(?:"?(\w+)"?)\s*\((.*?)\)/i.exec(
+      constraint,
+    );
     if (!match) return null;
 
     const columns = match[1]!
@@ -328,7 +326,7 @@ export class DdlImportFormat implements ImportFormat {
    */
   private createForeignKeyFactType(
     model: OrmModel,
-    entityType: { readonly id: string; readonly name: string },
+    entityType: { readonly id: string; readonly name: string; },
     referencedEntityId: string,
     column: ParsedColumn,
     fk: ParsedForeignKey,
@@ -372,7 +370,9 @@ export class DdlImportFormat implements ImportFormat {
       });
     } catch (err) {
       warnings.push(
-        `Failed to create fact type for foreign key ${column.name}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to create fact type for foreign key ${column.name}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -382,7 +382,7 @@ export class DdlImportFormat implements ImportFormat {
    */
   private createColumnFactType(
     model: OrmModel,
-    entityType: { readonly id: string; readonly name: string },
+    entityType: { readonly id: string; readonly name: string; },
     column: ParsedColumn,
     table: ParsedTable,
     warnings: string[],
@@ -407,9 +407,7 @@ export class DdlImportFormat implements ImportFormat {
       const constraints: any[] = [];
 
       // Check if this column has a UNIQUE constraint
-      const isUnique = table.uniqueConstraints.some((cols) =>
-        cols.includes(column.name),
-      );
+      const isUnique = table.uniqueConstraints.some((cols) => cols.includes(column.name));
 
       const role0Id = `${valueType.id}-has-role`;
       const role1Id = `${entityType.id}-has-${valueTypeName}-role`;
@@ -443,7 +441,9 @@ export class DdlImportFormat implements ImportFormat {
       });
     } catch (err) {
       warnings.push(
-        `Failed to create fact type for column ${column.name}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to create fact type for column ${column.name}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -456,7 +456,7 @@ export class DdlImportFormat implements ImportFormat {
     referencedEntityName: string,
   ): string {
     // Remove common suffixes like "_id"
-    let base = columnName.replace(/_id$/i, "").replace(/_fk$/i, "");
+    const base = columnName.replace(/_id$/i, "").replace(/_fk$/i, "");
 
     // Try to extract a verb if the pattern is verb_entity
     // e.g., "assigned_doctor_id" -> "assigned to"
@@ -513,10 +513,10 @@ export class DdlImportFormat implements ImportFormat {
     if (/^(BLOB|BINARY|BYTEA)/.test(normalized)) {
       return "binary";
     }
-    if (/^UUID/.test(normalized)) {
+    if (normalized.startsWith("UUID")) {
       return "uuid";
     }
-    if (/^MONEY/.test(normalized)) {
+    if (normalized.startsWith("MONEY")) {
       return "money";
     }
 
@@ -542,8 +542,8 @@ function toCamelCase(str: string): string {
   if (parts.length === 0) return str;
 
   return (
-    parts[0]!.toLowerCase() +
-    parts
+    parts[0]!.toLowerCase()
+    + parts
       .slice(1)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join("")

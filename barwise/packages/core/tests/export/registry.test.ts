@@ -4,15 +4,15 @@
  * Verifies that the registry correctly registers, retrieves, and lists
  * export formats.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { ddlExportFormat } from "../../src/export/DdlExportFormat.js";
 import {
   formatRegistry,
-  registerFormat,
   getFormat,
   listFormats,
+  registerFormat,
 } from "../../src/export/registry.js";
 import type { ExportFormatAdapter } from "../../src/export/types.js";
-import { ddlExportFormat } from "../../src/export/DdlExportFormat.js";
 
 describe("Export format registry", () => {
   // Clear registry before each test to ensure isolation.

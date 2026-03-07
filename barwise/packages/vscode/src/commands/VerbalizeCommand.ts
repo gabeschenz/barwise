@@ -1,8 +1,5 @@
+import { OrmYamlSerializer, Verbalizer } from "@barwise/core";
 import * as vscode from "vscode";
-import {
-  OrmYamlSerializer,
-  Verbalizer,
-} from "@barwise/core";
 
 /**
  * Generates a verbalization report for the active .orm.yaml file

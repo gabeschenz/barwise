@@ -7,11 +7,11 @@
  * - ExportResult structure
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
-import type { ExportFormatAdapter, ExportOptions, ExportResult } from "./types.js";
 import { RelationalMapper } from "../mapping/RelationalMapper.js";
 import { renderDdl } from "../mapping/renderers/ddl.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import { ValidationEngine } from "../validation/ValidationEngine.js";
+import type { ExportFormatAdapter, ExportOptions, ExportResult } from "./types.js";
 
 /**
  * DDL (SQL CREATE TABLE) export format.
@@ -52,10 +52,9 @@ export class DdlExportFormat implements ExportFormatAdapter {
     }
 
     // Include validation diagnostics as warnings in the result if present.
-    const validationWarnings =
-      errors.length > 0
-        ? `-- Validation warnings:\n${errors.map((e) => `-- ERROR: ${e.message}`).join("\n")}\n\n`
-        : "";
+    const validationWarnings = errors.length > 0
+      ? `-- Validation warnings:\n${errors.map((e) => `-- ERROR: ${e.message}`).join("\n")}\n\n`
+      : "";
 
     const text = validationWarnings + ddlText;
 
@@ -95,9 +94,8 @@ export class DdlExportFormat implements ExportFormatAdapter {
 
         if (createTablePattern.test(line)) {
           // Find the source element (entity or fact type) that produced this table.
-          const sourceElement =
-            model.objectTypes.find((ot) => ot.id === table.sourceElementId) ??
-            model.factTypes.find((ft) => ft.id === table.sourceElementId);
+          const sourceElement = model.objectTypes.find((ot) => ot.id === table.sourceElementId)
+            ?? model.factTypes.find((ft) => ft.id === table.sourceElementId);
 
           if (sourceElement) {
             result.push(`-- Table: ${table.name}`);

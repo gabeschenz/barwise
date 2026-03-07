@@ -5,9 +5,9 @@
  * or other format-specific representations.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
 import type { RelationalSchema, Table } from "../mapping/RelationalSchema.js";
-import type { Population, FactInstance } from "../model/Population.js";
+import type { OrmModel } from "../model/OrmModel.js";
+import type { FactInstance } from "../model/Population.js";
 
 /**
  * Render populations as SQL INSERT statements.
@@ -72,8 +72,8 @@ export function renderPopulationAsSql(
 function renderInstanceAsInsert(
   instance: FactInstance,
   table: Table,
-  factTypeId: string,
-  model: OrmModel,
+  _factTypeId: string,
+  _model: OrmModel,
 ): string | undefined {
   const columns: string[] = [];
   const values: string[] = [];
@@ -95,7 +95,9 @@ function renderInstanceAsInsert(
     return undefined; // No mappable values
   }
 
-  return `INSERT INTO ${quoteIdent(table.name)} (${columns.join(", ")}) VALUES (${values.join(", ")});`;
+  return `INSERT INTO ${quoteIdent(table.name)} (${columns.join(", ")}) VALUES (${
+    values.join(", ")
+  });`;
 }
 
 /**
@@ -121,12 +123,12 @@ export function renderPopulationAsOpenApiExamples(
     // Find identifier fact type
     const idFactTypes = model.factTypes.filter((ft) => {
       return (
-        ft.roles.length === 2 &&
-        ft.roles.some((r) => r.playerId === objectType.id) &&
-        ft.constraints.some(
+        ft.roles.length === 2
+        && ft.roles.some((r) => r.playerId === objectType.id)
+        && ft.constraints.some(
           (c) =>
-            c.type === "internal_uniqueness" &&
-            c.isPreferred === true,
+            c.type === "internal_uniqueness"
+            && c.isPreferred === true,
         )
       );
     });

@@ -2,11 +2,11 @@
  * import_transcript tool: processes a transcript through LLM extraction.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { processTranscript, createLlmClient } from "@barwise/llm";
+import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
+import { createLlmClient, processTranscript } from "@barwise/llm";
 import type { ProviderName } from "@barwise/llm";
-import { OrmYamlSerializer, annotateOrmYaml } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { readSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
@@ -16,10 +16,9 @@ export function registerImportTool(server: McpServer): void {
     "import_transcript",
     {
       title: "Import Transcript",
-      description:
-        "Process a business domain transcript through LLM extraction " +
-        "to produce a formal ORM 2 model. Requires an LLM provider " +
-        "configured via environment variables or explicit options.",
+      description: "Process a business domain transcript through LLM extraction "
+        + "to produce a formal ORM 2 model. Requires an LLM provider "
+        + "configured via environment variables or explicit options.",
       inputSchema: {
         transcript: z
           .string()
@@ -56,7 +55,7 @@ export async function executeImport(
   modelName: string = "Extracted Model",
   provider?: ProviderName,
   model?: string,
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   const text = readSource(transcript);
 
   const client = createLlmClient({

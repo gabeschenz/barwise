@@ -15,22 +15,23 @@ modeling) are largely resolved. Codex's weakness (missing data type
 lengths) is also fixed.
 
 The remaining gap is concentrated on two specific issues:
+
 1. Inconsistent `is_preferred: true` on identifier fact types (Mini)
 2. Missing mandatory constraints on identifier entity roles (Mini)
 
 ## Scoring
 
-| Dimension             | v0.2.0 Mini | v0.2.1 Mini | v0.2.0 Codex | v0.2.1 Codex |
-|-----------------------|-------------|-------------|--------------|--------------|
-| Identifier fact types | Poor (0/3/3)| Good (4/3/4)| Good         | Good         |
-| is_preferred flag     | N/A         | Poor (1-2/4)| Good         | Good         |
-| Mandatory on IDs      | N/A         | Poor (0-1)  | Good         | Good         |
-| Constraint coverage   | Poor        | Good        | Good         | Good         |
-| N-ary fact types      | Poor        | Fair        | Good         | Good         |
-| Data type lengths     | Good        | Good        | Poor         | Good (fixed) |
-| Reference mode quality| Poor        | Good (fixed)| Good         | Good         |
-| Ambiguity detection   | Good        | Good        | Good         | Good         |
-| No spurious elements  | Good        | Fair        | Good         | Good         |
+| Dimension              | v0.2.0 Mini  | v0.2.1 Mini  | v0.2.0 Codex | v0.2.1 Codex |
+| ---------------------- | ------------ | ------------ | ------------ | ------------ |
+| Identifier fact types  | Poor (0/3/3) | Good (4/3/4) | Good         | Good         |
+| is_preferred flag      | N/A          | Poor (1-2/4) | Good         | Good         |
+| Mandatory on IDs       | N/A          | Poor (0-1)   | Good         | Good         |
+| Constraint coverage    | Poor         | Good         | Good         | Good         |
+| N-ary fact types       | Poor         | Fair         | Good         | Good         |
+| Data type lengths      | Good         | Good         | Poor         | Good (fixed) |
+| Reference mode quality | Poor         | Good (fixed) | Good         | Good         |
+| Ambiguity detection    | Good         | Good         | Good         | Good         |
+| No spurious elements   | Good         | Fair         | Good         | Good         |
 
 ## Impact of v0.2.1 Prompt Changes
 
@@ -98,11 +99,11 @@ The remaining gap is concentrated on two specific issues:
 
 ### Changes from v0.2.0
 
-| Metric | v0.2.0 Mini | v0.2.1 Mini | Delta |
-|--------|-------------|-------------|-------|
-| Identifier fact types | 0 | 4 | +4 |
-| Skipped constraints | 11 | 1 | -10 |
-| Total constraints | 4 | ~8 | +4 |
+| Metric                | v0.2.0 Mini | v0.2.1 Mini | Delta |
+| --------------------- | ----------- | ----------- | ----- |
+| Identifier fact types | 0           | 4           | +4    |
+| Skipped constraints   | 11          | 1           | -10   |
+| Total constraints     | 4           | ~8          | +4    |
 
 ## Transcript 2: Order Management
 
@@ -125,11 +126,11 @@ The remaining gap is concentrated on two specific issues:
 
 ### Changes from v0.2.0
 
-| Metric | v0.2.0 Mini | v0.2.1 Mini | Delta |
-|--------|-------------|-------------|-------|
-| Fabricated ref modes | 1 (auto_counter) | 0 | Fixed |
-| OrderLine entity | Yes (over-modeled) | No (ternary) | Fixed |
-| is_preferred misplaced | 0 | 1 | Regression |
+| Metric                 | v0.2.0 Mini        | v0.2.1 Mini  | Delta      |
+| ---------------------- | ------------------ | ------------ | ---------- |
+| Fabricated ref modes   | 1 (auto_counter)   | 0            | Fixed      |
+| OrderLine entity       | Yes (over-modeled) | No (ternary) | Fixed      |
+| is_preferred misplaced | 0                  | 1            | Regression |
 
 ## Transcript 3: University Enrollment
 
@@ -153,11 +154,11 @@ The remaining gap is concentrated on two specific issues:
 
 ### Changes from v0.2.0
 
-| Metric | v0.2.0 Mini | v0.2.1 Mini | Delta |
-|--------|-------------|-------------|-------|
-| Composite ref mode | Yes | No | Fixed |
-| Identifier fact types | 3 | 4 | +1 (Term) |
-| Spurious conflated FT | 1 (Term-TermCode) | 1 (Title-Credits) | Changed |
+| Metric                | v0.2.0 Mini       | v0.2.1 Mini       | Delta     |
+| --------------------- | ----------------- | ----------------- | --------- |
+| Composite ref mode    | Yes               | No                | Fixed     |
+| Identifier fact types | 3                 | 4                 | +1 (Term) |
+| Spurious conflated FT | 1 (Term-TermCode) | 1 (Title-Credits) | Changed   |
 
 ## Root Causes of Remaining Gaps
 

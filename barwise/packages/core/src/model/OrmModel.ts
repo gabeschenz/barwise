@@ -1,18 +1,9 @@
-import { ObjectType, type ObjectTypeConfig } from "./ObjectType.js";
-import { FactType, type FactTypeConfig } from "./FactType.js";
-import {
-  SubtypeFact,
-  type SubtypeFactConfig,
-} from "./SubtypeFact.js";
-import {
-  ObjectifiedFactType,
-  type ObjectifiedFactTypeConfig,
-} from "./ObjectifiedFactType.js";
-import {
-  Population,
-  type PopulationConfig,
-} from "./Population.js";
 import type { Definition } from "./Definition.js";
+import { FactType, type FactTypeConfig } from "./FactType.js";
+import { ObjectifiedFactType, type ObjectifiedFactTypeConfig } from "./ObjectifiedFactType.js";
+import { ObjectType, type ObjectTypeConfig } from "./ObjectType.js";
+import { Population, type PopulationConfig } from "./Population.js";
+import { SubtypeFact, type SubtypeFactConfig } from "./SubtypeFact.js";
 
 /**
  * Configuration for creating a new OrmModel.
@@ -37,8 +28,7 @@ export class OrmModel {
   private readonly _objectTypes: Map<string, ObjectType> = new Map();
   private readonly _factTypes: Map<string, FactType> = new Map();
   private readonly _subtypeFacts: Map<string, SubtypeFact> = new Map();
-  private readonly _objectifiedFactTypes: Map<string, ObjectifiedFactType> =
-    new Map();
+  private readonly _objectifiedFactTypes: Map<string, ObjectifiedFactType> = new Map();
   private readonly _populations: Map<string, Population> = new Map();
   private readonly _definitions: Definition[] = [];
 
@@ -117,8 +107,8 @@ export class OrmModel {
       for (const role of ft.roles) {
         if (role.playerId === id) {
           throw new Error(
-            `Cannot remove object type "${ot.name}": it is referenced by ` +
-              `role "${role.name}" in fact type "${ft.name}".`,
+            `Cannot remove object type "${ot.name}": it is referenced by `
+              + `role "${role.name}" in fact type "${ft.name}".`,
           );
         }
       }
@@ -179,9 +169,9 @@ export class OrmModel {
     for (const roleConfig of config.roles) {
       if (!this._objectTypes.has(roleConfig.playerId)) {
         throw new Error(
-          `Role "${roleConfig.name}" in fact type "${config.name}" ` +
-            `references object type id "${roleConfig.playerId}" which ` +
-            `does not exist in the model.`,
+          `Role "${roleConfig.name}" in fact type "${config.name}" `
+            + `references object type id "${roleConfig.playerId}" which `
+            + `does not exist in the model.`,
         );
       }
     }
@@ -259,8 +249,8 @@ export class OrmModel {
     // Check for duplicate subtype relationship.
     for (const existing of this._subtypeFacts.values()) {
       if (
-        existing.subtypeId === config.subtypeId &&
-        existing.supertypeId === config.supertypeId
+        existing.subtypeId === config.subtypeId
+        && existing.supertypeId === config.supertypeId
       ) {
         throw new Error(
           `Subtype relationship from "${subtype.name}" to "${supertype.name}" already exists.`,
@@ -473,20 +463,18 @@ export class OrmModel {
 
   /** Get all fact types that a given object type participates in. */
   factTypesForObjectType(objectTypeId: string): readonly FactType[] {
-    return this.factTypes.filter((ft) =>
-      ft.roles.some((r) => r.playerId === objectTypeId),
-    );
+    return this.factTypes.filter((ft) => ft.roles.some((r) => r.playerId === objectTypeId));
   }
 
   /** Count of all elements in the model. */
   get elementCount(): number {
     return (
-      this._objectTypes.size +
-      this._factTypes.size +
-      this._subtypeFacts.size +
-      this._objectifiedFactTypes.size +
-      this._populations.size +
-      this._definitions.length
+      this._objectTypes.size
+      + this._factTypes.size
+      + this._subtypeFacts.size
+      + this._objectifiedFactTypes.size
+      + this._populations.size
+      + this._definitions.length
     );
   }
 }

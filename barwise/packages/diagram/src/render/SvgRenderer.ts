@@ -1,13 +1,13 @@
 import type {
+  Position,
+  PositionedConstraintEdge,
+  PositionedConstraintNode,
+  PositionedEdge,
+  PositionedFactTypeNode,
   PositionedGraph,
   PositionedObjectTypeNode,
-  PositionedFactTypeNode,
-  PositionedConstraintNode,
   PositionedRoleBox,
-  PositionedEdge,
-  PositionedConstraintEdge,
   PositionedSubtypeEdge,
-  Position,
 } from "../layout/LayoutTypes.js";
 import * as theme from "./theme.js";
 
@@ -27,10 +27,10 @@ export function renderSvg(graph: PositionedGraph): string {
   const hasSubtypeEdges = graph.subtypeEdges.length > 0;
 
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" ` +
-    `width="${svgWidth}" height="${svgHeight}" ` +
-    `viewBox="${-padding} ${-padding} ${svgWidth} ${svgHeight}" ` +
-    `style="font-family: ${theme.FONT_FAMILY}; background: #fafafa;">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" `
+      + `width="${svgWidth}" height="${svgHeight}" `
+      + `viewBox="${-padding} ${-padding} ${svgWidth} ${svgHeight}" `
+      + `style="font-family: ${theme.FONT_FAMILY}; background: #fafafa;">`,
   );
 
   // Define arrowhead marker for subtype edges.
@@ -81,19 +81,19 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   if (isEntity) {
     // Entity types are rounded rectangles (soft corners).
     parts.push(
-      `<rect x="${node.x}" y="${node.y}" ` +
-      `width="${node.width}" height="${node.height}" ` +
-      `rx="${theme.OT_CORNER_RADIUS}" ry="${theme.OT_CORNER_RADIUS}" ` +
-      `fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
+      `<rect x="${node.x}" y="${node.y}" `
+        + `width="${node.width}" height="${node.height}" `
+        + `rx="${theme.OT_CORNER_RADIUS}" ry="${theme.OT_CORNER_RADIUS}" `
+        + `fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
     );
   } else {
     // Value types are rendered as dashed-border ovals.
     const rx = node.width / 2;
     const ry = node.height / 2;
     parts.push(
-      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" ` +
-      `fill="${fill}" stroke="${stroke}" stroke-width="1.5" ` +
-      `stroke-dasharray="4,3"/>`,
+      `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" `
+        + `fill="${fill}" stroke="${stroke}" stroke-width="1.5" `
+        + `stroke-dasharray="4,3"/>`,
     );
   }
 
@@ -102,26 +102,28 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
   const hasRefMode = node.referenceMode !== undefined;
   // Shift name upward when additional lines exist below it.
-  const nameOffset = hasAliases && hasRefMode ? -8
-    : hasAliases || hasRefMode ? -3
+  const nameOffset = hasAliases && hasRefMode
+    ? -8
+    : hasAliases || hasRefMode
+    ? -3
     : 0;
 
   // Name label.
   parts.push(
-    `<text x="${cx}" y="${cy + nameOffset}" ` +
-    `text-anchor="middle" dominant-baseline="central" ` +
-    `fill="${theme.COLOR_TEXT}" font-size="${theme.FONT_SIZE_LABEL}" ` +
-    `font-weight="600">${esc(node.name)}</text>`,
+    `<text x="${cx}" y="${cy + nameOffset}" `
+      + `text-anchor="middle" dominant-baseline="central" `
+      + `fill="${theme.COLOR_TEXT}" font-size="${theme.FONT_SIZE_LABEL}" `
+      + `font-weight="600">${esc(node.name)}</text>`,
   );
 
   // Reference mode (below name for entity types).
   if (hasRefMode) {
     const refModeY = hasAliases ? cy + 5 : cy + 12;
     parts.push(
-      `<text x="${cx}" y="${refModeY}" ` +
-      `text-anchor="middle" dominant-baseline="central" ` +
-      `fill="${theme.COLOR_REF_MODE}" font-size="${theme.FONT_SIZE_REF_MODE}">` +
-      `(${esc(node.referenceMode!)})</text>`,
+      `<text x="${cx}" y="${refModeY}" `
+        + `text-anchor="middle" dominant-baseline="central" `
+        + `fill="${theme.COLOR_REF_MODE}" font-size="${theme.FONT_SIZE_REF_MODE}">`
+        + `(${esc(node.referenceMode!)})</text>`,
     );
   }
 
@@ -130,10 +132,10 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
     const aliasLabel = `(a.k.a. ${node.aliases!.map((a) => `'${a}'`).join(", ")})`;
     const aliasY = hasRefMode ? cy + 18 : cy + 12;
     parts.push(
-      `<text x="${cx}" y="${aliasY}" ` +
-      `text-anchor="middle" dominant-baseline="central" ` +
-      `fill="${theme.COLOR_ALIAS}" font-size="${theme.FONT_SIZE_ALIAS}" ` +
-      `font-style="italic">${esc(aliasLabel)}</text>`,
+      `<text x="${cx}" y="${aliasY}" `
+        + `text-anchor="middle" dominant-baseline="central" `
+        + `fill="${theme.COLOR_ALIAS}" font-size="${theme.FONT_SIZE_ALIAS}" `
+        + `font-style="italic">${esc(aliasLabel)}</text>`,
     );
   }
 
@@ -149,14 +151,14 @@ function renderFactType(node: PositionedFactTypeNode): string {
   if (node.isObjectified) {
     const pad = theme.OBJECTIFICATION_PADDING;
     parts.push(
-      `<rect data-kind="objectification" ` +
-      `x="${node.x - pad}" y="${node.y - pad}" ` +
-      `width="${node.width + pad * 2}" height="${node.height + pad * 2}" ` +
-      `rx="${theme.OBJECTIFICATION_CORNER_RADIUS}" ` +
-      `ry="${theme.OBJECTIFICATION_CORNER_RADIUS}" ` +
-      `fill="${theme.COLOR_OBJECTIFICATION_FILL}" ` +
-      `stroke="${theme.COLOR_OBJECTIFICATION_STROKE}" ` +
-      `stroke-width="${theme.OBJECTIFICATION_STROKE_WIDTH}"/>`,
+      `<rect data-kind="objectification" `
+        + `x="${node.x - pad}" y="${node.y - pad}" `
+        + `width="${node.width + pad * 2}" height="${node.height + pad * 2}" `
+        + `rx="${theme.OBJECTIFICATION_CORNER_RADIUS}" `
+        + `ry="${theme.OBJECTIFICATION_CORNER_RADIUS}" `
+        + `fill="${theme.COLOR_OBJECTIFICATION_FILL}" `
+        + `stroke="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+        + `stroke-width="${theme.OBJECTIFICATION_STROKE_WIDTH}"/>`,
     );
   }
 
@@ -173,9 +175,9 @@ function renderFactType(node: PositionedFactTypeNode): string {
     const barWidth = last.x + last.width - first.x - 8;
     const barY = node.y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
     parts.push(
-      `<rect x="${barX}" y="${barY}" ` +
-      `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" ` +
-      `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      `<rect x="${barX}" y="${barY}" `
+        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+        + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
     );
   }
 
@@ -183,20 +185,20 @@ function renderFactType(node: PositionedFactTypeNode): string {
   const cx = node.x + node.width / 2;
   const labelY = node.y + node.height + 14;
   parts.push(
-    `<text x="${cx}" y="${labelY}" ` +
-    `text-anchor="middle" fill="${theme.COLOR_TEXT}" ` +
-    `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">` +
-    `${esc(node.name)}</text>`,
+    `<text x="${cx}" y="${labelY}" `
+      + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
+      + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+      + `${esc(node.name)}</text>`,
   );
 
   // Ring constraint label (below the fact type name).
   if (node.ringConstraint) {
     const ringY = labelY + 14;
     parts.push(
-      `<text x="${cx}" y="${ringY}" ` +
-      `text-anchor="middle" ` +
-      `font-size="${theme.FONT_SIZE_ANNOTATION}" ` +
-      `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+      `<text x="${cx}" y="${ringY}" `
+        + `text-anchor="middle" `
+        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+        + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
     );
   }
 
@@ -204,10 +206,10 @@ function renderFactType(node: PositionedFactTypeNode): string {
   if (node.isObjectified && node.objectifiedEntityName) {
     const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
     parts.push(
-      `<text x="${cx}" y="${objLabelY}" ` +
-      `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" ` +
-      `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">` +
-      `${esc(node.objectifiedEntityName)}</text>`,
+      `<text x="${cx}" y="${objLabelY}" `
+        + `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+        + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
+        + `${esc(node.objectifiedEntityName)}</text>`,
     );
   }
 
@@ -226,10 +228,10 @@ function renderRoleBox(
 
   // Role box rectangle.
   parts.push(
-    `<rect x="${x}" y="${y}" ` +
-    `width="${role.width}" height="${role.height}" ` +
-    `fill="${theme.COLOR_ROLE_FILL}" ` +
-    `stroke="${theme.COLOR_ROLE_STROKE}" stroke-width="1"/>`,
+    `<rect x="${x}" y="${y}" `
+      + `width="${role.width}" height="${role.height}" `
+      + `fill="${theme.COLOR_ROLE_FILL}" `
+      + `stroke="${theme.COLOR_ROLE_STROKE}" stroke-width="1"/>`,
   );
 
   // Single-role uniqueness bar (above the role box).
@@ -238,9 +240,9 @@ function renderRoleBox(
     const barWidth = role.width - 8;
     const barY = y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
     parts.push(
-      `<rect x="${barX}" y="${barY}" ` +
-      `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" ` +
-      `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
+      `<rect x="${barX}" y="${barY}" `
+        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+        + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
     );
   }
 
@@ -249,9 +251,9 @@ function renderRoleBox(
     const dotX = x + role.width / 2;
     const dotY = y + role.height + theme.MANDATORY_DOT_RADIUS + 2;
     parts.push(
-      `<circle cx="${dotX}" cy="${dotY}" ` +
-      `r="${theme.MANDATORY_DOT_RADIUS}" ` +
-      `fill="${theme.COLOR_MANDATORY}"/>`,
+      `<circle cx="${dotX}" cy="${dotY}" `
+        + `r="${theme.MANDATORY_DOT_RADIUS}" `
+        + `fill="${theme.COLOR_MANDATORY}"/>`,
     );
   }
 
@@ -264,9 +266,9 @@ function renderRoleBox(
       ? String(role.frequencyMin)
       : `${role.frequencyMin}..${maxStr}`;
     parts.push(
-      `<text x="${freqX}" y="${freqY}" text-anchor="middle" ` +
-      `font-size="${theme.FONT_SIZE_ANNOTATION}" ` +
-      `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
+      `<text x="${freqX}" y="${freqY}" text-anchor="middle" `
+        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+        + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
     );
   }
 
@@ -278,8 +280,8 @@ function renderEdge(edge: PositionedEdge): string {
 
   const d = buildPathData(edge.points);
   return (
-    `<path d="${d}" fill="none" ` +
-    `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`
+    `<path d="${d}" fill="none" `
+    + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`
   );
 }
 
@@ -303,14 +305,14 @@ function buildPathData(points: readonly Position[]): string {
 function renderSubtypeArrowDef(): string {
   const s = theme.SUBTYPE_ARROW_SIZE;
   return (
-    `<defs>` +
-    `<marker id="subtype-arrow" viewBox="0 0 ${s} ${s}" ` +
-    `refX="${s}" refY="${s / 2}" ` +
-    `markerWidth="${s}" markerHeight="${s}" orient="auto-start-reverse">` +
-    `<path d="M 0 0 L ${s} ${s / 2} L 0 ${s} Z" ` +
-    `fill="${theme.COLOR_SUBTYPE}"/>` +
-    `</marker>` +
-    `</defs>`
+    `<defs>`
+    + `<marker id="subtype-arrow" viewBox="0 0 ${s} ${s}" `
+    + `refX="${s}" refY="${s / 2}" `
+    + `markerWidth="${s}" markerHeight="${s}" orient="auto-start-reverse">`
+    + `<path d="M 0 0 L ${s} ${s / 2} L 0 ${s} Z" `
+    + `fill="${theme.COLOR_SUBTYPE}"/>`
+    + `</marker>`
+    + `</defs>`
   );
 }
 
@@ -319,10 +321,10 @@ function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
 
   const d = buildPathData(edge.points);
   return (
-    `<path data-kind="subtype" d="${d}" fill="none" ` +
-    `stroke="${theme.COLOR_SUBTYPE}" ` +
-    `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" ` +
-    `marker-end="url(#subtype-arrow)"/>`
+    `<path data-kind="subtype" d="${d}" fill="none" `
+    + `stroke="${theme.COLOR_SUBTYPE}" `
+    + `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" `
+    + `marker-end="url(#subtype-arrow)"/>`
   );
 }
 
@@ -346,15 +348,15 @@ function renderConstraintNode(node: PositionedConstraintNode): string {
 
   const parts: string[] = [];
   parts.push(
-    `<g data-id="${esc(node.id)}" data-kind="constraint" ` +
-    `data-constraint-kind="${node.constraintKind}">`,
+    `<g data-id="${esc(node.id)}" data-kind="constraint" `
+      + `data-constraint-kind="${node.constraintKind}">`,
   );
 
   // Outer circle.
   parts.push(
-    `<circle cx="${cx}" cy="${cy}" r="${r}" ` +
-    `fill="${theme.COLOR_CONSTRAINT_FILL}" ` +
-    `stroke="${stroke}" stroke-width="${sw}"/>`,
+    `<circle cx="${cx}" cy="${cy}" r="${r}" `
+      + `fill="${theme.COLOR_CONSTRAINT_FILL}" `
+      + `stroke="${stroke}" stroke-width="${sw}"/>`,
   );
 
   // Inner symbol varies by constraint kind.
@@ -365,28 +367,28 @@ function renderConstraintNode(node: PositionedConstraintNode): string {
       const barW = r * 1.2;
       const barH = 2;
       parts.push(
-        `<rect x="${cx - barW / 2}" y="${cy - barH / 2}" ` +
-        `width="${barW}" height="${barH}" fill="${stroke}"/>`,
+        `<rect x="${cx - barW / 2}" y="${cy - barH / 2}" `
+          + `width="${barW}" height="${barH}" fill="${stroke}"/>`,
       );
       break;
     }
     case "exclusion": {
       // "X" shape.
       parts.push(
-        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>` +
-        `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>`,
+        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`
+          + `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`,
       );
       break;
     }
     case "exclusive_or": {
       // "X" shape plus mandatory dot below circle.
       parts.push(
-        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>` +
-        `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>`,
+        `<line x1="${cx - h}" y1="${cy - h}" x2="${cx + h}" y2="${cy + h}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`
+          + `<line x1="${cx + h}" y1="${cy - h}" x2="${cx - h}" y2="${cy + h}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`,
       );
       // Mandatory dot below.
       parts.push(
@@ -404,11 +406,11 @@ function renderConstraintNode(node: PositionedConstraintNode): string {
     case "subset": {
       // Subset arrow (right-pointing).
       parts.push(
-        `<path d="M ${cx - h} ${cy} L ${cx + h} ${cy}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>` +
-        `<path d="M ${cx + h * 0.3} ${cy - h * 0.6} L ${cx + h} ${cy} ` +
-        `L ${cx + h * 0.3} ${cy + h * 0.6}" ` +
-        `stroke="${stroke}" stroke-width="${sw}" fill="none"/>`,
+        `<path d="M ${cx - h} ${cy} L ${cx + h} ${cy}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`
+          + `<path d="M ${cx + h * 0.3} ${cy - h * 0.6} L ${cx + h} ${cy} `
+          + `L ${cx + h * 0.3} ${cy + h * 0.6}" `
+          + `stroke="${stroke}" stroke-width="${sw}" fill="none"/>`,
       );
       break;
     }
@@ -417,12 +419,12 @@ function renderConstraintNode(node: PositionedConstraintNode): string {
       const gap = h * 0.4;
       const lineW = r * 1.0;
       parts.push(
-        `<line x1="${cx - lineW / 2}" y1="${cy - gap}" ` +
-        `x2="${cx + lineW / 2}" y2="${cy - gap}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>` +
-        `<line x1="${cx - lineW / 2}" y1="${cy + gap}" ` +
-        `x2="${cx + lineW / 2}" y2="${cy + gap}" ` +
-        `stroke="${stroke}" stroke-width="${sw}"/>`,
+        `<line x1="${cx - lineW / 2}" y1="${cy - gap}" `
+          + `x2="${cx + lineW / 2}" y2="${cy - gap}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`
+          + `<line x1="${cx - lineW / 2}" y1="${cy + gap}" `
+          + `x2="${cx + lineW / 2}" y2="${cy + gap}" `
+          + `stroke="${stroke}" stroke-width="${sw}"/>`,
       );
       break;
     }
@@ -437,10 +439,10 @@ function renderConstraintEdge(edge: PositionedConstraintEdge): string {
 
   const d = buildPathData(edge.points);
   return (
-    `<path data-kind="constraint-edge" d="${d}" fill="none" ` +
-    `stroke="${theme.COLOR_CONSTRAINT_STROKE}" ` +
-    `stroke-width="${theme.CONSTRAINT_STROKE_WIDTH}" ` +
-    `stroke-dasharray="${theme.CONSTRAINT_EDGE_DASH}"/>`
+    `<path data-kind="constraint-edge" d="${d}" fill="none" `
+    + `stroke="${theme.COLOR_CONSTRAINT_STROKE}" `
+    + `stroke-width="${theme.CONSTRAINT_STROKE_WIDTH}" `
+    + `stroke-dasharray="${theme.CONSTRAINT_EDGE_DASH}"/>`
   );
 }
 

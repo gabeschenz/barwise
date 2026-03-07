@@ -1,16 +1,16 @@
 /**
  * Tests for the lineage command group.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import { runCli } from "../helpers/run.js";
-import { loadModel } from "../../src/helpers/io.js";
-import { writeManifest, hashModel } from "@barwise/core";
+import { hashModel, writeManifest } from "@barwise/core";
 import type { LineageManifest } from "@barwise/core";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import { dirname, resolve } from "node:path";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadModel } from "../../src/helpers/io.js";
+import { runCli } from "../helpers/run.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = resolve(__dirname, "../fixtures");
@@ -49,7 +49,7 @@ describe("barwise lineage", () => {
       const modelPath = path.join(tempDir, "test.orm.yaml");
       fs.copyFileSync(`${fixtures}/simple.orm.yaml`, modelPath);
 
-      const model = loadModel(modelPath);
+      const _model = loadModel(modelPath);
 
       // Create manifest with a different hash (simulating old model)
       const oldHash = "a1b2c3d4e5f6000000000000000000000000000000000000000000000000";

@@ -15,15 +15,15 @@ text lengths where Codex omits them).
 
 ## Scoring
 
-| Dimension             | GPT-5 Mini | GPT-5.3 Codex | Notes |
-|-----------------------|------------|---------------|-------|
-| Identifier fact types | Poor       | Good          | Mini omits them; Codex emits with is_preferred |
-| Constraint coverage   | Poor       | Good          | Mini skips 11/5/5 constraints; Codex skips 2/1/1 |
-| N-ary fact types      | Poor       | Good          | Codex models scheduling and composite rules correctly |
-| Data type lengths     | Good       | Poor          | Mini specifies lengths; Codex omits most |
-| Reference mode quality| Poor       | Good          | Mini fabricates composites and auto_counters |
-| Ambiguity detection   | Good       | Good          | Both flag relevant ambiguities |
-| Definitions           | Good       | Good          | Both produce useful definitions |
+| Dimension              | GPT-5 Mini | GPT-5.3 Codex | Notes                                                 |
+| ---------------------- | ---------- | ------------- | ----------------------------------------------------- |
+| Identifier fact types  | Poor       | Good          | Mini omits them; Codex emits with is_preferred        |
+| Constraint coverage    | Poor       | Good          | Mini skips 11/5/5 constraints; Codex skips 2/1/1      |
+| N-ary fact types       | Poor       | Good          | Codex models scheduling and composite rules correctly |
+| Data type lengths      | Good       | Poor          | Mini specifies lengths; Codex omits most              |
+| Reference mode quality | Poor       | Good          | Mini fabricates composites and auto_counters          |
+| Ambiguity detection    | Good       | Good          | Both flag relevant ambiguities                        |
+| Definitions            | Good       | Good          | Both produce useful definitions                       |
 
 ## Transcript 1: Clinic Appointments
 

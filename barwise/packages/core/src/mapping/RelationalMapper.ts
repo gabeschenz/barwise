@@ -21,18 +21,18 @@
  *    the composite of those columns.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
 import type { FactType } from "../model/FactType.js";
-import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
-import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import type { DataTypeDef, ObjectType } from "../model/ObjectType.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import type { PreferredIdentifierStrategy } from "../model/OrmProject.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type {
+  Column,
+  ForeignKey,
+  PrimaryKey,
   RelationalSchema,
   Table,
-  Column,
-  PrimaryKey,
-  ForeignKey,
 } from "./RelationalSchema.js";
 
 /**
@@ -481,13 +481,13 @@ export class RelationalMapper {
     role1Only: boolean;
     role2Only: boolean;
     both: boolean;
-    role1Constraint?: { readonly id: string };
-    role2Constraint?: { readonly id: string };
+    role1Constraint?: { readonly id: string; };
+    role2Constraint?: { readonly id: string; };
   } {
     let role1Unique = false;
     let role2Unique = false;
-    let role1Constraint: { readonly id: string } | undefined;
-    let role2Constraint: { readonly id: string } | undefined;
+    let role1Constraint: { readonly id: string; } | undefined;
+    let role2Constraint: { readonly id: string; } | undefined;
     const role1Id = ft.roles[0]!.id;
     const role2Id = ft.roles[1]!.id;
 
@@ -587,7 +587,9 @@ function conceptualTypeToSql(dataType: DataTypeDef | undefined): string {
       }
       return "DECIMAL";
     case "money":
-      return dataType.length ? `DECIMAL(${dataType.length},${dataType.scale ?? 2})` : "DECIMAL(19,2)";
+      return dataType.length
+        ? `DECIMAL(${dataType.length},${dataType.scale ?? 2})`
+        : "DECIMAL(19,2)";
     case "float":
       return "FLOAT";
     case "boolean":
@@ -669,7 +671,7 @@ function resolveEntityPkType(ot: ObjectType, model: OrmModel, fallbackPkType: st
  * the other side of the relationship (if any).
  */
 function findValuePlayer(
-  ft: { roles: readonly { playerId: string }[] },
+  ft: { roles: readonly { playerId: string; }[]; },
   ot: ObjectType,
   model: OrmModel,
 ): ObjectType | undefined {

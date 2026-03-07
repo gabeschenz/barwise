@@ -63,7 +63,7 @@ npx tsc --noEmit            # type-check only
 
 ## Dependencies
 
-| Direction | Package | What is used |
-|-----------|---------|--------------|
-| Upstream  | `@barwise/core` | `OrmModel`, `ObjectType`, `FactType`, `Role`, constraint types, serialization |
-| Downstream | `barwise-vscode` | `processTranscript`, `AnthropicLlmClient`, extraction types |
+| Direction  | Package          | What is used                                                                  |
+| ---------- | ---------------- | ----------------------------------------------------------------------------- |
+| Upstream   | `@barwise/core`  | `OrmModel`, `ObjectType`, `FactType`, `Role`, constraint types, serialization |
+| Downstream | `barwise-vscode` | `processTranscript`, `AnthropicLlmClient`, extraction types                   |

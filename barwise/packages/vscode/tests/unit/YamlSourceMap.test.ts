@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { YamlSourceMap } from "../../src/server/YamlSourceMap.js";
 
 const SAMPLE_YAML = `orm_version: "1.0"

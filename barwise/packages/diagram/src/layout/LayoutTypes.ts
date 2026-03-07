@@ -5,7 +5,7 @@
  * ready for direct SVG rendering.
  */
 
-import type { RingTypeLabel, ConstraintKind } from "../graph/GraphTypes.js";
+import type { ConstraintKind, RingTypeLabel } from "../graph/GraphTypes.js";
 
 export interface Position {
   readonly x: number;

@@ -1,40 +1,35 @@
 import ELKModule from "elkjs";
-import type { ELK, ElkNode, ElkExtendedEdge } from "elkjs";
+import type { ELK, ElkExtendedEdge, ElkNode } from "elkjs";
+import type { ConstraintNode, FactTypeNode, GraphNode, OrmGraph } from "../graph/GraphTypes.js";
+import {
+  CONSTRAINT_RADIUS,
+  FONT_SIZE_ALIAS,
+  OT_ALIAS_LINE_HEIGHT,
+  OT_HEIGHT,
+  OT_MIN_WIDTH,
+  ROLE_BOX_HEIGHT,
+  ROLE_BOX_WIDTH,
+} from "../render/theme.js";
 import type {
-  OrmGraph,
-  GraphNode,
-  FactTypeNode,
-  ConstraintNode,
-} from "../graph/GraphTypes.js";
-import type {
+  Position,
+  PositionedConstraintEdge,
+  PositionedConstraintNode,
+  PositionedEdge,
+  PositionedFactTypeNode,
   PositionedGraph,
   PositionedNode,
   PositionedObjectTypeNode,
-  PositionedFactTypeNode,
-  PositionedConstraintNode,
   PositionedRoleBox,
-  PositionedEdge,
-  PositionedConstraintEdge,
   PositionedSubtypeEdge,
-  Position,
 } from "./LayoutTypes.js";
-import {
-  ROLE_BOX_WIDTH,
-  ROLE_BOX_HEIGHT,
-  OT_MIN_WIDTH,
-  OT_HEIGHT,
-  OT_ALIAS_LINE_HEIGHT,
-  CONSTRAINT_RADIUS,
-  FONT_SIZE_ALIAS,
-} from "../render/theme.js";
 
 // elkjs has CJS/ESM interop quirks: the default export may be the
 // constructor directly or wrapped in a `.default` property.
 const ELKConstructor = (
   typeof ELKModule === "function"
     ? ELKModule
-    : (ELKModule as unknown as { default: new () => ELK }).default
-) as unknown as new () => ELK;
+    : (ELKModule as unknown as { default: new() => ELK; }).default
+) as unknown as new() => ELK;
 
 let elkInstance: ELK | undefined;
 function getElk(): ELK {
@@ -304,8 +299,7 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
       // Crossing minimization: sweep layers from both sides with greedy
       // post-processing for fewer edge crossings.
       "org.eclipse.elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-      "org.eclipse.elk.layered.crossingMinimization.greedySwitch.type":
-        "TWO_SIDED",
+      "org.eclipse.elk.layered.crossingMinimization.greedySwitch.type": "TWO_SIDED",
       // Thoroughness controls how many iterations the crossing minimization
       // and other heuristics run. Default is 7; 40 produces noticeably
       // better layouts for ORM diagrams without meaningful perf cost.
@@ -317,8 +311,7 @@ function buildElkGraph(graph: OrmGraph): ElkNode {
         "NODE_SIZE_WHERE_SPACE_PERMITS",
       // Use the input node order as a hint for initial layer ordering. This
       // works together with the connectivity-based pre-sort in buildElkGraph.
-      "org.eclipse.elk.layered.considerModelOrder.strategy":
-        "NODES_AND_EDGES",
+      "org.eclipse.elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
     },
     children,
     edges,
@@ -414,11 +407,13 @@ function extractPositions(
 
     let points: Position[] = [];
     if (elkEdge && "sections" in elkEdge) {
-      const sections = (elkEdge as { sections?: Array<{
-        startPoint: Position;
-        endPoint: Position;
-        bendPoints?: Position[];
-      }> }).sections;
+      const sections = (elkEdge as {
+        sections?: Array<{
+          startPoint: Position;
+          endPoint: Position;
+          bendPoints?: Position[];
+        }>;
+      }).sections;
       if (sections && sections[0]) {
         const section = sections[0];
         points = [
@@ -463,11 +458,13 @@ function extractPositions(
 
     let points: Position[] = [];
     if (elkEdge && "sections" in elkEdge) {
-      const sections = (elkEdge as { sections?: Array<{
-        startPoint: Position;
-        endPoint: Position;
-        bendPoints?: Position[];
-      }> }).sections;
+      const sections = (elkEdge as {
+        sections?: Array<{
+          startPoint: Position;
+          endPoint: Position;
+          bendPoints?: Position[];
+        }>;
+      }).sections;
       if (sections && sections[0]) {
         const section = sections[0];
         points = [
@@ -512,11 +509,13 @@ function extractPositions(
 
     let points: Position[] = [];
     if (elkEdge && "sections" in elkEdge) {
-      const sections = (elkEdge as { sections?: Array<{
-        startPoint: Position;
-        endPoint: Position;
-        bendPoints?: Position[];
-      }> }).sections;
+      const sections = (elkEdge as {
+        sections?: Array<{
+          startPoint: Position;
+          endPoint: Position;
+          bendPoints?: Position[];
+        }>;
+      }).sections;
       if (sections && sections[0]) {
         const section = sections[0];
         points = [

@@ -5,14 +5,14 @@
  * to OrmModel. Uses hand-crafted NormaDocument objects to test
  * each mapping phase independently.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mapNormaToOrm, NormaMappingError } from "../../src/import/NormaToOrmMapper.js";
 import type {
+  NormaConstraint,
   NormaDocument,
   NormaEntityType,
-  NormaValueType,
   NormaFactType,
-  NormaConstraint,
+  NormaValueType,
 } from "../../src/import/NormaXmlTypes.js";
 
 /** Create a minimal valid NormaDocument. */
@@ -66,8 +66,20 @@ function makeBinaryFactType(
     id,
     name,
     roles: [
-      { id: r1, name: "role1", playerRef: role1Player, isMandatory: false, multiplicity: "Unspecified" as const },
-      { id: r2, name: "role2", playerRef: role2Player, isMandatory: false, multiplicity: "Unspecified" as const },
+      {
+        id: r1,
+        name: "role1",
+        playerRef: role1Player,
+        isMandatory: false,
+        multiplicity: "Unspecified" as const,
+      },
+      {
+        id: r2,
+        name: "role2",
+        playerRef: role2Player,
+        isMandatory: false,
+        multiplicity: "Unspecified" as const,
+      },
     ],
     readingOrders: [
       {

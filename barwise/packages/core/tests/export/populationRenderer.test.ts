@@ -2,13 +2,13 @@
  * Tests for population rendering utilities.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  renderPopulationAsSql,
   renderPopulationAsOpenApiExamples,
+  renderPopulationAsSql,
 } from "../../src/export/populationRenderer.js";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("renderPopulationAsSql", () => {
   it("should render SQL INSERT statements for a populated model", () => {

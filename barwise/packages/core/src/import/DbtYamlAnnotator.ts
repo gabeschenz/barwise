@@ -14,11 +14,8 @@
  * formatting, comments, and whitespace.
  */
 
-import type { ReportEntry, DbtImportReport } from "./DbtImportReport.js";
-import {
-  formatBarwiseComment,
-  stripBarwiseComments,
-} from "../annotation/helpers.js";
+import { formatBarwiseComment, stripBarwiseComments } from "../annotation/helpers.js";
+import type { DbtImportReport, ReportEntry } from "./DbtImportReport.js";
 
 // ---------------------------------------------------------------------------
 // Public API

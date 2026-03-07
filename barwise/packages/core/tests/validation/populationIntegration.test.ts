@@ -6,9 +6,9 @@
  * diagnostics are included in the standard validation run when
  * populations exist in the model.
  */
-import { describe, it, expect } from "vitest";
-import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
 
 describe("Population validation integration", () => {
   it("includes population diagnostics in standard validation", () => {
@@ -48,9 +48,7 @@ describe("Population validation integration", () => {
     const diagnostics = engine.validate(model);
 
     // Should have population violation diagnostics
-    const populationDiags = diagnostics.filter((d) =>
-      d.ruleId.startsWith("population/"),
-    );
+    const populationDiags = diagnostics.filter((d) => d.ruleId.startsWith("population/"));
     expect(populationDiags.length).toBeGreaterThan(0);
 
     // Should have the specific uniqueness violation
@@ -190,9 +188,7 @@ describe("Population validation integration", () => {
     const diagnostics = engine.validate(model);
 
     // Should have no population diagnostics
-    const populationDiags = diagnostics.filter((d) =>
-      d.ruleId.startsWith("population/"),
-    );
+    const populationDiags = diagnostics.filter((d) => d.ruleId.startsWith("population/"));
     expect(populationDiags).toHaveLength(0);
   });
 
@@ -231,9 +227,7 @@ describe("Population validation integration", () => {
     const diagnostics = engine.validate(model);
 
     // Should have no population violations
-    const populationDiags = diagnostics.filter((d) =>
-      d.ruleId.startsWith("population/"),
-    );
+    const populationDiags = diagnostics.filter((d) => d.ruleId.startsWith("population/"));
     expect(populationDiags).toHaveLength(0);
   });
 
@@ -276,9 +270,7 @@ describe("Population validation integration", () => {
     const structuralDiags = diagnostics.filter(
       (d) => !d.ruleId.startsWith("population/"),
     );
-    const populationDiags = diagnostics.filter((d) =>
-      d.ruleId.startsWith("population/"),
-    );
+    const populationDiags = diagnostics.filter((d) => d.ruleId.startsWith("population/"));
 
     expect(structuralDiags.length).toBeGreaterThan(0);
     expect(populationDiags.length).toBeGreaterThan(0);

@@ -13,7 +13,7 @@
  *   - Ring constraint violations (all 8 ring types)
  *   - Valid populations produce no diagnostics
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { populationValidationRules } from "../../src/validation/rules/populationValidation.js";
 
@@ -23,8 +23,8 @@ import { populationValidationRules } from "../../src/validation/rules/population
  */
 function makeOrderModel(options?: {
   uniqueness?: "role1" | "role2" | "spanning";
-  valueConstraint?: { roleId: string; values: string[] };
-  frequency?: { roleId: string; min: number; max: number | "unbounded" };
+  valueConstraint?: { roleId: string; values: string[]; };
+  frequency?: { roleId: string; min: number; max: number | "unbounded"; };
 }): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const customer = model.addObjectType({
@@ -38,8 +38,7 @@ function makeOrderModel(options?: {
     referenceMode: "order_number",
   });
 
-  const constraints: Parameters<typeof model.addFactType>[0]["constraints"] =
-    [];
+  const constraints: Parameters<typeof model.addFactType>[0]["constraints"] = [];
 
   if (options?.uniqueness === "role1") {
     constraints.push({ type: "internal_uniqueness", roleIds: ["r1"] });
@@ -755,11 +754,11 @@ import type { Constraint, RingType } from "../../src/model/Constraint.js";
  * ring, exclusion, exclusive-or, subset, and equality constraint testing.
  */
 function makeSelfRefModel(options?: {
-  exclusion?: { roleIds: string[] };
-  exclusiveOr?: { roleIds: string[] };
-  subset?: { subsetRoleIds: string[]; supersetRoleIds: string[] };
-  equality?: { roleIds1: string[]; roleIds2: string[] };
-  ring?: { roleId1: string; roleId2: string; ringType: RingType };
+  exclusion?: { roleIds: string[]; };
+  exclusiveOr?: { roleIds: string[]; };
+  subset?: { subsetRoleIds: string[]; supersetRoleIds: string[]; };
+  equality?: { roleIds1: string[]; roleIds2: string[]; };
+  ring?: { roleId1: string; roleId2: string; ringType: RingType; };
 }): OrmModel {
   const model = new OrmModel({ name: "Test" });
   const person = model.addObjectType({

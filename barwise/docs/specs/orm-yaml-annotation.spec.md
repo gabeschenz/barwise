@@ -42,16 +42,16 @@ preferred identifier constraint is the formal ORM2 mechanism.
 
 ## Annotation categories
 
-| Source | Severity | Message pattern |
-|--------|----------|-----------------|
-| `ambiguities[]` | TODO | `Ask: <description> (lines N-M)` |
-| `constraintProvenance` where `applied=false` | TODO | `Skipped constraint: "<desc>" -- <reason> (lines N-M)` |
-| `constraintProvenance` where `confidence="low"` | TODO | `Verify constraint: "<desc>" -- low confidence (lines N-M)` |
-| `constraintProvenance` where `confidence="medium"` | NOTE | `Applied with medium confidence: "<desc>" (lines N-M)` |
-| `subtypeProvenance` where `applied=false` | TODO | `Skipped subtype: X is a Y -- <reason> (lines N-M)` |
-| `warnings[]` | NOTE | `<warning text>` (model-level) |
-| Entity missing preferred identifier | TODO | `Ask: How do you uniquely identify a <Name>?` |
-| Object type missing definition | NOTE | `No definition captured for <Name> -- consider adding one.` |
+| Source                                             | Severity | Message pattern                                             |
+| -------------------------------------------------- | -------- | ----------------------------------------------------------- |
+| `ambiguities[]`                                    | TODO     | `Ask: <description> (lines N-M)`                            |
+| `constraintProvenance` where `applied=false`       | TODO     | `Skipped constraint: "<desc>" -- <reason> (lines N-M)`      |
+| `constraintProvenance` where `confidence="low"`    | TODO     | `Verify constraint: "<desc>" -- low confidence (lines N-M)` |
+| `constraintProvenance` where `confidence="medium"` | NOTE     | `Applied with medium confidence: "<desc>" (lines N-M)`      |
+| `subtypeProvenance` where `applied=false`          | TODO     | `Skipped subtype: X is a Y -- <reason> (lines N-M)`         |
+| `warnings[]`                                       | NOTE     | `<warning text>` (model-level)                              |
+| Entity missing preferred identifier                | TODO     | `Ask: How do you uniquely identify a <Name>?`               |
+| Object type missing definition                     | NOTE     | `No definition captured for <Name> -- consider adding one.` |
 
 ## Element matching
 
@@ -71,10 +71,11 @@ within the `object_types:` or `fact_types:` section. The annotator tracks
 which section it's in using simple regex matching on section headers.
 
 Two name patterns are supported:
-- `      name: <value>` (6-space indent, continuation of `- id:` list item)
-- `    - name: <value>` (4-space indent, combined list item)
 
-Model-level annotations are injected after the `  name:` line under `model:`.
+- `name: <value>` (6-space indent, continuation of `- id:` list item)
+- `- name: <value>` (4-space indent, combined list item)
+
+Model-level annotations are injected after the `name:` line under `model:`.
 
 ## Idempotency
 
@@ -85,12 +86,14 @@ result.
 ## Files
 
 ### New files
+
 - `packages/core/src/annotation/helpers.ts` -- shared helpers
 - `packages/core/src/annotation/OrmYamlAnnotator.ts` -- annotator + collection logic
 - `packages/core/tests/annotation/helpers.test.ts` -- 9 tests
 - `packages/core/tests/annotation/OrmYamlAnnotator.test.ts` -- 25 tests
 
 ### Modified files
+
 - `packages/core/src/import/DbtYamlAnnotator.ts` -- refactored to use shared helpers
 - `packages/core/src/mapping/renderers/DbtExportAnnotator.ts` -- refactored to use shared helpers
 - `packages/core/src/index.ts` -- exports new types and functions
@@ -99,6 +102,7 @@ result.
 ## Test coverage
 
 34 new tests covering:
+
 - `collectAnnotations()` for each annotation category (ambiguities, skipped/low/medium/high constraints, skipped subtypes, warnings, structural gaps)
 - Element matching (fact type, object type, model-level fallback)
 - Options (disable structural gaps, disable medium confidence)

@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
-import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+import { describe, expect, it } from "vitest";
+import { stripBarwiseComments } from "../../src/annotation/helpers.js";
 import {
   annotateOrmYaml,
   collectAnnotations,
   type TranscriptProvenance,
 } from "../../src/annotation/OrmYamlAnnotator.js";
-import { stripBarwiseComments } from "../../src/annotation/helpers.js";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const serializer = new OrmYamlSerializer();
 
@@ -99,9 +99,7 @@ describe("collectAnnotations", () => {
     };
 
     const annotations = collectAnnotations(provenance);
-    const ambiguityAnnotation = annotations.find((a) =>
-      a.message.includes("Can a Student enroll"),
-    );
+    const ambiguityAnnotation = annotations.find((a) => a.message.includes("Can a Student enroll"));
     expect(ambiguityAnnotation).toBeDefined();
     expect(ambiguityAnnotation!.severity).toBe("todo");
     expect(ambiguityAnnotation!.message).toContain("Ask:");
@@ -114,8 +112,7 @@ describe("collectAnnotations", () => {
       ...emptyProvenance(model),
       ambiguities: [
         {
-          description:
-            "The Student enrolls in Course relationship may be temporal",
+          description: "The Student enrolls in Course relationship may be temporal",
           source_references: [],
         },
       ],
@@ -160,9 +157,7 @@ describe("collectAnnotations", () => {
     };
 
     const annotations = collectAnnotations(provenance);
-    const modelLevel = annotations.find((a) =>
-      a.message.includes("scope of the model"),
-    );
+    const modelLevel = annotations.find((a) => a.message.includes("scope of the model"));
     expect(modelLevel).toBeDefined();
     expect(modelLevel!.elementType).toBe("model");
   });
@@ -229,9 +224,7 @@ describe("collectAnnotations", () => {
     };
 
     const annotations = collectAnnotations(provenance);
-    const medium = annotations.find((a) =>
-      a.message.includes("medium confidence"),
-    );
+    const medium = annotations.find((a) => a.message.includes("medium confidence"));
     expect(medium).toBeDefined();
     expect(medium!.severity).toBe("note");
   });
@@ -253,9 +246,7 @@ describe("collectAnnotations", () => {
     const annotations = collectAnnotations(provenance, {
       includeMediumConfidence: false,
     });
-    const medium = annotations.find((a) =>
-      a.message.includes("medium confidence"),
-    );
+    const medium = annotations.find((a) => a.message.includes("medium confidence"));
     expect(medium).toBeUndefined();
   });
 
@@ -276,9 +267,9 @@ describe("collectAnnotations", () => {
     const annotations = collectAnnotations(provenance);
     const constraintAnnotations = annotations.filter(
       (a) =>
-        a.message.includes("Verify") ||
-        a.message.includes("Skipped") ||
-        a.message.includes("confidence"),
+        a.message.includes("Verify")
+        || a.message.includes("Skipped")
+        || a.message.includes("confidence"),
     );
     expect(constraintAnnotations).toHaveLength(0);
   });
@@ -299,9 +290,7 @@ describe("collectAnnotations", () => {
     };
 
     const annotations = collectAnnotations(provenance);
-    const subtype = annotations.find((a) =>
-      a.message.includes("Skipped subtype"),
-    );
+    const subtype = annotations.find((a) => a.message.includes("Skipped subtype"));
     expect(subtype).toBeDefined();
     expect(subtype!.severity).toBe("todo");
     expect(subtype!.elementType).toBe("object_type");
@@ -317,9 +306,7 @@ describe("collectAnnotations", () => {
     };
 
     const annotations = collectAnnotations(provenance);
-    const warning = annotations.find((a) =>
-      a.message.includes("very short"),
-    );
+    const warning = annotations.find((a) => a.message.includes("very short"));
     expect(warning).toBeDefined();
     expect(warning!.severity).toBe("note");
     expect(warning!.elementType).toBe("model");
@@ -332,8 +319,8 @@ describe("collectAnnotations", () => {
     const annotations = collectAnnotations(provenance);
     const missingId = annotations.find(
       (a) =>
-        a.elementName === "Professor" &&
-        a.message.includes("uniquely identify"),
+        a.elementName === "Professor"
+        && a.message.includes("uniquely identify"),
     );
     expect(missingId).toBeDefined();
     expect(missingId!.severity).toBe("todo");
@@ -346,8 +333,8 @@ describe("collectAnnotations", () => {
     const annotations = collectAnnotations(provenance);
     const studentId = annotations.find(
       (a) =>
-        a.elementName === "Student" &&
-        a.message.includes("uniquely identify"),
+        a.elementName === "Student"
+        && a.message.includes("uniquely identify"),
     );
     expect(studentId).toBeUndefined();
   });
@@ -358,7 +345,7 @@ describe("collectAnnotations", () => {
 
     const annotations = collectAnnotations(provenance);
     const noDefAnnotations = annotations.filter((a) =>
-      a.message.includes("No definition captured"),
+      a.message.includes("No definition captured")
     );
     // All 6 object types lack definitions
     expect(noDefAnnotations.length).toBe(6);
@@ -374,8 +361,8 @@ describe("collectAnnotations", () => {
     });
     const structural = annotations.filter(
       (a) =>
-        a.message.includes("uniquely identify") ||
-        a.message.includes("No definition"),
+        a.message.includes("uniquely identify")
+        || a.message.includes("No definition"),
     );
     expect(structural).toHaveLength(0);
   });
@@ -453,9 +440,7 @@ describe("annotateOrmYaml", () => {
     const lines = result.yaml.split("\n");
 
     // Find the fact type name line.
-    const ftIdx = lines.findIndex((l) =>
-      l.includes("name: Professor teaches Course"),
-    );
+    const ftIdx = lines.findIndex((l) => l.includes("name: Professor teaches Course"));
     expect(ftIdx).toBeGreaterThan(-1);
     expect(lines[ftIdx + 1]).toContain("# TODO(barwise):");
     expect(lines[ftIdx + 1]).toContain("Verify constraint");
@@ -473,9 +458,7 @@ describe("annotateOrmYaml", () => {
     const lines = result.yaml.split("\n");
 
     // Find the model name line.
-    const nameIdx = lines.findIndex((l) =>
-      l.match(/^\s{2}name:\s*University/),
-    );
+    const nameIdx = lines.findIndex((l) => l.match(/^\s{2}name:\s*University/));
     expect(nameIdx).toBeGreaterThan(-1);
     expect(lines[nameIdx + 1]).toContain("# NOTE(barwise):");
     expect(lines[nameIdx + 1]).toContain("Transcript may be incomplete");

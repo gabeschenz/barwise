@@ -7,9 +7,9 @@
  *   - As Avro Schemas
  */
 import * as vscode from "vscode";
+import { ExportAvroCommand } from "./ExportAvroCommand.js";
 import { ExportDbtCommand } from "./ExportDbtCommand.js";
 import { ExportDdlCommand } from "./ExportDdlCommand.js";
-import { ExportAvroCommand } from "./ExportAvroCommand.js";
 
 interface ExportOption extends vscode.QuickPickItem {
   readonly id: "dbt" | "ddl" | "avro";

@@ -14,9 +14,9 @@
  *   - Element count includes objectified fact types
  *   - ModelBuilder integration
  */
-import { describe, it, expect } from "vitest";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { ObjectifiedFactType } from "../../src/model/ObjectifiedFactType.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("ObjectifiedFactType", () => {
@@ -110,7 +110,7 @@ describe("OrmModel objectified fact types", () => {
         model.addObjectifiedFactType({
           factTypeId: "nonexistent",
           objectTypeId: marriage.id,
-        }),
+        })
       ).toThrow("does not exist");
     });
 
@@ -122,7 +122,7 @@ describe("OrmModel objectified fact types", () => {
         model.addObjectifiedFactType({
           factTypeId: ft.id,
           objectTypeId: "nonexistent",
-        }),
+        })
       ).toThrow("does not exist");
     });
 
@@ -135,7 +135,7 @@ describe("OrmModel objectified fact types", () => {
         model.addObjectifiedFactType({
           factTypeId: ft.id,
           objectTypeId: date.id,
-        }),
+        })
       ).toThrow("entity type");
     });
 
@@ -161,7 +161,7 @@ describe("OrmModel objectified fact types", () => {
         model.addObjectifiedFactType({
           factTypeId: ft.id,
           objectTypeId: union.id,
-        }),
+        })
       ).toThrow("already objectified");
     });
 
@@ -191,7 +191,7 @@ describe("OrmModel objectified fact types", () => {
         model.addObjectifiedFactType({
           factTypeId: ft2.id,
           objectTypeId: marriage.id,
-        }),
+        })
       ).toThrow("already used as an objectification");
     });
   });

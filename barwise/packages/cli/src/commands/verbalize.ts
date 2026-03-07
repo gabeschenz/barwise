@@ -5,10 +5,10 @@
  * for all fact types and constraints.
  */
 
-import type { Command } from "commander";
 import { Verbalizer } from "@barwise/core";
-import { loadModel } from "../helpers/io.js";
+import type { Command } from "commander";
 import { formatVerbalizations, formatVerbalizationsJson } from "../helpers/format.js";
+import { loadModel } from "../helpers/io.js";
 
 export function registerVerbalizeCommand(program: Command): void {
   program
@@ -17,7 +17,7 @@ export function registerVerbalizeCommand(program: Command): void {
     .argument("<file>", "Path to .orm.yaml file")
     .option("--format <format>", "Output format (text or json)", "text")
     .option("--fact-type <name>", "Verbalize a specific fact type only")
-    .action(async (file: string, opts: { format: string; factType?: string }) => {
+    .action(async (file: string, opts: { format: string; factType?: string; }) => {
       try {
         const model = loadModel(file);
         const verbalizer = new Verbalizer();

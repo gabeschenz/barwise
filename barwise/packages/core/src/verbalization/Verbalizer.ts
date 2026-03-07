@@ -1,15 +1,10 @@
-import type { OrmModel } from "../model/OrmModel.js";
-import type { SubtypeFact } from "../model/SubtypeFact.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import { expandReading } from "../model/ReadingOrder.js";
-import {
-  type Verbalization,
-  buildVerbalization,
-  refSeg,
-  textSeg,
-} from "./Verbalization.js";
-import { FactTypeVerbalizer } from "./FactTypeVerbalizer.js";
+import type { SubtypeFact } from "../model/SubtypeFact.js";
 import { ConstraintVerbalizer } from "./ConstraintVerbalizer.js";
+import { FactTypeVerbalizer } from "./FactTypeVerbalizer.js";
+import { buildVerbalization, refSeg, textSeg, type Verbalization } from "./Verbalization.js";
 
 /**
  * Main entry point for verbalizing an ORM model.

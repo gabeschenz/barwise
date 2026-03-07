@@ -10,15 +10,12 @@
  *   - Error handling (empty transcript, malformed JSON response)
  *   - parseExtractionFromJson for offline replay of saved responses
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  processTranscript,
-  parseExtractionFromJson,
-} from "../src/TranscriptProcessor.js";
-import type { LlmClient, CompletionRequest } from "../src/LlmClient.js";
+import { describe, expect, it } from "vitest";
+import type { CompletionRequest, LlmClient } from "../src/LlmClient.js";
+import { parseExtractionFromJson, processTranscript } from "../src/TranscriptProcessor.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = resolve(__dirname, "fixtures");
@@ -176,9 +173,7 @@ describe("TranscriptProcessor", () => {
     });
 
     it("throws on invalid JSON", () => {
-      expect(() =>
-        parseExtractionFromJson("{{bad json", "Test"),
-      ).toThrow();
+      expect(() => parseExtractionFromJson("{{bad json", "Test")).toThrow();
     });
   });
 

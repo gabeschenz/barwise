@@ -9,8 +9,8 @@
  * unchanged -- the descriptor composes them rather than replacing them.
  */
 
-import type { ImportFormat } from "../import/types.js";
 import type { ExportFormatAdapter } from "../export/types.js";
+import type { ImportFormat } from "../import/types.js";
 
 /**
  * A format descriptor that bundles import and/or export capabilities

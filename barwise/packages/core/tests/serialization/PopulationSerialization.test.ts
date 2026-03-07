@@ -9,10 +9,10 @@
  *   - Schema validation rejects invalid populations
  *   - Models without populations omit the key
  */
-import { describe, it, expect } from "vitest";
-import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 
 function makeModelWithPopulation(): OrmModel {
   const model = new OrmModel({ name: "Order Management" });

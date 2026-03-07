@@ -9,21 +9,18 @@
  * except import_transcript which uses CopilotLlmClient directly.
  */
 
-import * as vscode from "vscode";
+import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
+import { AnthropicLlmClient, processTranscript } from "@barwise/llm";
+import type { LlmClient } from "@barwise/llm";
 import {
+  executeDiagram,
+  executeDiff,
+  executeMerge,
+  executeSchema,
   executeValidate,
   executeVerbalize,
-  executeSchema,
-  executeDiff,
-  executeDiagram,
-  executeMerge,
 } from "@barwise/mcp";
-import {
-  processTranscript,
-  AnthropicLlmClient,
-} from "@barwise/llm";
-import type { LlmClient } from "@barwise/llm";
-import { OrmYamlSerializer, annotateOrmYaml } from "@barwise/core";
+import * as vscode from "vscode";
 import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
 
 const serializer = new OrmYamlSerializer();
@@ -70,7 +67,7 @@ interface MergeInput {
 // ---------------------------------------------------------------------------
 
 function toToolResult(
-  mcpResult: { content: Array<{ type: "text"; text: string }> },
+  mcpResult: { content: Array<{ type: "text"; text: string; }>; },
 ): vscode.LanguageModelToolResult {
   const text = mcpResult.content.map((c) => c.text).join("\n");
   return new vscode.LanguageModelToolResult([
@@ -209,9 +206,7 @@ class GenerateDiagramTool implements vscode.LanguageModelTool<DiagramInput> {
 // LLM call without any API key.
 // ---------------------------------------------------------------------------
 
-class ImportTranscriptTool
-  implements vscode.LanguageModelTool<ImportTranscriptInput>
-{
+class ImportTranscriptTool implements vscode.LanguageModelTool<ImportTranscriptInput> {
   async invoke(
     options: vscode.LanguageModelToolInvocationOptions<ImportTranscriptInput>,
     _token: vscode.CancellationToken,

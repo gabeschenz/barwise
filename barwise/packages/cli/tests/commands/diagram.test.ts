@@ -1,10 +1,10 @@
 /**
  * Tests for the diagram command.
  */
-import { describe, it, expect, afterEach } from "vitest";
-import { resolve, dirname, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
 import { runCli } from "../helpers/run.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

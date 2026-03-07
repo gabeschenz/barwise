@@ -4,9 +4,9 @@
  * Produces SQL DDL (CREATE TABLE) statements from a RelationalSchema.
  */
 
-import type { RelationalSchema, Table } from "../RelationalSchema.js";
-import type { OrmModel } from "../../model/OrmModel.js";
 import { renderPopulationAsSql } from "../../export/populationRenderer.js";
+import type { OrmModel } from "../../model/OrmModel.js";
+import type { RelationalSchema, Table } from "../RelationalSchema.js";
 
 export interface DdlRenderOptions {
   /** Include population examples as INSERT statements (default: true). */

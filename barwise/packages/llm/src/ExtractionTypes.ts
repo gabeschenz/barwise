@@ -33,7 +33,7 @@ export interface ExtractedObjectType {
   /** Reference mode for entity types (e.g. "customer_id"). */
   readonly reference_mode?: string;
   /** Enumerated values for value types. */
-  readonly value_constraint?: { readonly values: readonly string[] };
+  readonly value_constraint?: { readonly values: readonly string[]; };
   /**
    * Conceptual data type for value types (e.g. "text", "integer", "date").
    * Optional length/scale for parameterized types like text(50) or decimal(10,2).

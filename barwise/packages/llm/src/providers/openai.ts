@@ -7,7 +7,7 @@
  */
 
 import OpenAI from "openai";
-import type { LlmClient, CompletionRequest, CompletionResponse } from "../LlmClient.js";
+import type { CompletionRequest, CompletionResponse, LlmClient } from "../LlmClient.js";
 
 export interface OpenAIClientOptions {
   /** OpenAI API key. Falls back to OPENAI_API_KEY env var. */
@@ -59,10 +59,12 @@ export class OpenAILlmClient implements LlmClient {
     return {
       content: response.choices[0]?.message?.content ?? "",
       modelUsed: this.model,
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+        }
+        : undefined,
       latencyMs,
     };
   }
@@ -92,10 +94,12 @@ export class OpenAILlmClient implements LlmClient {
     return {
       content: response.choices[0]?.message?.content ?? "",
       modelUsed: this.model,
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+        }
+        : undefined,
       latencyMs,
     };
   }

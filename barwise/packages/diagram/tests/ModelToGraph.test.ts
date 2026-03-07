@@ -11,9 +11,9 @@
  *   - Spanning uniqueness detection
  *   - Empty models produce empty graphs
  */
-import { describe, it, expect } from "vitest";
-import { modelToGraph } from "../src/graph/ModelToGraph.js";
+import { describe, expect, it } from "vitest";
 import { ModelBuilder } from "../../core/tests/helpers/ModelBuilder.js";
+import { modelToGraph } from "../src/graph/ModelToGraph.js";
 
 describe("ModelToGraph", () => {
   it("converts a simple model to graph nodes and edges", () => {

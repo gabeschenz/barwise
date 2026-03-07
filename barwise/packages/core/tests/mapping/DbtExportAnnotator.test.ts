@@ -4,11 +4,11 @@
  * Verifies that TODO/NOTE comments are injected into rendered schema.yml
  * based on analysis of the ORM model and relational schema.
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDbt } from "../../src/mapping/renderers/dbt.js";
 import { annotateDbtExport } from "../../src/mapping/renderers/DbtExportAnnotator.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 
@@ -26,10 +26,10 @@ describe("DbtExportAnnotator", () => {
       // Model-level TODO for missing description.
       const modelTodo = result.annotations.find(
         (a) =>
-          a.tableName === "customer" &&
-          !a.columnName &&
-          a.severity === "todo" &&
-          a.category === "description",
+          a.tableName === "customer"
+          && !a.columnName
+          && a.severity === "todo"
+          && a.category === "description",
       );
       expect(modelTodo).toBeDefined();
       expect(result.schemaYaml).toContain(
@@ -51,10 +51,10 @@ describe("DbtExportAnnotator", () => {
 
       const modelNote = result.annotations.find(
         (a) =>
-          a.tableName === "customer" &&
-          !a.columnName &&
-          a.severity === "note" &&
-          a.category === "description",
+          a.tableName === "customer"
+          && !a.columnName
+          && a.severity === "note"
+          && a.category === "description",
       );
       expect(modelNote).toBeDefined();
       expect(modelNote!.message).toContain("Definition available from ORM model");
@@ -79,10 +79,10 @@ describe("DbtExportAnnotator", () => {
 
       const colDescTodos = result.annotations.filter(
         (a) =>
-          a.tableName === "customer" &&
-          a.columnName !== undefined &&
-          a.severity === "todo" &&
-          a.category === "description",
+          a.tableName === "customer"
+          && a.columnName !== undefined
+          && a.severity === "todo"
+          && a.category === "description",
       );
       // customer_id and name columns should both have description TODOs.
       expect(colDescTodos.length).toBe(2);
@@ -108,9 +108,9 @@ describe("DbtExportAnnotator", () => {
 
       const textTodo = result.annotations.find(
         (a) =>
-          a.tableName === "customer" &&
-          a.columnName === "status" &&
-          a.category === "data_type",
+          a.tableName === "customer"
+          && a.columnName === "status"
+          && a.category === "data_type",
       );
       expect(textTodo).toBeDefined();
       expect(textTodo!.severity).toBe("todo");
@@ -135,8 +135,8 @@ describe("DbtExportAnnotator", () => {
 
       const nameTodo = result.annotations.find(
         (a) =>
-          a.columnName === "name" &&
-          a.category === "data_type",
+          a.columnName === "name"
+          && a.category === "data_type",
       );
       expect(nameTodo).toBeUndefined();
     });
@@ -162,8 +162,8 @@ describe("DbtExportAnnotator", () => {
 
       const valNote = result.annotations.find(
         (a) =>
-          a.columnName === "status" &&
-          a.category === "accepted_values",
+          a.columnName === "status"
+          && a.category === "accepted_values",
       );
       expect(valNote).toBeDefined();
       expect(valNote!.severity).toBe("note");
@@ -193,9 +193,9 @@ describe("DbtExportAnnotator", () => {
 
       const pkNote = result.annotations.find(
         (a) =>
-          a.category === "constraint" &&
-          a.severity === "note" &&
-          a.message.includes("Composite primary key"),
+          a.category === "constraint"
+          && a.severity === "note"
+          && a.message.includes("Composite primary key"),
       );
       expect(pkNote).toBeDefined();
     });
@@ -246,20 +246,20 @@ describe("DbtExportAnnotator", () => {
       // Customer has a definition -> NOTE.
       const custNote = result.annotations.find(
         (a) =>
-          a.tableName === "customer" &&
-          !a.columnName &&
-          a.category === "description" &&
-          a.severity === "note",
+          a.tableName === "customer"
+          && !a.columnName
+          && a.category === "description"
+          && a.severity === "note",
       );
       expect(custNote).toBeDefined();
 
       // Order has no definition -> TODO.
       const orderTodo = result.annotations.find(
         (a) =>
-          a.tableName === "order" &&
-          !a.columnName &&
-          a.category === "description" &&
-          a.severity === "todo",
+          a.tableName === "order"
+          && !a.columnName
+          && a.category === "description"
+          && a.severity === "todo",
       );
       expect(orderTodo).toBeDefined();
     });

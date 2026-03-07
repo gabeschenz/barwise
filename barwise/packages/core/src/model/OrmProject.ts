@@ -1,13 +1,7 @@
+import { ContextMapping, type ContextMappingConfig } from "./ContextMapping.js";
 import { DomainModel, type DomainModelConfig } from "./DomainModel.js";
-import {
-  ContextMapping,
-  type ContextMappingConfig,
-} from "./ContextMapping.js";
-import {
-  ProductDependency,
-  type ProductConfig,
-} from "./ProductDependency.js";
 import type { ObjectType } from "./ObjectType.js";
+import { type ProductConfig, ProductDependency } from "./ProductDependency.js";
 
 // ---------------------------------------------------------------------------
 // Project Settings

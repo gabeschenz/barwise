@@ -1,376 +1,300 @@
 // Model
-export { ModelElement } from "./model/ModelElement.js";
-export {
-  ObjectType,
-  type ObjectTypeKind,
-  type ObjectTypeConfig,
-  type ValueConstraintDef,
-  type ConceptualDataTypeName,
-  type DataTypeDef,
-} from "./model/ObjectType.js";
-export { Role, type RoleConfig } from "./model/Role.js";
-export {
-  type ReadingOrder,
-  validateReadingTemplate,
-  expandReading,
-} from "./model/ReadingOrder.js";
-export { FactType, type FactTypeConfig } from "./model/FactType.js";
 export {
   type Constraint,
-  type InternalUniquenessConstraint,
-  type MandatoryRoleConstraint,
-  type ExternalUniquenessConstraint,
-  type ValueConstraint,
   type DisjunctiveMandatoryConstraint,
+  type EqualityConstraint,
   type ExclusionConstraint,
   type ExclusiveOrConstraint,
-  type SubsetConstraint,
-  type EqualityConstraint,
-  type RingConstraint,
+  type ExternalUniquenessConstraint,
   type FrequencyConstraint,
-  type RingType,
-  isInternalUniqueness,
-  isMandatoryRole,
-  isExternalUniqueness,
-  isValueConstraint,
+  type InternalUniquenessConstraint,
   isDisjunctiveMandatory,
+  isEquality,
   isExclusion,
   isExclusiveOr,
-  isSubset,
-  isEquality,
-  isRing,
+  isExternalUniqueness,
   isFrequency,
+  isInternalUniqueness,
+  isMandatoryRole,
+  isRing,
+  isSubset,
+  isValueConstraint,
+  type MandatoryRoleConstraint,
+  type RingConstraint,
+  type RingType,
+  type SubsetConstraint,
+  type ValueConstraint,
 } from "./model/Constraint.js";
-export { type Definition } from "./model/Definition.js";
-export {
-  SubtypeFact,
-  type SubtypeFactConfig,
-} from "./model/SubtypeFact.js";
-export {
-  ObjectifiedFactType,
-  type ObjectifiedFactTypeConfig,
-} from "./model/ObjectifiedFactType.js";
-export {
-  Population,
-  type PopulationConfig,
-  type FactInstance,
-  type FactInstanceConfig,
-} from "./model/Population.js";
-export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
-export {
-  OrmProject,
-  type OrmProjectConfig,
-  type ProjectSettings,
-  type ExportFormat,
-  type PreferredIdentifierStrategy,
-} from "./model/OrmProject.js";
-export {
-  DomainModel,
-  type DomainModelConfig,
-} from "./model/DomainModel.js";
 export {
   ContextMapping,
   type ContextMappingConfig,
   type MappingPattern,
 } from "./model/ContextMapping.js";
+export { type Definition } from "./model/Definition.js";
+export { DomainModel, type DomainModelConfig } from "./model/DomainModel.js";
+export { EntityMapping, type EntityMappingConfig } from "./model/EntityMapping.js";
+export { FactType, type FactTypeConfig } from "./model/FactType.js";
+export { ModelElement } from "./model/ModelElement.js";
 export {
-  EntityMapping,
-  type EntityMappingConfig,
-} from "./model/EntityMapping.js";
+  ObjectifiedFactType,
+  type ObjectifiedFactTypeConfig,
+} from "./model/ObjectifiedFactType.js";
 export {
-  SemanticConflict,
-  type SemanticConflictConfig,
-} from "./model/SemanticConflict.js";
+  type ConceptualDataTypeName,
+  type DataTypeDef,
+  ObjectType,
+  type ObjectTypeConfig,
+  type ObjectTypeKind,
+  type ValueConstraintDef,
+} from "./model/ObjectType.js";
+export { OrmModel, type OrmModelConfig } from "./model/OrmModel.js";
 export {
-  ProductDependency,
-  type ProductConfig,
-} from "./model/ProductDependency.js";
+  type ExportFormat,
+  OrmProject,
+  type OrmProjectConfig,
+  type PreferredIdentifierStrategy,
+  type ProjectSettings,
+} from "./model/OrmProject.js";
+export {
+  type FactInstance,
+  type FactInstanceConfig,
+  Population,
+  type PopulationConfig,
+} from "./model/Population.js";
+export { type ProductConfig, ProductDependency } from "./model/ProductDependency.js";
+export { expandReading, type ReadingOrder, validateReadingTemplate } from "./model/ReadingOrder.js";
+export { Role, type RoleConfig } from "./model/Role.js";
+export { SemanticConflict, type SemanticConflictConfig } from "./model/SemanticConflict.js";
+export { SubtypeFact, type SubtypeFactConfig } from "./model/SubtypeFact.js";
 
 // Serialization
 export {
-  OrmYamlSerializer,
-  DeserializationError,
-} from "./serialization/OrmYamlSerializer.js";
+  MappingDeserializationError,
+  MappingSerializer,
+} from "./serialization/MappingSerializer.js";
+export { DeserializationError, OrmYamlSerializer } from "./serialization/OrmYamlSerializer.js";
 export {
-  SchemaValidator,
-  type SchemaValidationResult,
-  type SchemaError,
-} from "./serialization/SchemaValidator.js";
-export {
-  ProjectSerializer,
   ProjectDeserializationError,
+  ProjectSerializer,
 } from "./serialization/ProjectSerializer.js";
 export {
-  MappingSerializer,
-  MappingDeserializationError,
-} from "./serialization/MappingSerializer.js";
+  type SchemaError,
+  type SchemaValidationResult,
+  SchemaValidator,
+} from "./serialization/SchemaValidator.js";
 
 // Validation
-export {
-  type Diagnostic,
-  type DiagnosticSeverity,
-} from "./validation/Diagnostic.js";
-export { type ValidationRule } from "./validation/ValidationRule.js";
-export { ValidationEngine } from "./validation/ValidationEngine.js";
-export { structuralRules } from "./validation/rules/structural.js";
-export { constraintConsistencyRules } from "./validation/rules/constraintConsistency.js";
+export { type Diagnostic, type DiagnosticSeverity } from "./validation/Diagnostic.js";
 export { completenessWarnings } from "./validation/rules/completenessWarnings.js";
+export { constraintConsistencyRules } from "./validation/rules/constraintConsistency.js";
 export { populationValidationRules } from "./validation/rules/populationValidation.js";
-export {
-  projectRules,
-  type ProjectValidationRule,
-} from "./validation/rules/projectRules.js";
+export { projectRules, type ProjectValidationRule } from "./validation/rules/projectRules.js";
+export { structuralRules } from "./validation/rules/structural.js";
+export { ValidationEngine } from "./validation/ValidationEngine.js";
+export { type ValidationRule } from "./validation/ValidationRule.js";
 
 // Mapping
+export { RelationalMapper, type RelationalMapperOptions } from "./mapping/RelationalMapper.js";
 export {
+  type Column,
+  type ForeignKey,
+  type PrimaryKey,
   type RelationalSchema,
   type Table,
-  type Column,
-  type PrimaryKey,
-  type ForeignKey,
 } from "./mapping/RelationalSchema.js";
 export {
-  RelationalMapper,
-  type RelationalMapperOptions,
-} from "./mapping/RelationalMapper.js";
-export { renderDdl } from "./mapping/renderers/ddl.js";
+  type AvroField,
+  type AvroFieldType,
+  type AvroRenderOptions,
+  type AvroSchema,
+  type AvroSchemaSet,
+  avroSchemaToJson,
+  renderAvro,
+} from "./mapping/renderers/avro.js";
 export {
-  renderDbt,
-  type DbtProject,
   type DbtModelFile,
+  type DbtProject,
   type DbtRenderOptions,
+  renderDbt,
 } from "./mapping/renderers/dbt.js";
 export {
   annotateDbtExport,
   type ExportAnnotation,
   type ExportAnnotationResult,
 } from "./mapping/renderers/DbtExportAnnotator.js";
+export { renderDdl } from "./mapping/renderers/ddl.js";
 export {
-  renderAvro,
-  avroSchemaToJson,
-  type AvroSchema,
-  type AvroSchemaSet,
-  type AvroField,
-  type AvroFieldType,
-  type AvroRenderOptions,
-} from "./mapping/renderers/avro.js";
-export {
-  renderOpenApi,
-  openApiToJson,
-  type OpenApiSpec,
   type OpenApiPropertyType,
   type OpenApiRenderOptions,
+  type OpenApiSpec,
+  openApiToJson,
+  renderOpenApi,
 } from "./mapping/renderers/openapi.js";
 
 // Diff / Merge
 export {
-  diffModels,
-  type ModelDiffResult,
-  type ModelDelta,
-  type ObjectTypeDelta,
-  type FactTypeDelta,
+  type BreakingLevel,
   type DefinitionDelta,
   type DeltaKind,
-  type BreakingLevel,
+  diffModels,
+  type FactTypeDelta,
+  type ModelDelta,
+  type ModelDiffResult,
+  type ObjectTypeDelta,
   type SynonymCandidate,
 } from "./diff/ModelDiff.js";
 export {
-  mergeModels,
-  mergeAndValidate,
   getStructuralErrors,
+  mergeAndValidate,
+  mergeModels,
   type MergeValidationResult,
 } from "./diff/ModelMerge.js";
 
 // Verbalization
+export { ConstraintVerbalizer } from "./verbalization/ConstraintVerbalizer.js";
+export { FactTypeVerbalizer } from "./verbalization/FactTypeVerbalizer.js";
 export {
+  buildVerbalization,
+  type SegmentKind,
   type Verbalization,
   type VerbalizationSegment,
-  type SegmentKind,
-  buildVerbalization,
 } from "./verbalization/Verbalization.js";
-export { FactTypeVerbalizer } from "./verbalization/FactTypeVerbalizer.js";
-export { ConstraintVerbalizer } from "./verbalization/ConstraintVerbalizer.js";
 export { Verbalizer } from "./verbalization/Verbalizer.js";
 
 // Import (NORMA .orm XML)
-export {
-  importNormaXml,
-  NormaImportError,
-} from "./import/NormaXmlImporter.js";
-export {
-  parseNormaXml,
-  NormaParseError,
-} from "./import/NormaXmlParser.js";
-export {
-  mapNormaToOrm,
-  NormaMappingError,
-} from "./import/NormaToOrmMapper.js";
+export { mapNormaToOrm, NormaMappingError } from "./import/NormaToOrmMapper.js";
+export { importNormaXml, NormaImportError } from "./import/NormaXmlImporter.js";
+export { NormaParseError, parseNormaXml } from "./import/NormaXmlParser.js";
 export type {
-  NormaDocument,
-  NormaDataType,
-  NormaEntityType,
-  NormaValueType,
-  NormaObjectifiedType,
-  NormaFactType,
-  NormaRole,
-  NormaMultiplicity,
-  NormaReadingOrder,
-  NormaReading,
-  NormaSubtypeFact,
   NormaConstraint,
+  NormaDataType,
+  NormaDocument,
+  NormaEntityType,
+  NormaFactType,
+  NormaMultiplicity,
+  NormaObjectifiedType,
+  NormaReading,
+  NormaReadingOrder,
   NormaRingType,
+  NormaRole,
+  NormaSubtypeFact,
+  NormaValueType,
 } from "./import/NormaXmlTypes.js";
 
 // Import (dbt project)
-export {
-  importDbtProject,
-  DbtImportError,
-  type DbtImportResult,
-} from "./import/DbtProjectImporter.js";
-export {
-  parseDbtSchema,
-  DbtParseError,
-} from "./import/DbtSchemaParser.js";
-export {
-  mapDbtToOrm,
-  DbtMappingError,
-  type DbtMapResult,
-} from "./import/DbtToOrmMapper.js";
-export type {
-  DbtProjectDocument,
-  DbtModel,
-  DbtColumn,
-  DbtSource,
-  DbtSourceTable,
-  DbtTest,
-  DbtStandardTest,
-  DbtCustomTest,
-} from "./import/DbtSchemaTypes.js";
 export type {
   DbtImportReport,
+  ReportCategory,
   ReportEntry,
   ReportSeverity,
-  ReportCategory,
 } from "./import/DbtImportReport.js";
 export { ReportBuilder } from "./import/DbtImportReport.js";
 export {
-  annotateDbtYaml,
-  type AnnotationOptions,
-} from "./import/DbtYamlAnnotator.js";
+  DbtImportError,
+  type DbtImportResult,
+  importDbtProject,
+} from "./import/DbtProjectImporter.js";
+export { DbtParseError, parseDbtSchema } from "./import/DbtSchemaParser.js";
+export type {
+  DbtColumn,
+  DbtCustomTest,
+  DbtModel,
+  DbtProjectDocument,
+  DbtSource,
+  DbtSourceTable,
+  DbtStandardTest,
+  DbtTest,
+} from "./import/DbtSchemaTypes.js";
+export { DbtMappingError, type DbtMapResult, mapDbtToOrm } from "./import/DbtToOrmMapper.js";
+export { annotateDbtYaml, type AnnotationOptions } from "./import/DbtYamlAnnotator.js";
 
 // Import format types and implementations
-export type {
-  ImportFormat,
-  ImportOptions,
-  ImportResult,
-} from "./import/types.js";
-export { ImportFormatError } from "./import/registry.js";
 export { DdlImportFormat } from "./import/DdlImportFormat.js";
 export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
+export { ImportFormatError } from "./import/registry.js";
+export type { ImportFormat, ImportOptions, ImportResult } from "./import/types.js";
 
 // Export format types and implementations
+export { DdlExportFormat } from "./export/DdlExportFormat.js";
+export { OpenApiExportFormat } from "./export/OpenApiExportFormat.js";
 export type {
+  ConstraintSpec,
   ExportFormatAdapter,
   ExportOptions,
   ExportResult,
-  ConstraintSpec,
 } from "./export/types.js";
-export { DdlExportFormat } from "./export/DdlExportFormat.js";
-export { OpenApiExportFormat } from "./export/OpenApiExportFormat.js";
 
 // Unified format system (registry + descriptors)
-export type { FormatDescriptor } from "./format/types.js";
+export { ddlFormat, openApiFormat, registerBuiltinFormats } from "./format/formats.js";
 export {
+  clearFormats,
   formatRegistry,
   FormatRegistryError,
-  registerFormat,
+  getExporter,
   getFormat,
   getImporter,
-  getExporter,
+  listExporters,
   listFormats,
   listImporters,
-  listExporters,
-  clearFormats,
+  registerFormat,
 } from "./format/registry.js";
-export {
-  ddlFormat,
-  openApiFormat,
-  registerBuiltinFormats,
-} from "./format/formats.js";
+export type { FormatDescriptor } from "./format/types.js";
 
 // Deprecated: old separate registries (use unified format system above)
 export {
-  registerImportFormat,
-  getImportFormat,
-  listImportFormats,
-  clearImportFormats,
-} from "./import/registry.js";
-export {
   formatRegistry as exportFormatRegistry,
-  registerFormat as registerExportFormat,
   getFormat as getExportFormat,
   listFormats as listExportFormats,
+  registerFormat as registerExportFormat,
 } from "./export/registry.js";
+export {
+  clearImportFormats,
+  getImportFormat,
+  listImportFormats,
+  registerImportFormat,
+} from "./import/registry.js";
 
 // Annotation (shared helpers + ORM YAML annotator)
 export {
-  stripBarwiseComments,
-  formatBarwiseComment,
-  truncate,
   type AnnotationSeverity,
+  formatBarwiseComment,
+  stripBarwiseComments,
+  truncate,
 } from "./annotation/helpers.js";
 export {
   annotateOrmYaml,
   collectAnnotations,
-  type TranscriptProvenance,
-  type TranscriptReference,
-  type ProvenanceAmbiguity,
-  type ProvenanceConstraint,
-  type ProvenanceSubtype,
   type OrmAnnotation,
   type OrmAnnotationOptions,
   type OrmAnnotationResult,
+  type ProvenanceAmbiguity,
+  type ProvenanceConstraint,
+  type ProvenanceSubtype,
+  type TranscriptProvenance,
+  type TranscriptReference,
 } from "./annotation/OrmYamlAnnotator.js";
 
 // Describe system (domain description and querying)
 export type {
+  ConstraintSummary,
   DescribeDomainOptions,
+  DomainDescription,
   EntitySummary,
   FactTypeSummary,
-  ConstraintSummary,
   PopulationSummary,
-  DomainDescription,
 } from "./describe/index.js";
 export { describeDomain } from "./describe/index.js";
 
 // Lineage
+export { generateDdlLineage, generateModelLineage } from "./lineage/generate.js";
+export type { AffectedArtifact, ImpactReport } from "./lineage/impact.js";
+export { analyzeImpact } from "./lineage/impact.js";
+export { hashModel, readManifest, updateManifest, writeManifest } from "./lineage/manifest.js";
+export type { StaleArtifact, StalenessReport } from "./lineage/staleness.js";
+export { checkStaleness } from "./lineage/staleness.js";
 export type {
-  SourceReference,
   LineageEntry,
-  ManifestExport,
   LineageManifest,
+  ManifestExport,
+  SourceReference,
 } from "./lineage/types.js";
-export {
-  writeManifest,
-  readManifest,
-  updateManifest,
-  hashModel,
-} from "./lineage/manifest.js";
-export {
-  generateDdlLineage,
-  generateModelLineage,
-} from "./lineage/generate.js";
-export type {
-  StaleArtifact,
-  StalenessReport,
-} from "./lineage/staleness.js";
-export {
-  checkStaleness,
-} from "./lineage/staleness.js";
-export type {
-  AffectedArtifact,
-  ImpactReport,
-} from "./lineage/impact.js";
-export {
-  analyzeImpact,
-} from "./lineage/impact.js";

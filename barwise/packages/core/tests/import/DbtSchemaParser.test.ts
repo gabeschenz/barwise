@@ -4,8 +4,8 @@
  * Verifies parsing of models, sources, columns, and tests from
  * dbt schema YAML into the intermediate DbtProjectDocument.
  */
-import { describe, it, expect } from "vitest";
-import { parseDbtSchema, DbtParseError } from "../../src/import/DbtSchemaParser.js";
+import { describe, expect, it } from "vitest";
+import { DbtParseError, parseDbtSchema } from "../../src/import/DbtSchemaParser.js";
 
 describe("DbtSchemaParser", () => {
   describe("model parsing", () => {

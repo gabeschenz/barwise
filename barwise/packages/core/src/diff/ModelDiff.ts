@@ -9,12 +9,12 @@
  * The diff covers object types, fact types, and definitions.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType, DataTypeDef } from "../model/ObjectType.js";
-import type { FactType } from "../model/FactType.js";
 import type { Constraint } from "../model/Constraint.js";
-import type { Role } from "../model/Role.js";
 import type { Definition } from "../model/Definition.js";
+import type { FactType } from "../model/FactType.js";
+import type { DataTypeDef, ObjectType } from "../model/ObjectType.js";
+import type { OrmModel } from "../model/OrmModel.js";
+import type { Role } from "../model/Role.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -434,7 +434,9 @@ function constraintKey(
       return `EQ:${ids1.join(",")}:${ids2.join(",")}`;
     }
     case "ring":
-      return `RING:${resolveRole(c.roleId1, idxMap)},${resolveRole(c.roleId2, idxMap)}:${c.ringType}`;
+      return `RING:${resolveRole(c.roleId1, idxMap)},${
+        resolveRole(c.roleId2, idxMap)
+      }:${c.ringType}`;
     case "frequency":
       return `FREQ:${resolveRole(c.roleId, idxMap)}:${c.min}:${c.max}`;
   }
@@ -513,7 +515,10 @@ function classifyChange(change: string): BreakingLevel {
   if (/^role \d+: player /.test(change)) return "breaking";
 
   // Caution: data type, reference mode, value constraint, constraints.
-  if (change.startsWith("data type:") || change.startsWith("data type added") || change.startsWith("data type removed")) return "caution";
+  if (
+    change.startsWith("data type:") || change.startsWith("data type added")
+    || change.startsWith("data type removed")
+  ) return "caution";
   if (change.startsWith("reference mode:")) return "caution";
   if (change === "value constraint changed") return "caution";
   if (change.startsWith("constraints added")) return "caution";
@@ -592,10 +597,10 @@ function detectSynonymCandidates(
   const candidates: SynonymCandidate[] = [];
 
   // --- Phase 1: Object type pairs ---
-  const removedOts: { delta: ObjectTypeDelta; index: number }[] = [];
-  const addedOts: { delta: ObjectTypeDelta; index: number }[] = [];
-  const removedFts: { delta: FactTypeDelta; index: number }[] = [];
-  const addedFts: { delta: FactTypeDelta; index: number }[] = [];
+  const removedOts: { delta: ObjectTypeDelta; index: number; }[] = [];
+  const addedOts: { delta: ObjectTypeDelta; index: number; }[] = [];
+  const removedFts: { delta: FactTypeDelta; index: number; }[] = [];
+  const addedFts: { delta: FactTypeDelta; index: number; }[] = [];
 
   for (let i = 0; i < deltas.length; i++) {
     const d = deltas[i]!;

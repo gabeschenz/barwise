@@ -1,16 +1,16 @@
-import type { OrmModel } from "../../model/OrmModel.js";
-import type { Diagnostic } from "../Diagnostic.js";
-import type { FactInstance } from "../../model/Population.js";
 import {
-  isInternalUniqueness,
-  isValueConstraint,
-  isFrequency,
+  isEquality,
   isExclusion,
   isExclusiveOr,
-  isSubset,
-  isEquality,
+  isFrequency,
+  isInternalUniqueness,
   isRing,
+  isSubset,
+  isValueConstraint,
 } from "../../model/Constraint.js";
+import type { OrmModel } from "../../model/OrmModel.js";
+import type { FactInstance } from "../../model/Population.js";
+import type { Diagnostic } from "../Diagnostic.js";
 
 /**
  * Population validation rules.
@@ -60,9 +60,8 @@ function checkDanglingPopulationFactType(model: OrmModel): Diagnostic[] {
     if (!model.getFactType(pop.factTypeId)) {
       diagnostics.push({
         severity: "error",
-        message:
-          `Population "${pop.id}" references fact type id "${pop.factTypeId}" ` +
-          `which does not exist in the model.`,
+        message: `Population "${pop.id}" references fact type id "${pop.factTypeId}" `
+          + `which does not exist in the model.`,
         elementId: pop.id,
         ruleId: "population/dangling-fact-type",
       });
@@ -93,10 +92,9 @@ function checkUniquenessViolations(model: OrmModel): Diagnostic[] {
         if (firstId) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" violates ` +
-              `internal uniqueness constraint on role(s) [${uc.roleIds.join(", ")}]. ` +
-              `Duplicate of instance "${firstId}".`,
+            message: `Population "${pop.id}": instance "${inst.id}" violates `
+              + `internal uniqueness constraint on role(s) [${uc.roleIds.join(", ")}]. `
+              + `Duplicate of instance "${firstId}".`,
             elementId: pop.id,
             ruleId: "population/uniqueness-violation",
           });
@@ -131,10 +129,9 @@ function checkValueConstraintViolations(model: OrmModel): Diagnostic[] {
         if (val !== undefined && !allowedSet.has(val)) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" has value ` +
-              `"${val}" for role "${vc.roleId}" which is not in the ` +
-              `allowed set [${vc.values.join(", ")}].`,
+            message: `Population "${pop.id}": instance "${inst.id}" has value `
+              + `"${val}" for role "${vc.roleId}" which is not in the `
+              + `allowed set [${vc.values.join(", ")}].`,
             elementId: pop.id,
             ruleId: "population/value-constraint-violation",
           });
@@ -173,9 +170,8 @@ function checkFrequencyViolations(model: OrmModel): Diagnostic[] {
         if (count < fc.min) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": value "${val}" in role "${fc.roleId}" ` +
-              `appears ${count} time(s) but the minimum is ${fc.min}.`,
+            message: `Population "${pop.id}": value "${val}" in role "${fc.roleId}" `
+              + `appears ${count} time(s) but the minimum is ${fc.min}.`,
             elementId: pop.id,
             ruleId: "population/frequency-violation",
           });
@@ -183,9 +179,8 @@ function checkFrequencyViolations(model: OrmModel): Diagnostic[] {
         if (fc.max !== "unbounded" && count > fc.max) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": value "${val}" in role "${fc.roleId}" ` +
-              `appears ${count} time(s) but the maximum is ${fc.max}.`,
+            message: `Population "${pop.id}": value "${val}" in role "${fc.roleId}" `
+              + `appears ${count} time(s) but the maximum is ${fc.max}.`,
             elementId: pop.id,
             ruleId: "population/frequency-violation",
           });
@@ -235,9 +230,8 @@ function checkExclusionViolations(model: OrmModel): Diagnostic[] {
           if (roles.length > 1) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Population "${pop.id}": instance "${inst.id}" has value ` +
-                `"${val}" in multiple excluded roles [${roles.join(", ")}].`,
+              message: `Population "${pop.id}": instance "${inst.id}" has value `
+                + `"${val}" in multiple excluded roles [${roles.join(", ")}].`,
               elementId: pop.id,
               ruleId: "population/exclusion-violation",
             });
@@ -280,19 +274,17 @@ function checkExclusiveOrViolations(model: OrmModel): Diagnostic[] {
         if (playedRoles.length === 0) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" does not play ` +
-              `any of the exclusive-or roles [${localRoleIds.join(", ")}].`,
+            message: `Population "${pop.id}": instance "${inst.id}" does not play `
+              + `any of the exclusive-or roles [${localRoleIds.join(", ")}].`,
             elementId: pop.id,
             ruleId: "population/exclusive-or-violation",
           });
         } else if (playedRoles.length > 1) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" plays ` +
-              `${playedRoles.length} of the exclusive-or roles ` +
-              `[${playedRoles.join(", ")}] but must play exactly one.`,
+            message: `Population "${pop.id}": instance "${inst.id}" plays `
+              + `${playedRoles.length} of the exclusive-or roles `
+              + `[${playedRoles.join(", ")}] but must play exactly one.`,
             elementId: pop.id,
             ruleId: "population/exclusive-or-violation",
           });
@@ -319,9 +311,8 @@ function checkSubsetViolations(model: OrmModel): Diagnostic[] {
 
     const subsetConstraints = ft.constraints.filter(isSubset);
     for (const sc of subsetConstraints) {
-      const allLocal =
-        sc.subsetRoleIds.every((rid) => ft.hasRole(rid)) &&
-        sc.supersetRoleIds.every((rid) => ft.hasRole(rid));
+      const allLocal = sc.subsetRoleIds.every((rid) => ft.hasRole(rid))
+        && sc.supersetRoleIds.every((rid) => ft.hasRole(rid));
       if (!allLocal) continue;
 
       // Collect superset tuples.
@@ -336,11 +327,10 @@ function checkSubsetViolations(model: OrmModel): Diagnostic[] {
         if (!supersetTuples.has(subsetKey)) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" has subset ` +
-              `tuple [${subsetKey}] for roles [${sc.subsetRoleIds.join(", ")}] ` +
-              `with no matching superset tuple in roles ` +
-              `[${sc.supersetRoleIds.join(", ")}].`,
+            message: `Population "${pop.id}": instance "${inst.id}" has subset `
+              + `tuple [${subsetKey}] for roles [${sc.subsetRoleIds.join(", ")}] `
+              + `with no matching superset tuple in roles `
+              + `[${sc.supersetRoleIds.join(", ")}].`,
             elementId: pop.id,
             ruleId: "population/subset-violation",
           });
@@ -367,9 +357,8 @@ function checkEqualityViolations(model: OrmModel): Diagnostic[] {
 
     const equalityConstraints = ft.constraints.filter(isEquality);
     for (const eq of equalityConstraints) {
-      const allLocal =
-        eq.roleIds1.every((rid) => ft.hasRole(rid)) &&
-        eq.roleIds2.every((rid) => ft.hasRole(rid));
+      const allLocal = eq.roleIds1.every((rid) => ft.hasRole(rid))
+        && eq.roleIds2.every((rid) => ft.hasRole(rid));
       if (!allLocal) continue;
 
       // Collect both tuple sets.
@@ -386,10 +375,9 @@ function checkEqualityViolations(model: OrmModel): Diagnostic[] {
         if (!tuples2.has(key1)) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" has tuple ` +
-              `[${key1}] in roles [${eq.roleIds1.join(", ")}] with no ` +
-              `matching tuple in roles [${eq.roleIds2.join(", ")}].`,
+            message: `Population "${pop.id}": instance "${inst.id}" has tuple `
+              + `[${key1}] in roles [${eq.roleIds1.join(", ")}] with no `
+              + `matching tuple in roles [${eq.roleIds2.join(", ")}].`,
             elementId: pop.id,
             ruleId: "population/equality-violation",
           });
@@ -402,10 +390,9 @@ function checkEqualityViolations(model: OrmModel): Diagnostic[] {
         if (!tuples1.has(key2)) {
           diagnostics.push({
             severity: "error",
-            message:
-              `Population "${pop.id}": instance "${inst.id}" has tuple ` +
-              `[${key2}] in roles [${eq.roleIds2.join(", ")}] with no ` +
-              `matching tuple in roles [${eq.roleIds1.join(", ")}].`,
+            message: `Population "${pop.id}": instance "${inst.id}" has tuple `
+              + `[${key2}] in roles [${eq.roleIds2.join(", ")}] with no `
+              + `matching tuple in roles [${eq.roleIds1.join(", ")}].`,
             elementId: pop.id,
             ruleId: "population/equality-violation",
           });
@@ -486,9 +473,8 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
             if (a !== undefined && a === b) {
               diagnostics.push({
                 severity: "error",
-                message:
-                  `Population "${pop.id}": instance "${inst.id}" violates ` +
-                  `irreflexive ring constraint -- "${a}" appears in both roles.`,
+                message: `Population "${pop.id}": instance "${inst.id}" violates `
+                  + `irreflexive ring constraint -- "${a}" appears in both roles.`,
                 elementId: pop.id,
                 ruleId: "population/ring-violation",
               });
@@ -504,20 +490,18 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
               if (a === b) {
                 diagnostics.push({
                   severity: "error",
-                  message:
-                    `Population "${pop.id}": instance "${inst.id}" violates ` +
-                    `asymmetric ring constraint -- "${a}" appears in both ` +
-                    `roles (asymmetric implies irreflexive).`,
+                  message: `Population "${pop.id}": instance "${inst.id}" violates `
+                    + `asymmetric ring constraint -- "${a}" appears in both `
+                    + `roles (asymmetric implies irreflexive).`,
                   elementId: pop.id,
                   ruleId: "population/ring-violation",
                 });
               } else if (pairSet.has(`${b}\0${a}`)) {
                 diagnostics.push({
                   severity: "error",
-                  message:
-                    `Population "${pop.id}": instance "${inst.id}" violates ` +
-                    `asymmetric ring constraint -- both (${a}, ${b}) and ` +
-                    `(${b}, ${a}) exist.`,
+                  message: `Population "${pop.id}": instance "${inst.id}" violates `
+                    + `asymmetric ring constraint -- both (${a}, ${b}) and `
+                    + `(${b}, ${a}) exist.`,
                   elementId: pop.id,
                   ruleId: "population/ring-violation",
                 });
@@ -534,10 +518,9 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
               if (pairSet.has(`${b}\0${a}`)) {
                 diagnostics.push({
                   severity: "error",
-                  message:
-                    `Population "${pop.id}": instance "${inst.id}" violates ` +
-                    `antisymmetric ring constraint -- both (${a}, ${b}) and ` +
-                    `(${b}, ${a}) exist but ${a} != ${b}.`,
+                  message: `Population "${pop.id}": instance "${inst.id}" violates `
+                    + `antisymmetric ring constraint -- both (${a}, ${b}) and `
+                    + `(${b}, ${a}) exist but ${a} != ${b}.`,
                   elementId: pop.id,
                   ruleId: "population/ring-violation",
                 });
@@ -553,10 +536,9 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
             if (a !== undefined && b !== undefined && !pairSet.has(`${b}\0${a}`)) {
               diagnostics.push({
                 severity: "error",
-                message:
-                  `Population "${pop.id}": instance "${inst.id}" violates ` +
-                  `symmetric ring constraint -- (${a}, ${b}) exists but ` +
-                  `(${b}, ${a}) does not.`,
+                message: `Population "${pop.id}": instance "${inst.id}" violates `
+                  + `symmetric ring constraint -- (${a}, ${b}) exists but `
+                  + `(${b}, ${a}) does not.`,
                 elementId: pop.id,
                 ruleId: "population/ring-violation",
               });
@@ -571,10 +553,9 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
               if (b === b2 && pairSet.has(`${a}\0${c}`)) {
                 diagnostics.push({
                   severity: "error",
-                  message:
-                    `Population "${pop.id}": intransitive ring constraint ` +
-                    `violated -- (${a}, ${b}) and (${b}, ${c}) exist, ` +
-                    `but (${a}, ${c}) also exists.`,
+                  message: `Population "${pop.id}": intransitive ring constraint `
+                    + `violated -- (${a}, ${b}) and (${b}, ${c}) exist, `
+                    + `but (${a}, ${c}) also exists.`,
                   elementId: pop.id,
                   ruleId: "population/ring-violation",
                 });
@@ -589,10 +570,9 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
               if (b === b2 && !pairSet.has(`${a}\0${c}`)) {
                 diagnostics.push({
                   severity: "error",
-                  message:
-                    `Population "${pop.id}": transitive ring constraint ` +
-                    `violated -- (${a}, ${b}) and (${b}, ${c}) exist, ` +
-                    `but (${a}, ${c}) does not.`,
+                  message: `Population "${pop.id}": transitive ring constraint `
+                    + `violated -- (${a}, ${b}) and (${b}, ${c}) exist, `
+                    + `but (${a}, ${c}) does not.`,
                   elementId: pop.id,
                   ruleId: "population/ring-violation",
                 });
@@ -612,10 +592,9 @@ function checkRingViolations(model: OrmModel): Diagnostic[] {
             if (a !== undefined && b !== undefined && a !== b) {
               diagnostics.push({
                 severity: "error",
-                message:
-                  `Population "${pop.id}": instance "${inst.id}" violates ` +
-                  `purely reflexive ring constraint -- (${a}, ${b}) exists ` +
-                  `but only self-loops (a, a) are allowed.`,
+                message: `Population "${pop.id}": instance "${inst.id}" violates `
+                  + `purely reflexive ring constraint -- (${a}, ${b}) exists `
+                  + `but only self-loops (a, a) are allowed.`,
                 elementId: pop.id,
                 ruleId: "population/ring-violation",
               });
@@ -664,9 +643,8 @@ function checkAcyclic(
         cycleFound = true;
         diagnostics.push({
           severity: "error",
-          message:
-            `Population "${popId}": acyclic ring constraint violated -- ` +
-            `cycle detected involving "${node}" and "${neighbor}".`,
+          message: `Population "${popId}": acyclic ring constraint violated -- `
+            + `cycle detected involving "${node}" and "${neighbor}".`,
           elementId: popId,
           ruleId: "population/ring-violation",
         });

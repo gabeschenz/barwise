@@ -5,22 +5,22 @@
  * and filters format descriptors that bundle import and/or export
  * capabilities.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { ExportFormatAdapter } from "../../src/export/types.js";
 import {
+  clearFormats,
   formatRegistry,
-  registerFormat,
+  FormatRegistryError,
+  getExporter,
   getFormat,
   getImporter,
-  getExporter,
+  listExporters,
   listFormats,
   listImporters,
-  listExporters,
-  clearFormats,
-  FormatRegistryError,
+  registerFormat,
 } from "../../src/format/registry.js";
 import type { FormatDescriptor } from "../../src/format/types.js";
 import type { ImportFormat, ImportOptions, ImportResult } from "../../src/import/types.js";
-import type { ExportFormatAdapter } from "../../src/export/types.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
 
 // -- Test helpers ------------------------------------------------------------

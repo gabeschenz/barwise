@@ -5,15 +5,15 @@
  * They use hand-crafted .orm fixture files that mirror the documented NORMA
  * XML format without embedding any NORMA source code.
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { importNormaXml, NormaImportError } from "../../src/import/NormaXmlImporter.js";
-import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
-import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const validator = new ValidationEngine();
@@ -404,11 +404,13 @@ describe("NORMA XML Import integration", () => {
     });
 
     it("imports internal uniqueness constraints on each fact type", () => {
-      for (const ftName of [
-        "Employee has FirstName",
-        "Employee has LastName",
-        "Employee has RoleName",
-      ]) {
+      for (
+        const ftName of [
+          "Employee has FirstName",
+          "Employee has LastName",
+          "Employee has RoleName",
+        ]
+      ) {
         const ft = model.getFactTypeByName(ftName)!;
         const ucs = ft.constraints.filter(
           (c) => c.type === "internal_uniqueness",
@@ -418,11 +420,13 @@ describe("NORMA XML Import integration", () => {
     });
 
     it("imports mandatory constraints on each fact type", () => {
-      for (const ftName of [
-        "Employee has FirstName",
-        "Employee has LastName",
-        "Employee has RoleName",
-      ]) {
+      for (
+        const ftName of [
+          "Employee has FirstName",
+          "Employee has LastName",
+          "Employee has RoleName",
+        ]
+      ) {
         const ft = model.getFactTypeByName(ftName)!;
         const mcs = ft.constraints.filter((c) => c.type === "mandatory");
         expect(mcs.length).toBeGreaterThanOrEqual(1);

@@ -1,8 +1,5 @@
 import { EntityMapping, type EntityMappingConfig } from "./EntityMapping.js";
-import {
-  SemanticConflict,
-  type SemanticConflictConfig,
-} from "./SemanticConflict.js";
+import { SemanticConflict, type SemanticConflictConfig } from "./SemanticConflict.js";
 
 /**
  * DDD context mapping patterns.
@@ -56,8 +53,8 @@ export class ContextMapping {
     }
     if (config.sourceContext.trim() === config.targetContext.trim()) {
       throw new Error(
-        "Source and target contexts must be different " +
-          `(both are "${config.sourceContext.trim()}").`,
+        "Source and target contexts must be different "
+          + `(both are "${config.sourceContext.trim()}").`,
       );
     }
 

@@ -7,19 +7,19 @@
  * and produces .orm.yaml files.
  */
 
+import {
+  annotateOrmYaml,
+  diffModels,
+  getImporter,
+  mergeAndValidate,
+  OrmYamlSerializer,
+  registerBuiltinFormats,
+} from "@barwise/core";
+import { createLlmClient, processTranscript } from "@barwise/llm";
+import type { ProviderName } from "@barwise/llm";
 import type { Command } from "commander";
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
-import {
-  OrmYamlSerializer,
-  diffModels,
-  mergeAndValidate,
-  annotateOrmYaml,
-  getImporter,
-  registerBuiltinFormats,
-} from "@barwise/core";
-import { processTranscript, createLlmClient } from "@barwise/llm";
-import type { ProviderName } from "@barwise/llm";
 import { readFile, writeOutput } from "../helpers/io.js";
 
 const serializer = new OrmYamlSerializer();
@@ -80,8 +80,7 @@ export function registerImportCommand(program: Command): void {
             return;
           }
 
-          const modelName =
-            opts.name ?? basename(source, extname(source));
+          const modelName = opts.name ?? basename(source, extname(source));
 
           process.stderr.write(
             `Importing ORM model from ${opts.format}...\n`,
@@ -161,8 +160,7 @@ export function registerImportCommand(program: Command): void {
             baseUrl: opts.baseUrl,
           });
 
-          const modelName =
-            opts.name ?? basename(file, extname(file));
+          const modelName = opts.name ?? basename(file, extname(file));
 
           process.stderr.write("Extracting ORM model from transcript...\n");
 
@@ -317,8 +315,8 @@ export function registerImportCommand(program: Command): void {
         }
 
         process.stderr.write(
-          `Found ${transcripts.length} transcript(s), ${opts.model.length} model(s) ` +
-          `-- ${transcripts.length * opts.model.length} combination(s).\n\n`,
+          `Found ${transcripts.length} transcript(s), ${opts.model.length} model(s) `
+            + `-- ${transcripts.length * opts.model.length} combination(s).\n\n`,
         );
 
         // Results for the summary table.
@@ -359,8 +357,8 @@ export function registerImportCommand(program: Command): void {
             );
 
             process.stderr.write(
-              `[${results.length + 1}/${transcripts.length * opts.model.length}] ` +
-              `${file} x ${model} ... `,
+              `[${results.length + 1}/${transcripts.length * opts.model.length}] `
+                + `${file} x ${model} ... `,
             );
 
             try {
@@ -426,23 +424,23 @@ export function registerImportCommand(program: Command): void {
           ),
         };
 
-        const header =
-          "Transcript".padEnd(colWidths.transcript) +
-          "  " +
-          "Model".padEnd(colWidths.model) +
-          "  OT  FT  C   Result";
+        const header = "Transcript".padEnd(colWidths.transcript)
+          + "  "
+          + "Model".padEnd(colWidths.model)
+          + "  OT  FT  C   Result";
         process.stderr.write(header + "\n");
         process.stderr.write("-".repeat(header.length) + "\n");
 
         for (const r of results) {
-          const line =
-            r.transcript.padEnd(colWidths.transcript) +
-            "  " +
-            r.model.padEnd(colWidths.model) +
-            "  " +
-            (r.error
+          const line = r.transcript.padEnd(colWidths.transcript)
+            + "  "
+            + r.model.padEnd(colWidths.model)
+            + "  "
+            + (r.error
               ? `ERROR: ${r.error}`
-              : `${String(r.objectTypes ?? 0).padStart(2)}  ${String(r.factTypes ?? 0).padStart(2)}  ${String(r.constraints ?? 0).padStart(2)}  ok`);
+              : `${String(r.objectTypes ?? 0).padStart(2)}  ${
+                String(r.factTypes ?? 0).padStart(2)
+              }  ${String(r.constraints ?? 0).padStart(2)}  ok`);
           process.stderr.write(line + "\n");
         }
 

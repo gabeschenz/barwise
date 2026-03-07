@@ -5,9 +5,9 @@
  * serialize -> deserialize without loss, and that models without
  * aliases produce clean YAML output (no empty `aliases:` key).
  */
-import { describe, it, expect } from "vitest";
-import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 
 describe("Aliases serialization", () => {
   const serializer = new OrmYamlSerializer();

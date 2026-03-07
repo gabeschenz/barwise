@@ -6,12 +6,12 @@
  * deserialization (including error cases), round-trip fidelity, and
  * the getMappingPaths helper for extracting mapping file references.
  */
-import { describe, it, expect } from "vitest";
-import {
-  ProjectSerializer,
-  ProjectDeserializationError,
-} from "../../src/serialization/ProjectSerializer.js";
+import { describe, expect, it } from "vitest";
 import { OrmProject } from "../../src/model/OrmProject.js";
+import {
+  ProjectDeserializationError,
+  ProjectSerializer,
+} from "../../src/serialization/ProjectSerializer.js";
 
 describe("ProjectSerializer", () => {
   const serializer = new ProjectSerializer();
@@ -115,9 +115,7 @@ project:
     });
 
     it("throws on schema validation failure", () => {
-      expect(() =>
-        serializer.deserialize("foo: bar"),
-      ).toThrow(ProjectDeserializationError);
+      expect(() => serializer.deserialize("foo: bar")).toThrow(ProjectDeserializationError);
     });
 
     it("throws when project name is missing", () => {

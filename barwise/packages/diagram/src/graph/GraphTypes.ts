@@ -50,14 +50,14 @@ export interface ObjectTypeNode {
  * Abbreviated ring constraint type labels for diagram rendering.
  */
 export type RingTypeLabel =
-  | "ir"   // irreflexive
-  | "as"   // asymmetric
-  | "ans"  // antisymmetric
-  | "it"   // intransitive
-  | "ac"   // acyclic
-  | "sym"  // symmetric
-  | "tr"   // transitive
-  | "pr";  // purely reflexive
+  | "ir" // irreflexive
+  | "as" // asymmetric
+  | "ans" // antisymmetric
+  | "it" // intransitive
+  | "ac" // acyclic
+  | "sym" // symmetric
+  | "tr" // transitive
+  | "pr"; // purely reflexive
 
 export interface FactTypeNode {
   readonly kind: "fact_type";

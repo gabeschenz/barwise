@@ -1,10 +1,7 @@
-import { ModelElement } from "./ModelElement.js";
-import { Role, type RoleConfig } from "./Role.js";
-import {
-  type ReadingOrder,
-  validateReadingTemplate,
-} from "./ReadingOrder.js";
 import type { Constraint } from "./Constraint.js";
+import { ModelElement } from "./ModelElement.js";
+import { type ReadingOrder, validateReadingTemplate } from "./ReadingOrder.js";
+import { Role, type RoleConfig } from "./Role.js";
 
 /**
  * Configuration for creating a new FactType.

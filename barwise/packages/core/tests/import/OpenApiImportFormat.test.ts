@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OpenApiImportFormat } from "../../src/import/OpenApiImportFormat.js";
 
 describe("OpenApiImportFormat", () => {
@@ -130,9 +130,7 @@ describe("OpenApiImportFormat", () => {
       expect(mandatoryConstraints.length).toBeGreaterThan(0);
 
       // Find the fact type for "description" - it should exist but not have mandatory
-      const descriptionFact = result.model.factTypes.find((ft) =>
-        ft.name.includes("Description"),
-      );
+      const descriptionFact = result.model.factTypes.find((ft) => ft.name.includes("Description"));
       expect(descriptionFact).toBeDefined();
 
       // The description fact should not have a mandatory constraint
@@ -187,8 +185,8 @@ describe("OpenApiImportFormat", () => {
       const factTypes = result.model.factTypes;
       const refFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === dept?.id) &&
-          ft.roles.some((r) => r.playerId === emp?.id),
+          ft.roles.some((r) => r.playerId === dept?.id)
+          && ft.roles.some((r) => r.playerId === emp?.id),
       );
       expect(refFact).toBeDefined();
 
@@ -290,8 +288,8 @@ describe("OpenApiImportFormat", () => {
       const factTypes = result.model.factTypes;
       const manyToManyFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === tag?.id) &&
-          ft.roles.some((r) => r.playerId === article?.id),
+          ft.roles.some((r) => r.playerId === tag?.id)
+          && ft.roles.some((r) => r.playerId === article?.id),
       );
       expect(manyToManyFact).toBeDefined();
 
@@ -363,25 +361,25 @@ describe("OpenApiImportFormat", () => {
       // Post -> User
       const postAuthorFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === user?.id) &&
-          ft.roles.some((r) => r.playerId === post?.id),
+          ft.roles.some((r) => r.playerId === user?.id)
+          && ft.roles.some((r) => r.playerId === post?.id),
       );
       expect(postAuthorFact).toBeDefined();
 
       // Comment -> Post
       const commentPostFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === post?.id) &&
-          ft.roles.some((r) => r.playerId === comment?.id),
+          ft.roles.some((r) => r.playerId === post?.id)
+          && ft.roles.some((r) => r.playerId === comment?.id),
       );
       expect(commentPostFact).toBeDefined();
 
       // Comment -> User
       const commentAuthorFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === user?.id) &&
-          ft.roles.some((r) => r.playerId === comment?.id) &&
-          ft !== postAuthorFact, // Different from post->user
+          ft.roles.some((r) => r.playerId === user?.id)
+          && ft.roles.some((r) => r.playerId === comment?.id)
+          && ft !== postAuthorFact, // Different from post->user
       );
       expect(commentAuthorFact).toBeDefined();
     });
@@ -416,9 +414,7 @@ describe("OpenApiImportFormat", () => {
       expect(entity?.definition).toBe("A customer who purchases products");
 
       // Property fact type should have definition
-      const nameFact = result.model.factTypes.find((ft) =>
-        ft.name.includes("Name"),
-      );
+      const nameFact = result.model.factTypes.find((ft) => ft.name.includes("Name"));
       expect(nameFact?.definition).toBe("The customer's full name");
     });
 
@@ -578,8 +574,8 @@ components:
       const factTypes = result.model.factTypes;
       const selfRef = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === node?.id) &&
-          ft.roles.every((r) => r.playerId === node?.id),
+          ft.roles.some((r) => r.playerId === node?.id)
+          && ft.roles.every((r) => r.playerId === node?.id),
       );
       expect(selfRef).toBeDefined();
     });

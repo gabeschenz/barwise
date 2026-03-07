@@ -32,6 +32,7 @@ fields to `InferredConstraint` for type-specific data:
 ### 3. DraftModelParser.ts
 
 For each new type, add a handler branch in Pass 3 that:
+
 1. Resolves role hints to role IDs
 2. Validates arity requirements
 3. Checks for duplicates
@@ -40,19 +41,23 @@ For each new type, add a handler branch in Pass 3 that:
 Grouping by resolution pattern:
 
 **Multi-role, single fact type** (similar to internal_uniqueness):
+
 - external_uniqueness -- multi-role, cross-fact-type allowed
 - disjunctive_mandatory -- multi-role, cross-fact-type allowed
 - exclusion -- multi-role, cross-fact-type allowed
 - exclusive_or -- multi-role, cross-fact-type allowed
 
 **Dual role sequences** (need two sets of roles):
+
 - subset -- subset_roles -> fact_type_1, superset_roles -> fact_type_2
 - equality -- same pattern as subset
 
 **Paired roles, same fact type**:
+
 - ring -- exactly 2 roles, same player, same fact type, plus ring_type
 
 **Single role with numeric bounds**:
+
 - frequency -- 1 role, min/max values
 
 ### 4. Cross-fact-type constraints

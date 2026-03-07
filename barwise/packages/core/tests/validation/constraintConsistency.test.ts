@@ -7,9 +7,9 @@
  * is an error, while spanning uniqueness across all roles of a multi-role
  * fact type is a warning (it is typically unintended).
  */
-import { describe, it, expect } from "vitest";
-import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { constraintConsistencyRules } from "../../src/validation/rules/constraintConsistency.js";
 
 /** Builds a binary fact type ("Widget has Color") with the given constraints. */
 function buildModelWithConstraints(

@@ -121,33 +121,39 @@ Rewrite `docs/MCP.md` with two clear sections:
 ## Implementation Stages
 
 ### Stage 1: Bundle MCP into VS Code extension
+
 **Goal**: MCP server works from the extension with zero config.
 **Success Criteria**:
+
 - esbuild produces `dist/mcp/index.js` with all dependencies
 - Extension activates and registers MCP server definition
 - Setting `barwise.enableMcpServer` toggles the server
 - `npx tsc --noEmit` passes
 - All existing tests still pass
-**Status**: Not Started
+  **Status**: Not Started
 
 ### Stage 2: Standalone npx bundle for @barwise/mcp
+
 **Goal**: `npx @barwise/mcp` starts the server from a self-contained
 bundle.
 **Success Criteria**:
+
 - `node esbuild.mjs` in packages/mcp produces a working single-file
   bundle
 - `node dist/bundle/index.js` starts the MCP server
 - Bundle size is reasonable (< 5 MB)
 - Existing vitest tests still pass against the tsc-compiled code
-**Status**: Not Started
+  **Status**: Not Started
 
 ### Stage 3: Documentation rewrite
+
 **Goal**: Clear, two-audience docs.
 **Success Criteria**:
+
 - VS Code section has no mention of cloning or building
 - External tools section uses `npx @barwise/mcp`
 - All client configs are correct
-**Status**: Not Started
+  **Status**: Not Started
 
 ## API Compatibility Note
 

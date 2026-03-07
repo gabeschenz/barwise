@@ -9,11 +9,11 @@
  *   - isValid (true when no errors, even if warnings exist)
  *   - Custom rule registration via addRule
  */
-import { describe, it, expect } from "vitest";
-import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
 import type { Diagnostic } from "../../src/validation/Diagnostic.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("ValidationEngine", () => {
   it("returns no diagnostics for a well-formed model", () => {
