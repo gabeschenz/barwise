@@ -168,7 +168,7 @@ interface ExportResult {
   /** Primary output as text (for tools, stdout, single-file formats). */
   readonly text: string;
   /** Individual files (for multi-file formats like dbt, Avro). */
-  readonly files?: ReadonlyArray<{ name: string; content: string }>;
+  readonly files?: ReadonlyArray<{ name: string; content: string; }>;
   /** Annotations injected into the output (for reporting). */
   readonly annotations?: readonly ExportAnnotation[];
   /** Constraints the format could not express natively (for implementation). */
@@ -187,7 +187,7 @@ interface ExportOptions {
 }
 
 interface ExportFormat {
-  readonly name: string;        // "ddl", "dbt", "avro", "openapi", "svg", ...
+  readonly name: string; // "ddl", "dbt", "avro", "openapi", "svg", ...
   readonly description: string;
   export(model: OrmModel, options?: ExportOptions): ExportResult;
 }
@@ -216,20 +216,20 @@ model has 11 constraint types, definitions, subtype relationships,
 and value constraints. Different formats can express different subsets
 of these natively:
 
-| ORM Semantic | DDL | dbt | OpenAPI | Avro |
-|---|---|---|---|---|
-| Uniqueness | PK / UNIQUE | `unique` test | structural | structural |
-| Composite uniqueness | composite UNIQUE | `dbt_utils.unique_combination_of_columns` | -- | -- |
-| Mandatory | NOT NULL | `not_null` test | `required` | non-null union |
-| Value constraint | CHECK IN | `accepted_values` test | `enum` | `enum` type |
-| Frequency (min/max) | CHECK / trigger | `dbt_utils.expression_is_true` | `minItems`/`maxItems` | -- |
-| Exclusion | trigger | `dbt_utils.expression_is_true` | `oneOf` | -- |
-| Exclusive-or | trigger | `dbt_utils.expression_is_true` | `oneOf` + `required` | -- |
-| Disjunctive mandatory | trigger | `dbt_utils.expression_is_true` | `anyOf` + `required` | -- |
-| Subset | trigger | `dbt_utils.relationships` | -- | -- |
-| Ring (irreflexive, etc.) | CHECK + trigger | `dbt_utils.expression_is_true` | -- | -- |
-| Definition | COMMENT ON | `description` field | `description` field | `doc` field |
-| Subtype | table inheritance | -- | `allOf` / discriminator | -- |
+| ORM Semantic             | DDL               | dbt                                       | OpenAPI                 | Avro           |
+| ------------------------ | ----------------- | ----------------------------------------- | ----------------------- | -------------- |
+| Uniqueness               | PK / UNIQUE       | `unique` test                             | structural              | structural     |
+| Composite uniqueness     | composite UNIQUE  | `dbt_utils.unique_combination_of_columns` | --                      | --             |
+| Mandatory                | NOT NULL          | `not_null` test                           | `required`              | non-null union |
+| Value constraint         | CHECK IN          | `accepted_values` test                    | `enum`                  | `enum` type    |
+| Frequency (min/max)      | CHECK / trigger   | `dbt_utils.expression_is_true`            | `minItems`/`maxItems`   | --             |
+| Exclusion                | trigger           | `dbt_utils.expression_is_true`            | `oneOf`                 | --             |
+| Exclusive-or             | trigger           | `dbt_utils.expression_is_true`            | `oneOf` + `required`    | --             |
+| Disjunctive mandatory    | trigger           | `dbt_utils.expression_is_true`            | `anyOf` + `required`    | --             |
+| Subset                   | trigger           | `dbt_utils.relationships`                 | --                      | --             |
+| Ring (irreflexive, etc.) | CHECK + trigger   | `dbt_utils.expression_is_true`            | --                      | --             |
+| Definition               | COMMENT ON        | `description` field                       | `description` field     | `doc` field    |
+| Subtype                  | table inheritance | --                                        | `allOf` / discriminator | --             |
 
 dbt is notably the richest target for constraint expression.
 `dbt_utils.expression_is_true` is a generic test that evaluates any
@@ -270,8 +270,8 @@ write them. For OpenAPI, this means `enum` arrays on properties,
 `oneOf` for exclusive-or patterns, and `description` fields
 populated from entity definitions.
 
-What a format *can* express becomes a first-class part of the output.
-What it *cannot* express natively should not be silently dropped or
+What a format _can_ express becomes a first-class part of the output.
+What it _cannot_ express natively should not be silently dropped or
 reduced to a vague TODO. Instead, the export should produce a
 **constraint specification** that gives an engineer or AI agent
 enough context to implement the constraint in whatever language
@@ -295,6 +295,7 @@ Examples for each constraint type that formats commonly can't express:
 
 **Frequency** -- "Each Customer places at least 2 and at most 5
 Orders."
+
 ```
 pseudocode:
   FOR EACH customer IN Customer:
@@ -306,6 +307,7 @@ example:
 ```
 
 **Ring (irreflexive)** -- "No Person is a parent of that same Person."
+
 ```
 pseudocode:
   FOR EACH row IN person_is_parent_of_person:
@@ -318,6 +320,7 @@ example:
 
 **Subset** -- "If a Customer rates a Product then that Customer
 purchases that Product."
+
 ```
 pseudocode:
   FOR EACH (customer_id, product_id) IN customer_rates_product:
@@ -329,6 +332,7 @@ example:
 ```
 
 **Exclusion** -- "No Person both drives some Car and rides some Bus."
+
 ```
 pseudocode:
   FOR EACH person IN Person:
@@ -428,11 +432,11 @@ is format-specific. This maps naturally onto the `ExportFormat`
 interface: each format knows how to render annotations into its output
 syntax.
 
-| Format | Annotation rendering |
-|--------|---------------------|
-| DDL | `-- TODO(barwise): ...` SQL comments on tables/columns |
-| dbt | `# TODO(barwise): ...` YAML comments (already implemented) |
-| Avro | `"doc"` field on records/fields |
+| Format  | Annotation rendering                                            |
+| ------- | --------------------------------------------------------------- |
+| DDL     | `-- TODO(barwise): ...` SQL comments on tables/columns          |
+| dbt     | `# TODO(barwise): ...` YAML comments (already implemented)      |
+| Avro    | `"doc"` field on records/fields                                 |
 | OpenAPI | `description` field suffix or `x-barwise-annotations` extension |
 
 The `ExportFormat` interface receives the ORM model alongside the
@@ -671,7 +675,7 @@ interface ImportResult {
 }
 
 interface ImportFormat {
-  readonly name: string;        // matches ExportFormat.name
+  readonly name: string; // matches ExportFormat.name
   readonly description: string;
 
   /** Phase 1: Deterministic parse. Always available, no LLM. */
@@ -698,12 +702,12 @@ finished product.
 
 That said, different formats vary in how much they can tell us:
 
-| Format | What it captures | Import feasibility |
-|--------|-----------------|-------------------|
-| DDL | Tables, columns, types, PK, FK, UNIQUE, NOT NULL, CHECK | Medium -- good structural coverage, but no business semantics (definitions, readings) |
-| dbt | Models + schema.yml with tests, descriptions, relationships | High -- already implemented in VS Code. Tests map back to constraints. Descriptions provide semantics. |
-| OpenAPI | Schemas, properties, required, enum, $ref, descriptions | Medium-high -- rich type info and relationships. `description` fields provide semantics. `enum` maps to value constraints. |
-| Avro | Record schemas, fields, types, enums, doc | Medium -- structural but flat. No explicit relationships between schemas. |
+| Format  | What it captures                                            | Import feasibility                                                                                                         |
+| ------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| DDL     | Tables, columns, types, PK, FK, UNIQUE, NOT NULL, CHECK     | Medium -- good structural coverage, but no business semantics (definitions, readings)                                      |
+| dbt     | Models + schema.yml with tests, descriptions, relationships | High -- already implemented in VS Code. Tests map back to constraints. Descriptions provide semantics.                     |
+| OpenAPI | Schemas, properties, required, enum, $ref, descriptions     | Medium-high -- rich type info and relationships. `description` fields provide semantics. `enum` maps to value constraints. |
+| Avro    | Record schemas, fields, types, enums, doc                   | Medium -- structural but flat. No explicit relationships between schemas.                                                  |
 
 The import flow ties into the provenance system. When importing from
 an existing artifact, the lineage relationship is reversed: instead of
@@ -933,16 +937,16 @@ The manifest persists lineage across exports:
 /** Persisted in .barwise/lineage.yaml alongside the project. */
 interface LineageManifest {
   readonly version: 1;
-  readonly sourceModel: string;      // path to .orm.yaml
-  readonly sourceModelHash: string;  // content hash at export time
+  readonly sourceModel: string; // path to .orm.yaml
+  readonly sourceModelHash: string; // content hash at export time
   readonly exports: readonly ManifestExport[];
 }
 
 interface ManifestExport {
-  readonly artifact: string;       // relative path to exported file
-  readonly format: string;         // "dbt", "ddl", "openapi", ...
-  readonly exportedAt: string;     // ISO 8601 timestamp
-  readonly modelHash: string;      // hash of model at this export
+  readonly artifact: string; // relative path to exported file
+  readonly format: string; // "dbt", "ddl", "openapi", ...
+  readonly exportedAt: string; // ISO 8601 timestamp
+  readonly modelHash: string; // hash of model at this export
   readonly sources: readonly SourceReference[];
 }
 ```
@@ -1161,14 +1165,14 @@ semantic judgment that cannot be encoded as rules.
 
 ### Where LLM is not appropriate
 
-| Operation | Why deterministic is sufficient |
-|-----------|-------------------------------|
-| Validation | Structural rules are well-defined. A missing mandatory role is an error regardless of context. |
-| Verbalization | FORML readings are template-driven. The reading pattern for a binary fact type is fixed. |
+| Operation            | Why deterministic is sufficient                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| Validation           | Structural rules are well-defined. A missing mandatory role is an error regardless of context.          |
+| Verbalization        | FORML readings are template-driven. The reading pattern for a binary fact type is fixed.                |
 | Export (all formats) | The ORM model has precise semantics. Rendering to DDL, dbt, OpenAPI, or Avro is mechanical translation. |
-| Diff / merge | Structural comparison. Two models either have the same entity type or they don't. |
-| Lineage | Manifest lookup. Staleness is a hash comparison. |
-| Diagram generation | Layout algorithm + SVG rendering. No judgment involved. |
+| Diff / merge         | Structural comparison. Two models either have the same entity type or they don't.                       |
+| Lineage              | Manifest lookup. Staleness is a hash comparison.                                                        |
+| Diagram generation   | Layout algorithm + SVG rendering. No judgment involved.                                                 |
 
 ### Where LLM adds genuine value
 
@@ -1250,10 +1254,10 @@ encoded as deterministic rules.
 
 Not every user has LLM access. The tool surface must work without it:
 
-| LLM availability | What works | What doesn't |
-|-----------------|-----------|-------------|
-| No LLM | All deterministic tools, `parse`-only imports, full export/lineage/validation/diff | Transcript extraction, import enrichment, model review suggestions |
-| LLM available | Everything above + transcript extraction, enriched imports, model review |
+| LLM availability | What works                                                                         | What doesn't                                                       |
+| ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| No LLM           | All deterministic tools, `parse`-only imports, full export/lineage/validation/diff | Transcript extraction, import enrichment, model review suggestions |
+| LLM available    | Everything above + transcript extraction, enriched imports, model review           |                                                                    |
 
 No tool should silently fail because an LLM is unavailable. Tools
 that benefit from LLM enrichment should produce useful results
@@ -1310,13 +1314,13 @@ illustrate those facts is a small addition to the prompt.
 **2. Exports.** Populations provide concrete data that each export
 format can use natively:
 
-| Format | How populations render |
-|--------|-----------------------|
-| DDL | `INSERT INTO` statements or `-- Example:` comments |
-| dbt | Seed files (`seeds/customers.csv`) with sample data |
-| OpenAPI | `example` values on schema properties and request/response bodies |
-| Avro | Example records in `doc` fields |
-| Documentation | Example tables alongside entity descriptions |
+| Format        | How populations render                                            |
+| ------------- | ----------------------------------------------------------------- |
+| DDL           | `INSERT INTO` statements or `-- Example:` comments                |
+| dbt           | Seed files (`seeds/customers.csv`) with sample data               |
+| OpenAPI       | `example` values on schema properties and request/response bodies |
+| Avro          | Example records in `doc` fields                                   |
+| Documentation | Example tables alongside entity descriptions                      |
 
 The `ExportOptions` interface should include an `includeExamples`
 option (default: true). When enabled, the export format renders
@@ -1327,7 +1331,7 @@ sample data is noise).
 ```typescript
 interface ExportOptions {
   readonly annotate?: boolean;
-  readonly includeExamples?: boolean;  // new
+  readonly includeExamples?: boolean; // new
   readonly [key: string]: unknown;
 }
 ```
@@ -1400,11 +1404,13 @@ of test-driven development.
 for using the model as ongoing reference.
 
 **Parameters**:
+
 - `source` (string): File path or inline YAML
 - `focus` (string, optional): Entity name, fact type, constraint type,
   or natural-language question to focus on
 
 **Output**: Structured text appropriate to the focus:
+
 - No focus: High-level summary (entity list, relationship count,
   constraint summary, definitions)
 - Entity focus: Entity description (definition if present), related
@@ -1428,6 +1434,7 @@ Consolidates the fragmented export capabilities behind the
 `ExportFormat` registry (see UC-2).
 
 **Parameters**:
+
 - `source` (string): File path or inline YAML
 - `format` (string): Any registered format name. Initial set:
   `ddl`, `dbt`, `avro`, `openapi`, `json`, `yaml`
@@ -1478,11 +1485,13 @@ definitions, potential subtype relationships, unconstrained fact
 types, vague descriptions, edge cases worth testing with populations.
 
 **Parameters**:
+
 - `source` (string): File path or inline YAML
 - `focus` (string, optional): Specific entity, fact type, or area
   to focus the review on. Omit for a full-model review.
 
 **Output**: Structured list of suggestions, each with:
+
 - `category`: "definition" | "constraint" | "subtype" | "population"
   | "naming" | "completeness"
 - `severity`: "suggestion" | "recommendation"
@@ -1574,32 +1583,32 @@ availability). Keep it working but consolidate under `export_model`.
 
 ### Tool surface by interface
 
-| Tool | MCP (stdio) | VS Code LM | CLI |
-|------|:-----------:|:----------:|:---:|
-| `validate_model` | Yes | Yes | `barwise validate` |
-| `verbalize_model` | Yes | Yes | `barwise verbalize` |
-| `describe_domain` | **New** | **New** | **New**: `barwise describe` |
-| `export_model` | **New** | **New** | Existing: `barwise export` + `barwise schema` + `barwise diagram` |
-| `review_model` | **New** | **New** | **New**: `barwise review` |
-| `diff_models` | Yes | Yes | `barwise diff` |
-| `import_transcript` | Yes | Yes | `barwise import transcript` |
-| `merge_models` | Yes | Yes | (not in CLI; manual editing + diff preferred) |
-| `import_model` | **Soon** | **Soon** | **Soon**: `barwise import <format>` |
-| `lineage_status` | **Soon** | **Soon** | **Soon**: `barwise lineage status` |
+| Tool                | MCP (stdio) | VS Code LM |                                CLI                                |
+| ------------------- | :---------: | :--------: | :---------------------------------------------------------------: |
+| `validate_model`    |     Yes     |    Yes     |                        `barwise validate`                         |
+| `verbalize_model`   |     Yes     |    Yes     |                        `barwise verbalize`                        |
+| `describe_domain`   |   **New**   |  **New**   |                    **New**: `barwise describe`                    |
+| `export_model`      |   **New**   |  **New**   | Existing: `barwise export` + `barwise schema` + `barwise diagram` |
+| `review_model`      |   **New**   |  **New**   |                     **New**: `barwise review`                     |
+| `diff_models`       |     Yes     |    Yes     |                          `barwise diff`                           |
+| `import_transcript` |     Yes     |    Yes     |                    `barwise import transcript`                    |
+| `merge_models`      |     Yes     |    Yes     |           (not in CLI; manual editing + diff preferred)           |
+| `import_model`      |  **Soon**   |  **Soon**  |                **Soon**: `barwise import <format>`                |
+| `lineage_status`    |  **Soon**   |  **Soon**  |                **Soon**: `barwise lineage status`                 |
 
 ### VS Code commands (human-facing)
 
 VS Code commands (the Command Palette actions) stay goal-oriented and
 high-level. They compose the underlying tools:
 
-| Command | What it does |
-|---------|-------------|
-| `orm.newProject` | Scaffold new .orm.yaml (unchanged) |
-| `orm.validateModel` | Run validation, show diagnostics (unchanged) |
-| `orm.verbalize` | Generate readings, show in output (unchanged) |
-| `orm.showDiagram` | Generate SVG, show in webview (unchanged) |
-| `orm.export` | Quick pick: DDL, dbt, Avro, OpenAPI -> generate + save (add OpenAPI) |
-| `orm.import` | Quick pick: Transcript, dbt project -> extract + save (unchanged) |
+| Command             | What it does                                                         |
+| ------------------- | -------------------------------------------------------------------- |
+| `orm.newProject`    | Scaffold new .orm.yaml (unchanged)                                   |
+| `orm.validateModel` | Run validation, show diagnostics (unchanged)                         |
+| `orm.verbalize`     | Generate readings, show in output (unchanged)                        |
+| `orm.showDiagram`   | Generate SVG, show in webview (unchanged)                            |
+| `orm.export`        | Quick pick: DDL, dbt, Avro, OpenAPI -> generate + save (add OpenAPI) |
+| `orm.import`        | Quick pick: Transcript, dbt project -> extract + save (unchanged)    |
 
 The commands are thin UI wrappers. The real capability lives in the
 tools, which are available to both humans (via commands) and AI (via
@@ -1609,22 +1618,22 @@ Language Model Tools / MCP).
 
 Current asymmetries and how to resolve them:
 
-| Capability | Today | Proposed |
-|-----------|-------|---------|
-| OpenAPI export | CLI only | All surfaces via `export_model` |
-| Avro export | VS Code command only | All surfaces via `export_model` |
-| dbt export | CLI + VS Code command | All surfaces via `export_model` |
-| dbt project import | VS Code only | Defer (complex, interactive) |
-| Batch transcript import | CLI only | Keep CLI-only (batch is a CLI concern) |
-| Domain query/context | Not available | All surfaces via `describe_domain` |
-| Diagram generation | All surfaces | Fold into `export_model(format: svg)` |
-| Export lineage tracking | Not available | Manifest written on export, `lineage_status` tool |
-| Staleness detection | Not available | `barwise lineage status` / `lineage_status` tool |
-| Impact analysis (artifacts) | Not available | `diff_models` + manifest lookup |
-| DDL import | Not available | `import_model(format: ddl)` -- Soon |
-| OpenAPI import | Not available | `import_model(format: openapi)` -- Soon |
-| dbt import | VS Code only | All surfaces via `import_model` -- Now (expose existing) |
-| NORMA XML import | Core library only | Defer (low demand) |
+| Capability                  | Today                 | Proposed                                                 |
+| --------------------------- | --------------------- | -------------------------------------------------------- |
+| OpenAPI export              | CLI only              | All surfaces via `export_model`                          |
+| Avro export                 | VS Code command only  | All surfaces via `export_model`                          |
+| dbt export                  | CLI + VS Code command | All surfaces via `export_model`                          |
+| dbt project import          | VS Code only          | Defer (complex, interactive)                             |
+| Batch transcript import     | CLI only              | Keep CLI-only (batch is a CLI concern)                   |
+| Domain query/context        | Not available         | All surfaces via `describe_domain`                       |
+| Diagram generation          | All surfaces          | Fold into `export_model(format: svg)`                    |
+| Export lineage tracking     | Not available         | Manifest written on export, `lineage_status` tool        |
+| Staleness detection         | Not available         | `barwise lineage status` / `lineage_status` tool         |
+| Impact analysis (artifacts) | Not available         | `diff_models` + manifest lookup                          |
+| DDL import                  | Not available         | `import_model(format: ddl)` -- Soon                      |
+| OpenAPI import              | Not available         | `import_model(format: openapi)` -- Soon                  |
+| dbt import                  | VS Code only          | All surfaces via `import_model` -- Now (expose existing) |
+| NORMA XML import            | Core library only     | Defer (low demand)                                       |
 
 ## Implementation order
 
@@ -1742,6 +1751,7 @@ The 17 items group into four stages that can be delivered and
 validated incrementally:
 
 **Stage A: Core tool surface** (items 1-6)
+
 - `describe_domain` tool on all surfaces
 - `ExportFormat` interface, registry, and `export_model` tool
 - dbt import exposed on all surfaces
@@ -1750,6 +1760,7 @@ validated incrementally:
   output for the clinic and university example models.
 
 **Stage B: Lineage** (items 7-11)
+
 - Fix `sourceConstraintId` in RelationalMapper
 - `lineage` field on ExportResult
 - Manifest read/write, CLI persistence
@@ -1758,6 +1769,7 @@ validated incrementally:
   correctly reports staleness after model changes.
 
 **Stage C: Populations and review** (items 12-15)
+
 - Population extraction in LLM transcripts
 - Population rendering in exports
 - Populations in `describe_domain` and `validate_model`
@@ -1767,6 +1779,7 @@ validated incrementally:
   appear in validation diagnostics.
 
 **Stage D: Import formats** (items 16-17)
+
 - DDL import (parse + optional LLM enrich)
 - OpenAPI import (parse + optional LLM enrich)
 - **Validation**: Round-trip test: export to DDL, import back,
@@ -1935,24 +1948,24 @@ its own spec.
 All changes in this spec are **additive**. No existing public API is
 removed or changed in a backward-incompatible way.
 
-| Change | Type | Impact | Migration |
-|--------|------|--------|-----------|
-| `ExportFormat` interface | New | None -- new type | N/A |
-| `ExportResult` type | New | None -- new type | N/A |
-| `ImportFormat` interface | New | None -- new type | N/A |
-| `LineageEntry`, `SourceReference` | New | None -- new types | N/A |
-| `describe_domain` tool | New | None -- new tool | N/A |
-| `export_model` tool | New | None -- new tool | N/A |
-| `review_model` tool | New | None -- new tool | N/A |
-| `import_model` tool | New | None -- new tool | N/A |
-| `lineage_status` tool | New | None -- new tool | N/A |
-| `merge_models` preview param | Additive | None -- new optional param, default preserves current behavior | N/A |
-| `generate_schema` deprecation | Soft | Tool keeps working. Description updated to point to `export_model`. | Update tool calls at leisure |
-| `generate_diagram` deprecation | Soft | Tool keeps working. Description updated to point to `export_model`. | Update tool calls at leisure |
-| Population validation in `validate_model` | Behavioral | Models with populations may now show new diagnostics | Population diagnostics use a distinct category (`population-violation`) so consumers can filter if needed |
-| `sourceConstraintId` population in RelationalMapper | Behavioral | ForeignKey objects may now have `sourceConstraintId` set where they previously didn't | No consumer should break -- the field was always declared optional |
-| `ExportOptions.includeExamples` | Additive | New optional field, defaults to `true` | Consumers that don't want examples pass `includeExamples: false` |
-| `ExportOptions.strict` | Additive | New optional field, defaults to `false` | No change in default behavior |
+| Change                                              | Type       | Impact                                                                                | Migration                                                                                                 |
+| --------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ExportFormat` interface                            | New        | None -- new type                                                                      | N/A                                                                                                       |
+| `ExportResult` type                                 | New        | None -- new type                                                                      | N/A                                                                                                       |
+| `ImportFormat` interface                            | New        | None -- new type                                                                      | N/A                                                                                                       |
+| `LineageEntry`, `SourceReference`                   | New        | None -- new types                                                                     | N/A                                                                                                       |
+| `describe_domain` tool                              | New        | None -- new tool                                                                      | N/A                                                                                                       |
+| `export_model` tool                                 | New        | None -- new tool                                                                      | N/A                                                                                                       |
+| `review_model` tool                                 | New        | None -- new tool                                                                      | N/A                                                                                                       |
+| `import_model` tool                                 | New        | None -- new tool                                                                      | N/A                                                                                                       |
+| `lineage_status` tool                               | New        | None -- new tool                                                                      | N/A                                                                                                       |
+| `merge_models` preview param                        | Additive   | None -- new optional param, default preserves current behavior                        | N/A                                                                                                       |
+| `generate_schema` deprecation                       | Soft       | Tool keeps working. Description updated to point to `export_model`.                   | Update tool calls at leisure                                                                              |
+| `generate_diagram` deprecation                      | Soft       | Tool keeps working. Description updated to point to `export_model`.                   | Update tool calls at leisure                                                                              |
+| Population validation in `validate_model`           | Behavioral | Models with populations may now show new diagnostics                                  | Population diagnostics use a distinct category (`population-violation`) so consumers can filter if needed |
+| `sourceConstraintId` population in RelationalMapper | Behavioral | ForeignKey objects may now have `sourceConstraintId` set where they previously didn't | No consumer should break -- the field was always declared optional                                        |
+| `ExportOptions.includeExamples`                     | Additive   | New optional field, defaults to `true`                                                | Consumers that don't want examples pass `includeExamples: false`                                          |
+| `ExportOptions.strict`                              | Additive   | New optional field, defaults to `false`                                               | No change in default behavior                                                                             |
 
 The only behavioral changes that could surprise existing consumers
 are population validation diagnostics and `sourceConstraintId`

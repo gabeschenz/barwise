@@ -1,15 +1,15 @@
 /**
  * Tests for the lineage_status tool.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import { executeLineageStatus } from "../../src/tools/lineageStatus.js";
-import { OrmYamlSerializer, writeManifest, hashModel } from "@barwise/core";
+import { hashModel, OrmYamlSerializer, writeManifest } from "@barwise/core";
 import type { LineageManifest, OrmModel } from "@barwise/core";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import { dirname, resolve } from "node:path";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { executeLineageStatus } from "../../src/tools/lineageStatus.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = resolve(__dirname, "../fixtures");
@@ -80,7 +80,9 @@ describe("lineage_status tool", () => {
     expect(parsed.staleArtifacts).toHaveLength(2);
     expect(parsed.freshArtifacts).toHaveLength(0);
 
-    const schemaSql = parsed.staleArtifacts.find((a: { artifact: string }) => a.artifact === "schema.sql");
+    const schemaSql = parsed.staleArtifacts.find((a: { artifact: string; }) =>
+      a.artifact === "schema.sql"
+    );
     expect(schemaSql).toBeDefined();
     expect(schemaSql.format).toBe("ddl");
     expect(schemaSql.exportedAt).toBe("2026-03-06T12:00:00Z");

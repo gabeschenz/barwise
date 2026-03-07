@@ -2,9 +2,9 @@
  * describe_domain tool: queries an ORM model for domain context.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describeDomain } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerDescribeDomainTool(server: McpServer): void {
@@ -12,11 +12,10 @@ export function registerDescribeDomainTool(server: McpServer): void {
     "describe_domain",
     {
       title: "Describe Domain",
-      description:
-        "Query the formal domain model for entity definitions, constraints, " +
-        "relationships, and business rules. Use this before generating database " +
-        "schemas, API code, or data models to ensure correctness. Optionally focus " +
-        "on a specific entity, fact type, or constraint type.",
+      description: "Query the formal domain model for entity definitions, constraints, "
+        + "relationships, and business rules. Use this before generating database "
+        + "schemas, API code, or data models to ensure correctness. Optionally focus "
+        + "on a specific entity, fact type, or constraint type.",
       inputSchema: {
         source: z
           .string()
@@ -25,8 +24,8 @@ export function registerDescribeDomainTool(server: McpServer): void {
           .string()
           .optional()
           .describe(
-            "Optional focus: entity name, fact type name, or constraint type keyword " +
-              "(e.g., 'Patient', 'mandatory', 'uniqueness'). Omit for full summary.",
+            "Optional focus: entity name, fact type name, or constraint type keyword "
+              + "(e.g., 'Patient', 'mandatory', 'uniqueness'). Omit for full summary.",
           ),
         includePopulations: z
           .boolean()
@@ -46,7 +45,7 @@ export function executeDescribeDomain(
   source: string,
   focus?: string,
   includePopulations?: boolean,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
 
   try {
@@ -98,8 +97,7 @@ export function executeDescribeDomain(
           type: "text" as const,
           text: JSON.stringify(
             {
-              error:
-                error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error.message : String(error),
             },
             null,
             2,

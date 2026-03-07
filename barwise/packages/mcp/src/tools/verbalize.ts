@@ -2,9 +2,9 @@
  * verbalize_model tool: generates FORML verbalizations for a model.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Verbalizer } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerVerbalizeTool(server: McpServer): void {
@@ -12,9 +12,8 @@ export function registerVerbalizeTool(server: McpServer): void {
     "verbalize_model",
     {
       title: "Verbalize ORM Model",
-      description:
-        "Generate FORML natural-language readings for fact types " +
-        "and constraints in an ORM 2 model.",
+      description: "Generate FORML natural-language readings for fact types "
+        + "and constraints in an ORM 2 model.",
       inputSchema: {
         source: z
           .string()
@@ -34,7 +33,7 @@ export function registerVerbalizeTool(server: McpServer): void {
 export function executeVerbalize(
   source: string,
   factType?: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
   const verbalizer = new Verbalizer();
 

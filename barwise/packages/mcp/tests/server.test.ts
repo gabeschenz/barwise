@@ -1,7 +1,7 @@
 /**
  * Tests for the MCP server scaffolding.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createServer } from "../src/server.js";
 
 describe("MCP server", () => {

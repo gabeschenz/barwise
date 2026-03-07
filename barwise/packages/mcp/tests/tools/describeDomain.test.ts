@@ -4,7 +4,7 @@
  * Verifies that the tool returns structured domain descriptions.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { executeDescribeDomain } from "../../src/tools/describeDomain.js";
 
 describe("describe_domain tool", () => {
@@ -64,7 +64,7 @@ model:
       const parsed = JSON.parse(result.content[0]!.text);
 
       const customer = parsed.entities.find(
-        (e: { name: string }) => e.name === "Customer",
+        (e: { name: string; }) => e.name === "Customer",
       );
       expect(customer).toBeDefined();
       expect(customer.definition).toBe("A person who buys products");

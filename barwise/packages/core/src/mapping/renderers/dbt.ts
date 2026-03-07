@@ -10,12 +10,7 @@
  */
 
 import { stringify } from "yaml";
-import type {
-  RelationalSchema,
-  Table,
-  Column,
-  ForeignKey,
-} from "../RelationalSchema.js";
+import type { Column, ForeignKey, RelationalSchema, Table } from "../RelationalSchema.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -130,9 +125,7 @@ function renderSchemaYaml(
   schema: RelationalSchema,
   genRelTests: boolean,
 ): string {
-  const models: SchemaModel[] = schema.tables.map((table) =>
-    buildSchemaModel(table, genRelTests),
-  );
+  const models: SchemaModel[] = schema.tables.map((table) => buildSchemaModel(table, genRelTests));
 
   const doc = {
     version: 2,
@@ -172,8 +165,8 @@ function buildColumnTests(
 
   // unique test for primary key columns (single-column PKs).
   if (
-    table.primaryKey.columnNames.length === 1 &&
-    table.primaryKey.columnNames[0] === col.name
+    table.primaryKey.columnNames.length === 1
+    && table.primaryKey.columnNames[0] === col.name
   ) {
     tests.push("unique");
   }

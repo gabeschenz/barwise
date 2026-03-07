@@ -31,19 +31,19 @@ An OpenAPI 3.0.0 JSON document with:
 
 ### Type Mapping
 
-| SQL Type | JSON Schema type + format |
-|----------|--------------------------|
-| TEXT, VARCHAR | `{ type: "string" }` |
-| INTEGER, INT, BIGINT | `{ type: "integer" }` |
-| DECIMAL, NUMERIC, FLOAT, DOUBLE | `{ type: "number" }` |
-| BOOLEAN, BOOL | `{ type: "boolean" }` |
-| DATE | `{ type: "string", format: "date" }` |
-| TIME | `{ type: "string", format: "time" }` |
-| DATETIME, TIMESTAMP | `{ type: "string", format: "date-time" }` |
-| UUID | `{ type: "string", format: "uuid" }` |
-| BINARY, BLOB | `{ type: "string", format: "binary" }` |
-| AUTO_COUNTER | `{ type: "integer" }` |
-| Fallback | `{ type: "string" }` |
+| SQL Type                        | JSON Schema type + format                 |
+| ------------------------------- | ----------------------------------------- |
+| TEXT, VARCHAR                   | `{ type: "string" }`                      |
+| INTEGER, INT, BIGINT            | `{ type: "integer" }`                     |
+| DECIMAL, NUMERIC, FLOAT, DOUBLE | `{ type: "number" }`                      |
+| BOOLEAN, BOOL                   | `{ type: "boolean" }`                     |
+| DATE                            | `{ type: "string", format: "date" }`      |
+| TIME                            | `{ type: "string", format: "time" }`      |
+| DATETIME, TIMESTAMP             | `{ type: "string", format: "date-time" }` |
+| UUID                            | `{ type: "string", format: "uuid" }`      |
+| BINARY, BLOB                    | `{ type: "string", format: "binary" }`    |
+| AUTO_COUNTER                    | `{ type: "integer" }`                     |
+| Fallback                        | `{ type: "string" }`                      |
 
 ### Options
 

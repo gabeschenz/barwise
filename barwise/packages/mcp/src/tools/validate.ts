@@ -2,10 +2,10 @@
  * validate_model tool: validates an ORM model and returns diagnostics.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ValidationEngine } from "@barwise/core";
 import type { Diagnostic } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerValidateTool(server: McpServer): void {
@@ -13,9 +13,8 @@ export function registerValidateTool(server: McpServer): void {
     "validate_model",
     {
       title: "Validate ORM Model",
-      description:
-        "Validate an ORM 2 model from a YAML string or file path. " +
-        "Returns structured diagnostics (errors and warnings).",
+      description: "Validate an ORM 2 model from a YAML string or file path. "
+        + "Returns structured diagnostics (errors and warnings).",
       inputSchema: {
         source: z
           .string()
@@ -30,7 +29,7 @@ export function registerValidateTool(server: McpServer): void {
 
 export function executeValidate(
   source: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
 
   const engine = new ValidationEngine();

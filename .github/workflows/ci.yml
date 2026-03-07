@@ -35,3 +35,5 @@ jobs:
       - run: npm run lint
 
       - run: npm run knip
+
+      - run: npm run fmt:check

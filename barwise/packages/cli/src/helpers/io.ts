@@ -2,9 +2,9 @@
  * File I/O helpers for the CLI.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
 import { OrmYamlSerializer } from "@barwise/core";
 import type { OrmModel } from "@barwise/core";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const serializer = new OrmYamlSerializer();
 

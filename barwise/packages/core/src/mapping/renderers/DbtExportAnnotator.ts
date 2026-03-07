@@ -14,13 +14,9 @@
  * preserve YAML formatting and is idempotent.
  */
 
+import { formatBarwiseComment, stripBarwiseComments, truncate } from "../../annotation/helpers.js";
 import type { OrmModel } from "../../model/OrmModel.js";
 import type { RelationalSchema } from "../RelationalSchema.js";
-import {
-  formatBarwiseComment,
-  stripBarwiseComments,
-  truncate,
-} from "../../annotation/helpers.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -163,7 +159,8 @@ function collectAnnotations(
           tableName: table.name,
           severity: "todo",
           category: "description",
-          message: "No model description. Add a definition to the ORM entity type or edit the dbt YAML.",
+          message:
+            "No model description. Add a definition to the ORM entity type or edit the dbt YAML.",
         });
       }
     }
@@ -174,7 +171,9 @@ function collectAnnotations(
         tableName: table.name,
         severity: "note",
         category: "constraint",
-        message: `Composite primary key (${table.primaryKey.columnNames.join(", ")}). Individual unique tests are not generated.`,
+        message: `Composite primary key (${
+          table.primaryKey.columnNames.join(", ")
+        }). Individual unique tests are not generated.`,
       });
     }
 
@@ -202,7 +201,8 @@ function collectAnnotations(
           columnName: col.name,
           severity: "todo",
           category: "data_type",
-          message: 'Data type defaulted to TEXT. Add a data type to the ORM value type or edit the dbt YAML.',
+          message:
+            "Data type defaulted to TEXT. Add a data type to the ORM value type or edit the dbt YAML.",
         });
       }
 
@@ -214,7 +214,9 @@ function collectAnnotations(
           columnName: col.name,
           severity: "note",
           category: "accepted_values",
-          message: `Value constraint available: [${vals.map((v) => `'${v}'`).join(", ")}]. Consider adding an accepted_values test.`,
+          message: `Value constraint available: [${
+            vals.map((v) => `'${v}'`).join(", ")
+          }]. Consider adding an accepted_values test.`,
         });
       }
     }

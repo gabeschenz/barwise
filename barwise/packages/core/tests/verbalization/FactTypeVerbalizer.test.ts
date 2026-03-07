@@ -10,9 +10,9 @@
  *   - Segment element IDs linking back to the correct object types
  *   - Unary and self-referencing fact types
  */
-import { describe, it, expect } from "vitest";
-import { FactTypeVerbalizer } from "../../src/verbalization/FactTypeVerbalizer.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { FactTypeVerbalizer } from "../../src/verbalization/FactTypeVerbalizer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("FactTypeVerbalizer", () => {

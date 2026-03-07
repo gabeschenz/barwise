@@ -6,7 +6,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { LlmClient, CompletionRequest, CompletionResponse } from "../LlmClient.js";
+import type { CompletionRequest, CompletionResponse, LlmClient } from "../LlmClient.js";
 
 export interface AnthropicClientOptions {
   /** Anthropic API key. Falls back to ANTHROPIC_API_KEY env var. */
@@ -81,8 +81,7 @@ export class AnthropicLlmClient implements LlmClient {
       tools: [
         {
           name: toolName,
-          description:
-            "Extract a structured ORM model from the transcript analysis.",
+          description: "Extract a structured ORM model from the transcript analysis.",
           input_schema: request.responseSchema as Anthropic.Tool.InputSchema,
         },
       ],

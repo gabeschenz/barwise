@@ -3,11 +3,11 @@
 These are sample business working session transcripts that you can use
 to try the full Barwise pipeline: import, validate, verbalize, and diagram.
 
-| File | Domain | What it covers |
-|------|--------|---------------|
-| `transcripts/order-management.md` | E-commerce | Customers, orders, products, statuses, terminology ambiguity |
-| `transcripts/university-enrollment.md` | Education | Students, courses, offerings, semesters, grades, enrollment constraints |
-| `transcripts/clinic-appointments.md` | Healthcare | Patients, doctors, appointments, time slots, rooms, specialties |
+| File                                   | Domain     | What it covers                                                          |
+| -------------------------------------- | ---------- | ----------------------------------------------------------------------- |
+| `transcripts/order-management.md`      | E-commerce | Customers, orders, products, statuses, terminology ambiguity            |
+| `transcripts/university-enrollment.md` | Education  | Students, courses, offerings, semesters, grades, enrollment constraints |
+| `transcripts/clinic-appointments.md`   | Healthcare | Patients, doctors, appointments, time slots, rooms, specialties         |
 
 ## Walkthrough
 

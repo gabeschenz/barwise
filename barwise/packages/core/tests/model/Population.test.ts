@@ -8,9 +8,9 @@
  *   - Referential integrity (fact type must exist)
  *   - Multiple populations per fact type
  */
-import { describe, it, expect } from "vitest";
-import { Population } from "../../src/model/Population.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { Population } from "../../src/model/Population.js";
 
 function makeModel(): OrmModel {
   const model = new OrmModel({ name: "Test" });
@@ -144,9 +144,7 @@ describe("OrmModel population methods", () => {
 
   it("throws when adding population for nonexistent fact type", () => {
     const model = makeModel();
-    expect(() =>
-      model.addPopulation({ factTypeId: "nonexistent" }),
-    ).toThrow("does not exist");
+    expect(() => model.addPopulation({ factTypeId: "nonexistent" })).toThrow("does not exist");
   });
 
   it("retrieves a population by id", () => {

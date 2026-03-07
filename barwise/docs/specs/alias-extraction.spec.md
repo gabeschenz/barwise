@@ -54,6 +54,7 @@ nodes. Format: `(a.k.a. 'Client', 'Buyer')` in a smaller, muted font.
 ### What does NOT change
 
 All downstream infrastructure is already in place:
+
 - OrmModel.addObjectType() accepts aliases
 - YAML serialization round-trips aliases
 - JSON schema validates aliases
@@ -73,10 +74,12 @@ All downstream infrastructure is already in place:
 ### Stage 2: Diagram Types and Graph Conversion (TDD)
 
 **Tests first:**
+
 - ModelToGraph.test.ts: entity type node includes aliases when present
 - ModelToGraph.test.ts: entity type node omits aliases when not set
 
 **Implementation:**
+
 - GraphTypes.ts: add `aliases` to ObjectTypeNode
 - LayoutTypes.ts: add `aliases` to PositionedObjectTypeNode
 - ModelToGraph.ts: pass `ot.aliases` into the node
@@ -84,11 +87,13 @@ All downstream infrastructure is already in place:
 ### Stage 3: Layout Engine (TDD)
 
 **Tests first:**
+
 - ElkLayoutEngine.test.ts: node with aliases gets wider width estimate
 - ElkLayoutEngine.test.ts: node with aliases gets taller height
 - ElkLayoutEngine.test.ts: aliases pass through positioned node
 
 **Implementation:**
+
 - ElkLayoutEngine.ts: compute label width including alias text;
   increase height by alias line offset when aliases present;
   pass aliases through in extractPositions
@@ -96,6 +101,7 @@ All downstream infrastructure is already in place:
 ### Stage 4: SVG Rendering (TDD)
 
 **Tests first:**
+
 - SvgRenderer.test.ts: renders alias text below entity name
 - SvgRenderer.test.ts: alias text uses correct format (a.k.a. ...)
 - SvgRenderer.test.ts: escapes special characters in aliases
@@ -103,6 +109,7 @@ All downstream infrastructure is already in place:
 - SvgRenderer.test.ts: omits alias line for value types (optional)
 
 **Implementation:**
+
 - theme.ts: add FONT_SIZE_ALIAS, COLOR_ALIAS
 - SvgRenderer.ts: render alias text element in renderObjectType()
 

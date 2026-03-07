@@ -5,18 +5,18 @@
  * its OpenAI-compatible API) with a mock. Also tests the extractJson
  * helper for stripping markdown code fences.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompletionRequest } from "../../src/LlmClient.js";
 
 // Mock the OpenAI SDK before importing the provider.
 const mockCreate = vi.fn();
-let capturedConstructorArgs: { baseURL?: string; apiKey?: string } | undefined;
+let capturedConstructorArgs: { baseURL?: string; apiKey?: string; } | undefined;
 
 vi.mock("openai", () => {
   return {
     default: class MockOpenAI {
       chat = { completions: { create: mockCreate } };
-      constructor(options?: { baseURL?: string; apiKey?: string }) {
+      constructor(options?: { baseURL?: string; apiKey?: string; }) {
         capturedConstructorArgs = options;
       }
     },
@@ -187,6 +187,6 @@ describe("extractJson", () => {
   });
 
   it("handles empty content inside fences", () => {
-    expect(extractJson('```\n\n```')).toBe('');
+    expect(extractJson("```\n\n```")).toBe("");
   });
 });

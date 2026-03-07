@@ -2,9 +2,9 @@
  * generate_schema tool: generates relational schema (DDL or JSON) from a model.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RelationalMapper, renderDdl } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerSchemaTool(server: McpServer): void {
@@ -13,9 +13,9 @@ export function registerSchemaTool(server: McpServer): void {
     {
       title: "Generate Relational Schema",
       description:
-        "DEPRECATED: Use export_model with format='ddl' instead. This tool will be removed in a future version. " +
-        "Generate a relational schema (DDL or JSON) from an ORM 2 model. " +
-        "Maps object types and fact types to tables, columns, and keys.",
+        "DEPRECATED: Use export_model with format='ddl' instead. This tool will be removed in a future version. "
+        + "Generate a relational schema (DDL or JSON) from an ORM 2 model. "
+        + "Maps object types and fact types to tables, columns, and keys.",
       inputSchema: {
         source: z
           .string()
@@ -35,7 +35,7 @@ export function registerSchemaTool(server: McpServer): void {
 export function executeSchema(
   source: string,
   format: "ddl" | "json" = "ddl",
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
   const mapper = new RelationalMapper();
   const schema = mapper.map(model);

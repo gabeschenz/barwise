@@ -3,9 +3,9 @@
  * or inline YAML content, and deserialize accordingly.
  */
 
-import { readFileSync, existsSync } from "node:fs";
 import { OrmYamlSerializer } from "@barwise/core";
 import type { OrmModel } from "@barwise/core";
+import { existsSync, readFileSync } from "node:fs";
 
 const serializer = new OrmYamlSerializer();
 

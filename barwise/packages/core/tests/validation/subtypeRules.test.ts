@@ -7,7 +7,7 @@
  *   - Cycles in the subtype hierarchy (A -> B -> C -> A)
  *   - Valid models produce no subtype-related diagnostics
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { SubtypeFact } from "../../src/model/SubtypeFact.js";
 import { structuralRules } from "../../src/validation/rules/structural.js";
@@ -50,9 +50,7 @@ describe("subtype structural rules", () => {
     (model as any)._subtypeFacts.set(badSf.id, badSf);
 
     const diags = structuralRules(model);
-    const subtypeDiags = diags.filter((d) =>
-      d.ruleId === "structural/subtype-dangling-supertype",
-    );
+    const subtypeDiags = diags.filter((d) => d.ruleId === "structural/subtype-dangling-supertype");
     expect(subtypeDiags).toHaveLength(1);
     expect(subtypeDiags[0]!.message).toContain("nonexistent-id");
   });
@@ -73,9 +71,7 @@ describe("subtype structural rules", () => {
     (model as any)._subtypeFacts.set(badSf.id, badSf);
 
     const diags = structuralRules(model);
-    const subtypeDiags = diags.filter((d) =>
-      d.ruleId === "structural/subtype-dangling-subtype",
-    );
+    const subtypeDiags = diags.filter((d) => d.ruleId === "structural/subtype-dangling-subtype");
     expect(subtypeDiags).toHaveLength(1);
     expect(subtypeDiags[0]!.message).toContain("nonexistent-id");
   });

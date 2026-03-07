@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { DdlImportFormat } from "../../src/import/DdlImportFormat.js";
 
 describe("DdlImportFormat", () => {
@@ -86,8 +86,8 @@ describe("DdlImportFormat", () => {
       const factTypes = result.model.factTypes;
       const fkFact = factTypes.find(
         (ft) =>
-          ft.roles.some((r) => r.playerId === dept?.id) &&
-          ft.roles.some((r) => r.playerId === emp?.id),
+          ft.roles.some((r) => r.playerId === dept?.id)
+          && ft.roles.some((r) => r.playerId === emp?.id),
       );
       expect(fkFact).toBeDefined();
 
@@ -248,9 +248,7 @@ describe("DdlImportFormat", () => {
       const result = importer.parse(ddl);
 
       // Required column should have mandatory constraint
-      const requiredFact = result.model.factTypes.find((ft) =>
-        ft.name.includes("RequiredCol"),
-      );
+      const requiredFact = result.model.factTypes.find((ft) => ft.name.includes("RequiredCol"));
       expect(requiredFact).toBeDefined();
 
       const mandatoryOnRequired = requiredFact?.constraints.filter(
@@ -259,9 +257,7 @@ describe("DdlImportFormat", () => {
       expect(mandatoryOnRequired?.length).toBeGreaterThan(0);
 
       // Optional column should NOT have mandatory constraint
-      const optionalFact = result.model.factTypes.find((ft) =>
-        ft.name.includes("OptionalCol"),
-      );
+      const optionalFact = result.model.factTypes.find((ft) => ft.name.includes("OptionalCol"));
       expect(optionalFact).toBeDefined();
 
       const mandatoryOnOptional = optionalFact?.constraints.filter(

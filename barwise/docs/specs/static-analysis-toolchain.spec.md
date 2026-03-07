@@ -42,7 +42,7 @@ in CI (GitHub Actions on every PR).
 - Format the entire codebase in one pass.
 - Add `npm run fmt` and `npm run fmt:check` scripts.
 - Integrate into lint-staged (from Stage 2) and CI (Stage 3).
-- Status: Not Started
+- Status: Complete
 
 ### Stage 5: madge (circular dependency detection)
 

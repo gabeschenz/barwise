@@ -1,11 +1,11 @@
 /**
  * Tests for the provider factory and auto-detection logic.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createLlmClient, detectProvider } from "../../src/providers/factory.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AnthropicLlmClient } from "../../src/providers/anthropic.js";
-import { OpenAILlmClient } from "../../src/providers/openai.js";
+import { createLlmClient, detectProvider } from "../../src/providers/factory.js";
 import { OllamaLlmClient } from "../../src/providers/ollama.js";
+import { OpenAILlmClient } from "../../src/providers/openai.js";
 
 describe("createLlmClient", () => {
   it("creates AnthropicLlmClient when provider is 'anthropic'", () => {

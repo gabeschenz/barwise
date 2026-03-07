@@ -10,9 +10,9 @@
  *   - Modified properties (kind, referenceMode, definition, sourceContext,
  *     valueConstraint, readings, role names, role players, constraints)
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { diffModels } from "../../src/diff/ModelDiff.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 function baseModel() {
   return new ModelBuilder("Test")
@@ -305,7 +305,9 @@ describe("diffModels", () => {
       (d) => d.elementType === "fact_type" && d.kind === "modified",
     );
     expect(delta).toBeDefined();
-    expect(delta!.changeDescriptions.some((c) => c.includes("player Customer -> Agent"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("player Customer -> Agent"))).toBe(
+      true,
+    );
   });
 
   it("detects fact type role name changes", () => {
@@ -332,7 +334,8 @@ describe("diffModels", () => {
     );
     expect(delta).toBeDefined();
     expect(delta!.changeDescriptions.some((c) => c.includes('"places" -> "submits"'))).toBe(true);
-    expect(delta!.changeDescriptions.some((c) => c.includes('"is placed by" -> "is submitted by"'))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes('"is placed by" -> "is submitted by"')))
+      .toBe(true);
   });
 
   it("detects constraint additions and removals on fact types", () => {
@@ -405,7 +408,9 @@ describe("diffModels", () => {
     const result = diffModels(existing, incoming);
     const delta = result.deltas.find((d) => d.name === "Age");
     expect(delta!.kind).toBe("modified");
-    expect(delta!.changeDescriptions.some((c) => c.includes("data type: text -> integer"))).toBe(true);
+    expect(delta!.changeDescriptions.some((c) => c.includes("data type: text -> integer"))).toBe(
+      true,
+    );
   });
 
   it("detects removed data type on value type", () => {
@@ -833,7 +838,9 @@ describe("diffModels", () => {
     expect(result.synonymCandidates).toHaveLength(1);
     expect(result.synonymCandidates[0]!.removedName).toBe("Customer");
     expect(result.synonymCandidates[0]!.addedName).toBe("Client");
-    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("reference mode"))).toBe(true);
+    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("reference mode"))).toBe(
+      true,
+    );
   });
 
   it("flags synonym candidate when value types have overlapping value constraints", () => {
@@ -848,7 +855,9 @@ describe("diffModels", () => {
     expect(result.synonymCandidates).toHaveLength(1);
     expect(result.synonymCandidates[0]!.removedName).toBe("Rating");
     expect(result.synonymCandidates[0]!.addedName).toBe("Grade");
-    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("value constraint"))).toBe(true);
+    expect(result.synonymCandidates[0]!.reasons.some((r) => r.includes("value constraint"))).toBe(
+      true,
+    );
   });
 
   it("does not flag synonym when kinds differ", () => {

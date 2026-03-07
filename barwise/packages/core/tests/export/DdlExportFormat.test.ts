@@ -5,9 +5,9 @@
  * function as an ExportFormat, with validation, annotation support, and
  * proper ExportResult structure.
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { DdlExportFormat } from "../../src/export/DdlExportFormat.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const ddlFormat = new DdlExportFormat();
 

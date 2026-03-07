@@ -48,9 +48,11 @@ export async function runCli(args: string[]): Promise<RunResult> {
     await program.parseAsync(["node", "barwise", ...args]);
   } catch (err) {
     // Commander throws on exitOverride -- capture the code.
-    const exitErr = err as { exitCode?: number; code?: string };
-    if (exitErr.code === "commander.helpDisplayed" ||
-        exitErr.code === "commander.version") {
+    const exitErr = err as { exitCode?: number; code?: string; };
+    if (
+      exitErr.code === "commander.helpDisplayed"
+      || exitErr.code === "commander.version"
+    ) {
       // Help and version are not errors.
     } else if (exitErr.exitCode !== undefined) {
       process.exitCode = exitErr.exitCode;

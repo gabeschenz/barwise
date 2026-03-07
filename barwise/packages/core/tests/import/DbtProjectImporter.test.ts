@@ -5,8 +5,8 @@
  * entity type detection, value type creation, fact type inference,
  * constraint mapping, description inference, and gap reporting.
  */
-import { describe, it, expect } from "vitest";
-import { importDbtProject, DbtImportError } from "../../src/import/DbtProjectImporter.js";
+import { describe, expect, it } from "vitest";
+import { DbtImportError, importDbtProject } from "../../src/import/DbtProjectImporter.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures: jaffle-shop-style YAML
@@ -189,9 +189,9 @@ describe("DbtProjectImporter", () => {
 
       const gaps = result.report.entries.filter(
         (e) =>
-          e.severity === "gap" &&
-          e.category === "data_type" &&
-          e.columnName === "customer_name",
+          e.severity === "gap"
+          && e.category === "data_type"
+          && e.columnName === "customer_name",
       );
       expect(gaps).toHaveLength(1);
     });
@@ -278,8 +278,7 @@ models:
       expect(products!.definition).toContain("inferred");
 
       const inferred = result.report.entries.filter(
-        (e) =>
-          e.severity === "warning" && e.category === "description",
+        (e) => e.severity === "warning" && e.category === "description",
       );
       expect(inferred.length).toBeGreaterThan(0);
     });
@@ -289,9 +288,9 @@ models:
 
       const explicit = result.report.entries.filter(
         (e) =>
-          e.severity === "info" &&
-          e.category === "description" &&
-          e.modelName === "customers",
+          e.severity === "info"
+          && e.category === "description"
+          && e.modelName === "customers",
       );
       expect(explicit.length).toBeGreaterThan(0);
     });
@@ -484,18 +483,18 @@ sources:
       // Should NOT have a gap for product_name.
       const gaps = result.report.entries.filter(
         (e) =>
-          e.severity === "gap" &&
-          e.category === "data_type" &&
-          e.columnName === "product_name",
+          e.severity === "gap"
+          && e.category === "data_type"
+          && e.columnName === "product_name",
       );
       expect(gaps).toHaveLength(0);
 
       // Should have an info entry mentioning source resolution.
       const infos = result.report.entries.filter(
         (e) =>
-          e.severity === "info" &&
-          e.category === "data_type" &&
-          e.columnName === "product_name",
+          e.severity === "info"
+          && e.category === "data_type"
+          && e.columnName === "product_name",
       );
       expect(infos).toHaveLength(1);
       expect(infos[0]!.message).toContain("source");
@@ -531,9 +530,9 @@ sources:
       // Should still be a gap.
       const gaps = result.report.entries.filter(
         (e) =>
-          e.severity === "gap" &&
-          e.category === "data_type" &&
-          e.columnName === "status",
+          e.severity === "gap"
+          && e.category === "data_type"
+          && e.columnName === "status",
       );
       expect(gaps).toHaveLength(1);
     });
@@ -572,9 +571,9 @@ sources:
       // No gap for status.
       const gaps = result.report.entries.filter(
         (e) =>
-          e.severity === "gap" &&
-          e.category === "data_type" &&
-          e.columnName === "status",
+          e.severity === "gap"
+          && e.category === "data_type"
+          && e.columnName === "status",
       );
       expect(gaps).toHaveLength(0);
     });

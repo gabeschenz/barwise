@@ -1,6 +1,6 @@
-import * as vscode from "vscode";
 import { OrmYamlSerializer } from "@barwise/core";
 import { generateDiagram } from "@barwise/diagram";
+import * as vscode from "vscode";
 import { DiagramPanel } from "../diagram/DiagramPanel.js";
 
 const serializer = new OrmYamlSerializer();

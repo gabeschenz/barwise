@@ -6,11 +6,11 @@
  * readings, constraints, and optional population data.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
-import type { ObjectType } from "../model/ObjectType.js";
-import type { FactType } from "../model/FactType.js";
 import type { Constraint } from "../model/Constraint.js";
-import type { Population, FactInstance } from "../model/Population.js";
+import type { FactType } from "../model/FactType.js";
+import type { ObjectType } from "../model/ObjectType.js";
+import type { OrmModel } from "../model/OrmModel.js";
+import type { FactInstance, Population } from "../model/Population.js";
 import { Verbalizer } from "../verbalization/Verbalizer.js";
 
 /**
@@ -126,7 +126,8 @@ export function describeDomain(
 
   // No match - return empty description with a message.
   return {
-    summary: `No matching entity, fact type, or constraint type found for focus: "${options.focus}"`,
+    summary:
+      `No matching entity, fact type, or constraint type found for focus: "${options.focus}"`,
     entityTypes: [],
     factTypes: [],
     constraints: [],
@@ -142,9 +143,7 @@ function describeFullModel(
   includePopulations: boolean,
 ): DomainDescription {
   const entitySummaries = model.objectTypes.map(summarizeEntity);
-  const factTypeSummaries = model.factTypes.map((ft) =>
-    summarizeFactType(model, ft),
-  );
+  const factTypeSummaries = model.factTypes.map((ft) => summarizeFactType(model, ft));
 
   const verbalizer = new Verbalizer();
   const constraintSummaries: ConstraintSummary[] = [];
@@ -194,12 +193,10 @@ function describeEntity(
 
   // Find all fact types involving this entity.
   const relatedFactTypes = model.factTypes.filter((ft) =>
-    ft.roles.some((r) => r.playerId === entity.id),
+    ft.roles.some((r) => r.playerId === entity.id)
   );
 
-  const factTypeSummaries = relatedFactTypes.map((ft) =>
-    summarizeFactType(model, ft),
-  );
+  const factTypeSummaries = relatedFactTypes.map((ft) => summarizeFactType(model, ft));
 
   // Find all constraints on those fact types.
   const verbalizer = new Verbalizer();
@@ -220,10 +217,8 @@ function describeEntity(
   // Find populations for related fact types.
   const populationSummaries = includePopulations
     ? model.populations
-        .filter((p) =>
-          relatedFactTypes.some((ft) => ft.id === p.factTypeId),
-        )
-        .map((p) => summarizePopulation(model, p))
+      .filter((p) => relatedFactTypes.some((ft) => ft.id === p.factTypeId))
+      .map((p) => summarizePopulation(model, p))
     : undefined;
 
   const summary = buildEntityFocusSummary(
@@ -276,8 +271,8 @@ function describeFactType(
   // Find populations for this fact type.
   const populationSummaries = includePopulations
     ? model.populations
-        .filter((p) => p.factTypeId === factType.id)
-        .map((p) => summarizePopulation(model, p))
+      .filter((p) => p.factTypeId === factType.id)
+      .map((p) => summarizePopulation(model, p))
     : undefined;
 
   const summary = buildFactTypeFocusSummary(
@@ -326,9 +321,7 @@ function describeConstraintType(
     }
   }
 
-  const factTypeSummaries = relatedFactTypes.map((ft) =>
-    summarizeFactType(model, ft),
-  );
+  const factTypeSummaries = relatedFactTypes.map((ft) => summarizeFactType(model, ft));
 
   // Get entities involved in related fact types.
   const involvedEntityIds = new Set<string>();
@@ -345,10 +338,8 @@ function describeConstraintType(
 
   const populationSummaries = includePopulations
     ? model.populations
-        .filter((p) =>
-          relatedFactTypes.some((ft) => ft.id === p.factTypeId),
-        )
-        .map((p) => summarizePopulation(model, p))
+      .filter((p) => relatedFactTypes.some((ft) => ft.id === p.factTypeId))
+      .map((p) => summarizePopulation(model, p))
     : undefined;
 
   const summary = buildConstraintTypeFocusSummary(
@@ -619,31 +610,40 @@ function matchesConstraintType(
   if (normalized === keywordNormalized) return true;
 
   // Handle variations.
-  if (keywordNormalized === "uniqueness" && normalized.includes("uniqueness"))
+  if (keywordNormalized === "uniqueness" && normalized.includes("uniqueness")) {
     return true;
-  if (keywordNormalized === "mandatory" && normalized.includes("mandatory"))
+  }
+  if (keywordNormalized === "mandatory" && normalized.includes("mandatory")) {
     return true;
-  if (keywordNormalized === "value" && normalized.includes("value"))
+  }
+  if (keywordNormalized === "value" && normalized.includes("value")) {
     return true;
-  if (keywordNormalized === "frequency" && normalized.includes("frequency"))
+  }
+  if (keywordNormalized === "frequency" && normalized.includes("frequency")) {
     return true;
-  if (keywordNormalized === "exclusion" && normalized.includes("exclusion"))
+  }
+  if (keywordNormalized === "exclusion" && normalized.includes("exclusion")) {
     return true;
-  if (keywordNormalized === "subset" && normalized.includes("subset"))
+  }
+  if (keywordNormalized === "subset" && normalized.includes("subset")) {
     return true;
-  if (keywordNormalized === "equality" && normalized.includes("equality"))
+  }
+  if (keywordNormalized === "equality" && normalized.includes("equality")) {
     return true;
+  }
   if (keywordNormalized === "ring" && normalized.includes("ring")) return true;
   if (
-    keywordNormalized === "disjunctive" &&
-    normalized.includes("disjunctive")
-  )
+    keywordNormalized === "disjunctive"
+    && normalized.includes("disjunctive")
+  ) {
     return true;
+  }
   if (
-    keywordNormalized === "exclusive-or" &&
-    normalized.includes("exclusive")
-  )
+    keywordNormalized === "exclusive-or"
+    && normalized.includes("exclusive")
+  ) {
     return true;
+  }
 
   return false;
 }

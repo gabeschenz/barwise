@@ -36,6 +36,7 @@ barwise import batch examples/transcripts/ \
 The model name is slugified for the filename: lowercase, replace
 dots/spaces/slashes with nothing or hyphens, collapse consecutive
 hyphens. Examples:
+
 - `gpt-5-mini` -> `gpt-5-mini`
 - `gpt-5.3-codex` -> `gpt-53-codex`
 - `claude-sonnet-4-5-20250929` -> `claude-sonnet-45-20250929`

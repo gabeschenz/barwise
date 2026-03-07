@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  writeManifest,
+  hashModel,
   readManifest,
   updateManifest,
-  hashModel,
+  writeManifest,
 } from "../../src/lineage/manifest.js";
 import type { LineageManifest, ManifestExport } from "../../src/lineage/types.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";

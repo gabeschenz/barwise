@@ -11,7 +11,7 @@
  *   - Edge cases: empty names, duplicate names, unresolvable roles
  *   - Skip-reason tracking for constraints that cannot be applied
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseDraftModel } from "../src/DraftModelParser.js";
 import type { ExtractionResponse } from "../src/ExtractionTypes.js";
 
@@ -361,7 +361,7 @@ describe("DraftModelParser", () => {
                 { player: "A", role_name: "relates" },
                 { player: "B", role_name: "is related to" },
               ],
-              readings: ["A relates to B"],  // Missing {0}, {1}
+              readings: ["A relates to B"], // Missing {0}, {1}
               source_references: [],
             },
           ],
@@ -911,7 +911,12 @@ describe("DraftModelParser", () => {
       return makeResponse({
         object_types: [
           { name: "Person", kind: "entity", reference_mode: "person_id", source_references: [] },
-          { name: "Employee", kind: "entity", reference_mode: "employee_id", source_references: [] },
+          {
+            name: "Employee",
+            kind: "entity",
+            reference_mode: "employee_id",
+            source_references: [],
+          },
           { name: "Manager", kind: "entity", reference_mode: "manager_id", source_references: [] },
           { name: "Rating", kind: "value", source_references: [] },
         ],
@@ -2259,7 +2264,12 @@ describe("DraftModelParser", () => {
         object_types: [
           { name: "Student", kind: "entity", reference_mode: "student_id", source_references: [] },
           { name: "Course", kind: "entity", reference_mode: "course_id", source_references: [] },
-          { name: "Enrollment", kind: "entity", reference_mode: "enrollment_id", source_references: [] },
+          {
+            name: "Enrollment",
+            kind: "entity",
+            reference_mode: "enrollment_id",
+            source_references: [],
+          },
           { name: "Rating", kind: "value", source_references: [] },
         ],
         fact_types: [
@@ -2435,8 +2445,18 @@ describe("DraftModelParser", () => {
       const result = parseDraftModel(
         makeResponse({
           object_types: [
-            { name: "Customer", kind: "entity", reference_mode: "customer_id", source_references: [] },
-            { name: "CustomerId", kind: "value", data_type: { name: "text", length: 10 }, source_references: [] },
+            {
+              name: "Customer",
+              kind: "entity",
+              reference_mode: "customer_id",
+              source_references: [],
+            },
+            {
+              name: "CustomerId",
+              kind: "value",
+              data_type: { name: "text", length: 10 },
+              source_references: [],
+            },
           ],
           fact_types: [
             {
@@ -2493,7 +2513,12 @@ describe("DraftModelParser", () => {
       const result = parseDraftModel(
         makeResponse({
           object_types: [
-            { name: "Customer", kind: "entity", reference_mode: "customer_id", source_references: [] },
+            {
+              name: "Customer",
+              kind: "entity",
+              reference_mode: "customer_id",
+              source_references: [],
+            },
           ],
           fact_types: [
             {

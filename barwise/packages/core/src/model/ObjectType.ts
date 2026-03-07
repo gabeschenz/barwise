@@ -96,10 +96,9 @@ export class ObjectType extends ModelElement {
     this._sourceContext = config.sourceContext;
     this._valueConstraint = config.valueConstraint;
     this._dataType = config.dataType;
-    this._aliases =
-      config.aliases && config.aliases.length > 0
-        ? Object.freeze([...config.aliases])
-        : undefined;
+    this._aliases = config.aliases && config.aliases.length > 0
+      ? Object.freeze([...config.aliases])
+      : undefined;
 
     if (this.kind === "entity" && !this._referenceMode) {
       throw new Error(
@@ -114,8 +113,8 @@ export class ObjectType extends ModelElement {
     }
 
     if (
-      this._valueConstraint &&
-      this._valueConstraint.values.length === 0
+      this._valueConstraint
+      && this._valueConstraint.values.length === 0
     ) {
       throw new Error(
         `Value constraint on "${this.name}" must have at least one value.`,

@@ -16,8 +16,8 @@
  * We do not embed or redistribute any NORMA source code or XSD schemas.
  */
 import type { OrmModel } from "../model/OrmModel.js";
-import { parseNormaXml, NormaParseError } from "./NormaXmlParser.js";
 import { mapNormaToOrm, NormaMappingError } from "./NormaToOrmMapper.js";
+import { NormaParseError, parseNormaXml } from "./NormaXmlParser.js";
 
 /**
  * Error thrown when NORMA XML import fails at any stage.

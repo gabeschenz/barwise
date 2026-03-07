@@ -7,15 +7,15 @@
  * and rendered as DDL. This proves all subsystems compose correctly and that
  * the output is structurally valid (correct table/column/FK generation).
  */
-import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
+import { renderDdl } from "../../src/mapping/renderers/ddl.js";
 import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
 import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
-import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
-import { renderDdl } from "../../src/mapping/renderers/ddl.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serializer = new OrmYamlSerializer();

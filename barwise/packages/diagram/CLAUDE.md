@@ -56,7 +56,7 @@ npx tsc --noEmit            # type-check only
 
 ## Dependencies
 
-| Direction | Package | What is used |
-|-----------|---------|--------------|
-| Upstream  | `@barwise/core` | `OrmModel`, `ObjectType`, `FactType`, `Role`, `Constraint`, `SubtypeFact` |
-| Downstream | `barwise-vscode` | `generateDiagram`, SVG rendering for the webview diagram panel |
+| Direction  | Package          | What is used                                                              |
+| ---------- | ---------------- | ------------------------------------------------------------------------- |
+| Upstream   | `@barwise/core`  | `OrmModel`, `ObjectType`, `FactType`, `Role`, `Constraint`, `SubtypeFact` |
+| Downstream | `barwise-vscode` | `generateDiagram`, SVG rendering for the webview diagram panel            |

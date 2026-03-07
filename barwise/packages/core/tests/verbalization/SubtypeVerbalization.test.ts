@@ -8,7 +8,7 @@
  *   - Category is "subtype"
  *   - Object type name references are correct
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 

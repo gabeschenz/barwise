@@ -11,11 +11,11 @@
  *   - Unary fact types -> boolean columns
  *   - Mandatory constraints -> NOT NULL
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { renderDdl } from "../../src/mapping/renderers/ddl.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 
@@ -178,7 +178,11 @@ describe("RelationalMapper", () => {
   describe("value type columns", () => {
     it("adds a column for a value type in a binary fact type", () => {
       const model = new OrmModel({ name: "Test" });
-      const customer = model.addObjectType({ name: "Customer", kind: "entity", referenceMode: "customer_id" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
       const name = model.addObjectType({ name: "Name", kind: "value" });
       model.addFactType({
         name: "Customer has Name",
@@ -206,7 +210,11 @@ describe("RelationalMapper", () => {
   describe("unary fact types", () => {
     it("adds a boolean column", () => {
       const model = new OrmModel({ name: "Test" });
-      const customer = model.addObjectType({ name: "Customer", kind: "entity", referenceMode: "customer_id" });
+      const customer = model.addObjectType({
+        name: "Customer",
+        kind: "entity",
+        referenceMode: "customer_id",
+      });
       model.addFactType({
         name: "Customer is active",
         roles: [{ id: "r1", name: "is active", playerId: customer.id }],

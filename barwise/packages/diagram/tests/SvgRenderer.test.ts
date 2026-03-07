@@ -13,9 +13,9 @@
  *   - XML character escaping in names
  *   - Empty graphs
  */
-import { describe, it, expect } from "vitest";
-import { renderSvg } from "../src/render/SvgRenderer.js";
+import { describe, expect, it } from "vitest";
 import type { PositionedGraph } from "../src/layout/LayoutTypes.js";
+import { renderSvg } from "../src/render/SvgRenderer.js";
 
 /** A positioned graph with one entity type, one value type, and one fact type. */
 function makeMinimalGraph(): PositionedGraph {

@@ -1,8 +1,5 @@
+import { OrmYamlSerializer, ValidationEngine } from "@barwise/core";
 import * as vscode from "vscode";
-import {
-  OrmYamlSerializer,
-  ValidationEngine,
-} from "@barwise/core";
 
 /**
  * Runs full validation on the active .orm.yaml file and displays
@@ -54,8 +51,8 @@ export class ValidateModelCommand {
       );
 
       channel.appendLine(
-        `Validation complete: ${errors.length} error(s), ` +
-          `${warnings.length} warning(s), ${infos.length} info(s)`,
+        `Validation complete: ${errors.length} error(s), `
+          + `${warnings.length} warning(s), ${infos.length} info(s)`,
       );
       channel.appendLine("");
 

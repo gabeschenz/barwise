@@ -135,7 +135,11 @@ function serializeModelForReview(model: OrmModel, focus?: string): string {
         lines.push(`  Reference mode: ${ot.referenceMode}`);
       }
       if (ot.dataType) {
-        lines.push(`  Data type: ${ot.dataType.name}${ot.dataType.length ? ` (length: ${ot.dataType.length})` : ""}`);
+        lines.push(
+          `  Data type: ${ot.dataType.name}${
+            ot.dataType.length ? ` (length: ${ot.dataType.length})` : ""
+          }`,
+        );
       }
       if (ot.valueConstraint) {
         lines.push(`  Value constraint: ${ot.valueConstraint.values.join(", ")}`);
@@ -165,10 +169,10 @@ function serializeModelForReview(model: OrmModel, focus?: string): string {
 
   // Constraints summary
   // Collect all constraints from fact types
-  const allConstraints: Array<{type: string}> = [];
+  const allConstraints: Array<{ type: string; }> = [];
   for (const ft of model.factTypes) {
     for (const c of ft.constraints) {
-      allConstraints.push({type: c.type});
+      allConstraints.push({ type: c.type });
     }
   }
 
@@ -244,7 +248,9 @@ function parseReviewResponse(responseContent: string): ReviewResult {
   try {
     parsed = JSON.parse(responseContent);
   } catch (e) {
-    throw new Error(`Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(
+      `Failed to parse LLM response as JSON: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
 
   if (typeof parsed !== "object" || parsed === null) {

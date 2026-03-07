@@ -251,9 +251,9 @@ For additional export formats, use the barwise CLI:
 
 Validate an ORM 2 model and return structured diagnostics.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `source` | string | yes | File path to an `.orm.yaml` file, or inline YAML content |
+| Parameter | Type   | Required | Description                                              |
+| --------- | ------ | -------- | -------------------------------------------------------- |
+| `source`  | string | yes      | File path to an `.orm.yaml` file, or inline YAML content |
 
 **Returns** JSON:
 
@@ -283,10 +283,10 @@ Each diagnostic includes a `severity` ("error" or "warning"), a
 
 Generate FORML natural-language readings for fact types and constraints.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `source` | string | yes | File path to an `.orm.yaml` file, or inline YAML content |
-| `factType` | string | no | Name of a specific fact type to verbalize. Omit for all. |
+| Parameter  | Type   | Required | Description                                              |
+| ---------- | ------ | -------- | -------------------------------------------------------- |
+| `source`   | string | yes      | File path to an `.orm.yaml` file, or inline YAML content |
+| `factType` | string | no       | Name of a specific fact type to verbalize. Omit for all. |
 
 **Returns** plain text, one verbalization per line:
 
@@ -306,10 +306,10 @@ If a reading sounds unnatural, the model likely needs adjustment.
 
 Generate a relational schema (DDL or JSON) from an ORM model.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `source` | string | yes | File path to an `.orm.yaml` file, or inline YAML content |
-| `format` | `"ddl"` or `"json"` | no | Output format. Defaults to `"ddl"`. |
+| Parameter | Type                | Required | Description                                              |
+| --------- | ------------------- | -------- | -------------------------------------------------------- |
+| `source`  | string              | yes      | File path to an `.orm.yaml` file, or inline YAML content |
+| `format`  | `"ddl"` or `"json"` | no       | Output format. Defaults to `"ddl"`.                      |
 
 **Returns** with `format: "ddl"`:
 
@@ -349,10 +349,10 @@ CREATE TABLE Department (
 
 Compare two ORM models and return structural deltas.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `base` | string | yes | File path or inline YAML for the base (original) model |
-| `incoming` | string | yes | File path or inline YAML for the incoming (changed) model |
+| Parameter  | Type   | Required | Description                                               |
+| ---------- | ------ | -------- | --------------------------------------------------------- |
+| `base`     | string | yes      | File path or inline YAML for the base (original) model    |
+| `incoming` | string | yes      | File path or inline YAML for the incoming (changed) model |
 
 **Returns** JSON:
 
@@ -380,6 +380,7 @@ Compare two ORM models and return structural deltas.
 ```
 
 Each delta has a `breakingLevel`:
+
 - **safe** -- additions that do not affect existing consumers
 - **caution** -- modifications that may require consumer review
 - **breaking** -- removals or changes that will break existing consumers
@@ -393,11 +394,12 @@ may actually be a rename (e.g., "Customer" removed, "Client" added).
 
 Generate an SVG diagram from an ORM model.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `source` | string | yes | File path to an `.orm.yaml` file, or inline YAML content |
+| Parameter | Type   | Required | Description                                              |
+| --------- | ------ | -------- | -------------------------------------------------------- |
+| `source`  | string | yes      | File path to an `.orm.yaml` file, or inline YAML content |
 
 **Returns** SVG markup as text. The diagram shows:
+
 - Entity types as rounded rectangles with reference modes
 - Value types as dashed rounded rectangles
 - Fact types as role boxes with reading labels
@@ -412,14 +414,15 @@ Generate an SVG diagram from an ORM model.
 Process a business domain transcript through LLM extraction to produce
 a formal ORM 2 model.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `transcript` | string | yes | Transcript text, or file path to a text/markdown file |
-| `modelName` | string | no | Name for the resulting model. Defaults to "Extracted Model". |
-| `provider` | `"anthropic"`, `"openai"`, or `"ollama"` | no | LLM provider (standalone only). Auto-detects from env vars if omitted. |
-| `model` | string | no | Model ID override, e.g. `"gpt-4o"` (standalone only). |
+| Parameter    | Type                                     | Required | Description                                                            |
+| ------------ | ---------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `transcript` | string                                   | yes      | Transcript text, or file path to a text/markdown file                  |
+| `modelName`  | string                                   | no       | Name for the resulting model. Defaults to "Extracted Model".           |
+| `provider`   | `"anthropic"`, `"openai"`, or `"ollama"` | no       | LLM provider (standalone only). Auto-detects from env vars if omitted. |
+| `model`      | string                                   | no       | Model ID override, e.g. `"gpt-4o"` (standalone only).                  |
 
 **Returns** annotated `.orm.yaml` content with:
+
 - `# TODO:` comments where the extraction was uncertain
 - `# NOTE:` comments with provenance from the source transcript
 - Fully structured entity types, value types, fact types, and
@@ -441,10 +444,10 @@ auto-detection.
 Merge an incoming ORM model into a base model. Accepts all additions
 and modifications, rejects removals (non-interactive merge strategy).
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `base` | string | yes | File path or inline YAML for the base (original) model |
-| `incoming` | string | yes | File path or inline YAML for the incoming model to merge in |
+| Parameter  | Type   | Required | Description                                                 |
+| ---------- | ------ | -------- | ----------------------------------------------------------- |
+| `base`     | string | yes      | File path or inline YAML for the base (original) model      |
+| `incoming` | string | yes      | File path or inline YAML for the incoming model to merge in |
 
 **Returns** JSON:
 

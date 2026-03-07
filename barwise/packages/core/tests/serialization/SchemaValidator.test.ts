@@ -9,7 +9,7 @@
  *   - Rejects unexpected top-level properties (additionalProperties: false)
  *   - Handles non-object and null inputs gracefully
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { SchemaValidator } from "../../src/serialization/SchemaValidator.js";
 
 describe("SchemaValidator", () => {

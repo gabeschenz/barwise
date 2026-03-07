@@ -21,8 +21,8 @@
 
 import { OrmModel } from "../model/OrmModel.js";
 import type { DbtImportReport } from "./DbtImportReport.js";
-import { parseDbtSchema, DbtParseError } from "./DbtSchemaParser.js";
-import { mapDbtToOrm, DbtMappingError } from "./DbtToOrmMapper.js";
+import { DbtParseError, parseDbtSchema } from "./DbtSchemaParser.js";
+import { DbtMappingError, mapDbtToOrm } from "./DbtToOrmMapper.js";
 
 // ---------------------------------------------------------------------------
 // Public types

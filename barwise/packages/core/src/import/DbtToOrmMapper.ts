@@ -20,16 +20,12 @@
  *   Phase 4: Apply descriptions (explicit or inferred)
  */
 
-import { OrmModel } from "../model/OrmModel.js";
 import type { Constraint } from "../model/Constraint.js";
-import type { DataTypeDef, ConceptualDataTypeName } from "../model/ObjectType.js";
-import type {
-  DbtProjectDocument,
-  DbtColumn,
-  DbtTest,
-} from "./DbtSchemaTypes.js";
+import type { ConceptualDataTypeName, DataTypeDef } from "../model/ObjectType.js";
+import { OrmModel } from "../model/OrmModel.js";
 import type { DbtImportReport } from "./DbtImportReport.js";
 import { ReportBuilder } from "./DbtImportReport.js";
+import type { DbtColumn, DbtProjectDocument, DbtTest } from "./DbtSchemaTypes.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -311,8 +307,7 @@ class DbtMapper {
         const dataType = resolveDataType(rawDataType);
 
         // Resolve description.
-        const description =
-          col.description ?? inferColumnDescription(col.name, m.name);
+        const description = col.description ?? inferColumnDescription(col.name, m.name);
         const descSource = col.description ? "explicit" : "inferred";
 
         const vt = this.model.addObjectType({
@@ -491,8 +486,7 @@ function buildConstraints(
 
   // accepted_values -> value constraint on the value type's role.
   const avTest = col.tests.find(
-    (t): t is Extract<DbtTest, { type: "accepted_values" }> =>
-      t.type === "accepted_values",
+    (t): t is Extract<DbtTest, { type: "accepted_values"; }> => t.type === "accepted_values",
   );
   if (avTest) {
     constraints.push({
@@ -515,10 +509,9 @@ function hasTest(col: DbtColumn, testType: string): boolean {
 
 function findRelationshipTest(
   col: DbtColumn,
-): Extract<DbtTest, { type: "relationships" }> | undefined {
+): Extract<DbtTest, { type: "relationships"; }> | undefined {
   return col.tests.find(
-    (t): t is Extract<DbtTest, { type: "relationships" }> =>
-      t.type === "relationships",
+    (t): t is Extract<DbtTest, { type: "relationships"; }> => t.type === "relationships",
   );
 }
 
@@ -630,17 +623,17 @@ function inferColumnDescription(
     return `The ${colWords} of the ${modelWords}.`;
   }
   if (
-    columnName.startsWith("is_") ||
-    columnName.startsWith("has_")
+    columnName.startsWith("is_")
+    || columnName.startsWith("has_")
   ) {
     return `Whether the ${modelWords} ${colWords.replace(/^(is|has) /, "")}.`;
   }
   if (
-    columnName.startsWith("count_") ||
-    columnName.startsWith("total_") ||
-    columnName.startsWith("sum_") ||
-    columnName.startsWith("avg_") ||
-    columnName.startsWith("number_of_")
+    columnName.startsWith("count_")
+    || columnName.startsWith("total_")
+    || columnName.startsWith("sum_")
+    || columnName.startsWith("avg_")
+    || columnName.startsWith("number_of_")
   ) {
     return `Computed: ${colWords} for the ${modelWords}.`;
   }

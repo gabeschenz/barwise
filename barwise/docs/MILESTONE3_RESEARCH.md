@@ -11,6 +11,7 @@ Milestone 3 (JSON Schema and YAML serialization with round-trip .orm.yaml files)
 ### 1.1 Design Rationale (from ARCHITECTURE.md Section 4.1)
 
 **Why YAML over XML/JSON:**
+
 - Readable and editable by humans in a text editor
 - Diffable in version control (meaningful line-by-line diffs)
 - Familiar to data engineers who work with dbt and Airflow configurations daily
@@ -25,6 +26,7 @@ The `.orm.yaml` file format is formally defined by a JSON Schema that serves mul
 4. **Contract for multi-file references** - The schema defines valid shapes for cross-domain references, mapping files, and project manifests
 
 **Schema Versioning and Migration:**
+
 - The schema is versioned. Every file begins with a schema version declaration
 - When the schema evolves, the serialization layer includes forward migration functions
 - Migration is applied transparently on load without rewriting the file on disk unless the user explicitly saves
@@ -57,6 +59,7 @@ Root Properties:
 ```
 
 #### ObjectType Definition
+
 ```
 id: UUID string
 name: string (required)
@@ -72,6 +75,7 @@ value_constraint: {
 **Validation Rule:** If kind == "entity", reference_mode is required.
 
 #### FactType Definition
+
 ```
 id: UUID string
 name: string (required)
@@ -82,6 +86,7 @@ constraints: Constraint[] (optional)
 ```
 
 #### Role Definition
+
 ```
 id: UUID string
 player: string (ObjectType id reference)
@@ -91,12 +96,14 @@ role_name: string (required, used in verbalization)
 #### Constraint Types (Discriminated Union via "type" field)
 
 **Phase 1 (Core):**
+
 - `internal_uniqueness`: roles: string[] (within same fact type)
 - `mandatory`: role: string (single role id)
 - `external_uniqueness`: roles: string[] (across fact types)
 - `value_constraint`: role?: string (optional), values: string[] (enumeration or range)
 
 **Phase 2 (Extended):**
+
 - `disjunctive_mandatory`: roles: string[] (minItems: 2)
 - `exclusion`: roles: string[] (minItems: 2)
 - `exclusive_or`: roles: string[] (minItems: 2)
@@ -106,6 +113,7 @@ role_name: string (required, used in verbalization)
 - `frequency`: role: string, min: integer (minimum: 1), max: integer | "unbounded"
 
 #### SubtypeFact Definition
+
 ```
 id: UUID string
 subtype: string (entity type id)
@@ -114,6 +122,7 @@ provides_identification: boolean (default: true)
 ```
 
 #### Definition (Ubiquitous Language Entry)
+
 ```
 term: string (required)
 definition: string (required, minLength: 1)
@@ -237,7 +246,7 @@ Uses `ajv` (Another JSON Schema Validator) for schema compliance checking:
 ```typescript
 export class SchemaValidator {
   private readonly validate;
-  
+
   constructor() {
     const ajv = new Ajv({ allErrors: true });
     this.validate = ajv.compile(ormModelSchema);
@@ -249,12 +258,13 @@ export class SchemaValidator {
 }
 
 export interface SchemaError {
-  readonly path: string;    // JSON path to error location
+  readonly path: string; // JSON path to error location
   readonly message: string; // Human-readable error message
 }
 ```
 
 **Key Features:**
+
 - Compiled schema for efficient reuse across validation calls
 - `allErrors: true` - collects all validation errors, not just the first
 - Error paths use instancePath notation (e.g., "/model/object_types/0")
@@ -270,6 +280,7 @@ getMappingPaths(yaml: string): string[]  // Extract mapping file paths
 ```
 
 **Key Points:**
+
 - Stores domain and product references as file paths
 - ContextMapping objects are loaded separately via MappingSerializer
 - The manifest declares the set of domains, mappings, and products
@@ -284,6 +295,7 @@ deserialize(yaml: string, path: string): ContextMapping
 ```
 
 **Key Points:**
+
 - Takes file path as parameter (for ContextMapping.path field)
 - Converts between camelCase (TypeScript) and snake_case (YAML)
 - Supports entity mappings and semantic conflicts
@@ -369,6 +381,7 @@ This ensures **zero data loss** during the serialize-deserialize cycle.
 ### 5.2 Round-Trip Guarantees
 
 The implementation guarantees:
+
 - All UUIDs are preserved exactly
 - All constraint types and their parameters are preserved
 - All roles, role names, and player references are preserved
@@ -381,6 +394,7 @@ The implementation guarantees:
 Key integration test: `packages/core/tests/integration/roundTrip.test.ts`
 
 Example test pattern:
+
 ```typescript
 const model = new ModelBuilder()
   .withEntityType("Customer", ...)
@@ -403,19 +417,21 @@ expect(restored).toEqual(model);
 ```json
 {
   "dependencies": {
-    "ajv": "^8.18.0",        // JSON Schema validation
-    "yaml": "^2.8.2"         // YAML parsing and stringification
+    "ajv": "^8.18.0", // JSON Schema validation
+    "yaml": "^2.8.2" // YAML parsing and stringification
   }
 }
 ```
 
 **Why these libraries:**
+
 - **ajv** - Industry-standard, high-performance JSON Schema validator
 - **yaml** - Native YAML support without external build tools; maintains comments and formatting better than alternatives
 
 ### 6.2 No Additional Dependencies
 
 Per project guidelines:
+
 - UUID generation uses native `node:crypto.randomUUID()` (no uuid package)
 - File I/O is handled by the extension/CLI layer (not in core)
 - Type validation uses TypeScript's type system + discriminated unions
@@ -538,6 +554,7 @@ project:
 ### 8.1 JSON Schema Version
 
 All schemas use **JSON Schema Draft 7** (`http://json-schema.org/draft-07/schema#`):
+
 - Mature, stable specification
 - Supported by tooling and editors
 - Allows conditional validation (if/then for entity type rules)
@@ -546,6 +563,7 @@ All schemas use **JSON Schema Draft 7** (`http://json-schema.org/draft-07/schema
 ### 8.2 Conditional Validation Example
 
 From orm-model.schema.json, object_type definition:
+
 ```json
 "if": {
   "properties": { "kind": { "const": "entity" } }
@@ -560,6 +578,7 @@ This ensures: if kind == "entity", reference_mode is required.
 ### 8.3 oneOf Discriminated Unions
 
 Constraints use `oneOf` with discriminated `type` field:
+
 ```json
 "constraints": {
   "oneOf": [
@@ -620,7 +639,7 @@ Each constraint type is validated independently with strict `additionalPropertie
 ### 10.1 Basic Serialization
 
 ```typescript
-import { OrmYamlSerializer } from '@barwise/core';
+import { OrmYamlSerializer } from "@barwise/core";
 
 // Serialize a model to YAML
 const serializer = new OrmYamlSerializer();
@@ -640,16 +659,16 @@ try {
 ### 10.2 Project Loading
 
 ```typescript
-import { ProjectSerializer, MappingSerializer } from '@barwise/core';
-import { readFileSync } from 'fs';
+import { MappingSerializer, ProjectSerializer } from "@barwise/core";
+import { readFileSync } from "fs";
 
 // Load project manifest
-const projectYaml = readFileSync('project.orm-project.yaml', 'utf-8');
+const projectYaml = readFileSync("project.orm-project.yaml", "utf-8");
 const project = new ProjectSerializer().deserialize(projectYaml);
 
 // Load domain models
 for (const domain of project.domains) {
-  const domainYaml = readFileSync(domain.path, 'utf-8');
+  const domainYaml = readFileSync(domain.path, "utf-8");
   const model = new OrmYamlSerializer().deserialize(domainYaml);
   // Use model...
 }
@@ -657,7 +676,7 @@ for (const domain of project.domains) {
 // Load context mappings
 const mappingPaths = new ProjectSerializer().getMappingPaths(projectYaml);
 for (const path of mappingPaths) {
-  const mappingYaml = readFileSync(path, 'utf-8');
+  const mappingYaml = readFileSync(path, "utf-8");
   const mapping = new MappingSerializer().deserialize(mappingYaml, path);
   // Use mapping...
 }
@@ -695,6 +714,7 @@ Platform-Independent Core
 ### 11.3 LLM Integration (@barwise/llm)
 
 The serialization layer provides:
+
 - JSON Schema as structured output constraint for LLM prompts
 - Deserialization of LLM-generated JSON into OrmModel instances
 - Validation errors with source references for human review

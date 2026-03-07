@@ -9,25 +9,42 @@
 import { OrmModel } from "@barwise/core";
 import type { ConceptualDataTypeName, DataTypeDef, RingType } from "@barwise/core";
 import type {
-  ExtractionResponse,
+  ConstraintProvenance,
   DraftModelResult,
   ElementProvenance,
-  ConstraintProvenance,
-  SubtypeProvenance,
+  ExtractionResponse,
   ObjectificationProvenance,
+  SubtypeProvenance,
 } from "./ExtractionTypes.js";
 
 /** Valid ConceptualDataTypeName values for validation of LLM output. */
 const VALID_DATA_TYPE_NAMES: ReadonlySet<string> = new Set<ConceptualDataTypeName>([
-  "text", "integer", "decimal", "money", "float", "boolean",
-  "date", "time", "datetime", "timestamp", "auto_counter",
-  "binary", "uuid", "other",
+  "text",
+  "integer",
+  "decimal",
+  "money",
+  "float",
+  "boolean",
+  "date",
+  "time",
+  "datetime",
+  "timestamp",
+  "auto_counter",
+  "binary",
+  "uuid",
+  "other",
 ]);
 
 /** Valid RingType values for validation of LLM output. */
 const VALID_RING_TYPES: ReadonlySet<string> = new Set<RingType>([
-  "irreflexive", "asymmetric", "antisymmetric", "intransitive",
-  "acyclic", "symmetric", "transitive", "purely_reflexive",
+  "irreflexive",
+  "asymmetric",
+  "antisymmetric",
+  "intransitive",
+  "acyclic",
+  "symmetric",
+  "transitive",
+  "purely_reflexive",
 ]);
 
 /**
@@ -94,15 +111,15 @@ export function parseDraftModel(
     }
 
     // Resolve role player names to object type ids.
-    const resolvedRoles: Array<{ name: string; playerId: string }> = [];
+    const resolvedRoles: Array<{ name: string; playerId: string; }> = [];
     let resolutionFailed = false;
 
     for (const role of ext.roles) {
       const ot = model.getObjectTypeByName(role.player);
       if (!ot) {
         warnings.push(
-          `Fact type "${ext.name}": role player "${role.player}" ` +
-          `not found among extracted object types. Skipping this fact type.`,
+          `Fact type "${ext.name}": role player "${role.player}" `
+            + `not found among extracted object types. Skipping this fact type.`,
         );
         resolutionFailed = true;
         break;
@@ -126,8 +143,8 @@ export function parseDraftModel(
       for (let i = 0; i <= maxPlaceholder; i++) {
         if (!r.includes(`{${i}}`)) {
           warnings.push(
-            `Fact type "${ext.name}": reading "${r}" is missing ` +
-            `placeholder {${i}}. Discarding this reading.`,
+            `Fact type "${ext.name}": reading "${r}" is missing `
+              + `placeholder {${i}}. Discarding this reading.`,
           );
           return false;
         }
@@ -208,7 +225,9 @@ export function parseDraftModel(
           confidence: ic.confidence,
           sourceReferences: ic.source_references ?? [],
           applied: false,
-          skipReason: `Could not resolve roles [${ic.roles.join(", ")}] in fact type "${ic.fact_type}".`,
+          skipReason: `Could not resolve roles [${
+            ic.roles.join(", ")
+          }] in fact type "${ic.fact_type}".`,
         });
       }
     } else if (ic.type === "mandatory") {
@@ -283,7 +302,8 @@ export function parseDraftModel(
             confidence: ic.confidence,
             sourceReferences: ic.source_references ?? [],
             applied: false,
-            skipReason: "Duplicate constraint (identical value constraint on same role already present).",
+            skipReason:
+              "Duplicate constraint (identical value constraint on same role already present).",
           });
         } else {
           ft.addConstraint(vcConstraint);
@@ -296,10 +316,10 @@ export function parseDraftModel(
         }
       }
     } else if (
-      ic.type === "external_uniqueness" ||
-      ic.type === "disjunctive_mandatory" ||
-      ic.type === "exclusion" ||
-      ic.type === "exclusive_or"
+      ic.type === "external_uniqueness"
+      || ic.type === "disjunctive_mandatory"
+      || ic.type === "exclusion"
+      || ic.type === "exclusive_or"
     ) {
       // Multi-role constraints within a single fact type.
       // All four share the same structure: { type, roleIds }.
@@ -310,7 +330,9 @@ export function parseDraftModel(
           confidence: ic.confidence,
           sourceReferences: ic.source_references ?? [],
           applied: false,
-          skipReason: `Could not resolve roles [${ic.roles.join(", ")}] in fact type "${ic.fact_type}".`,
+          skipReason: `Could not resolve roles [${
+            ic.roles.join(", ")
+          }] in fact type "${ic.fact_type}".`,
         });
       } else {
         const constraint: import("@barwise/core").Constraint = {
@@ -480,7 +502,11 @@ export function parseDraftModel(
 
       const subsetRoleIds = resolveRolesByPlayerName(ft, ic.roles, model, warnings, ic.description);
       const supersetRoleIds = resolveRolesByPlayerName(
-        supersetFt, ic.superset_roles, model, warnings, ic.description,
+        supersetFt,
+        ic.superset_roles,
+        model,
+        warnings,
+        ic.description,
       );
 
       if (subsetRoleIds.length === 0 || supersetRoleIds.length === 0) {
@@ -497,7 +523,8 @@ export function parseDraftModel(
           confidence: ic.confidence,
           sourceReferences: ic.source_references ?? [],
           applied: false,
-          skipReason: `${ic.type} constraint requires matching arity: got ${subsetRoleIds.length} vs ${supersetRoleIds.length}.`,
+          skipReason:
+            `${ic.type} constraint requires matching arity: got ${subsetRoleIds.length} vs ${supersetRoleIds.length}.`,
         });
       } else {
         const constraint: import("@barwise/core").Constraint = ic.type === "subset"
@@ -568,7 +595,8 @@ export function parseDraftModel(
         supertype: ext.supertype,
         sourceReferences: ext.source_references ?? [],
         applied: false,
-        skipReason: `Supertype "${ext.supertype}" is a ${supertypeOt.kind} type, not an entity type.`,
+        skipReason:
+          `Supertype "${ext.supertype}" is a ${supertypeOt.kind} type, not an entity type.`,
       });
       continue;
     }
@@ -746,47 +774,47 @@ function isDuplicateConstraint(
       if (existing.type !== "internal_uniqueness") return false;
       const existingRoles = [...existing.roleIds].sort();
       return (
-        existingRoles.length === candidateRoles.length &&
-        existingRoles.every((id, i) => id === candidateRoles[i])
+        existingRoles.length === candidateRoles.length
+        && existingRoles.every((id, i) => id === candidateRoles[i])
       );
     });
   }
   if (candidate.type === "mandatory") {
     return ft.constraints.some(
       (existing) =>
-        existing.type === "mandatory" &&
-        existing.roleId === candidate.roleId,
+        existing.type === "mandatory"
+        && existing.roleId === candidate.roleId,
     );
   }
   if (candidate.type === "value_constraint") {
     return ft.constraints.some(
       (existing) =>
-        existing.type === "value_constraint" &&
-        existing.roleId === candidate.roleId,
+        existing.type === "value_constraint"
+        && existing.roleId === candidate.roleId,
     );
   }
   // Multi-role constraints with sorted role ID comparison.
   if (
-    candidate.type === "external_uniqueness" ||
-    candidate.type === "disjunctive_mandatory" ||
-    candidate.type === "exclusion" ||
-    candidate.type === "exclusive_or"
+    candidate.type === "external_uniqueness"
+    || candidate.type === "disjunctive_mandatory"
+    || candidate.type === "exclusion"
+    || candidate.type === "exclusive_or"
   ) {
     const candidateRoles = [...candidate.roleIds].sort();
     return ft.constraints.some((existing) => {
       if (existing.type !== candidate.type) return false;
       const existingRoles = [...(existing as typeof candidate).roleIds].sort();
       return (
-        existingRoles.length === candidateRoles.length &&
-        existingRoles.every((id, i) => id === candidateRoles[i])
+        existingRoles.length === candidateRoles.length
+        && existingRoles.every((id, i) => id === candidateRoles[i])
       );
     });
   }
   if (candidate.type === "frequency") {
     return ft.constraints.some(
       (existing) =>
-        existing.type === "frequency" &&
-        existing.roleId === candidate.roleId,
+        existing.type === "frequency"
+        && existing.roleId === candidate.roleId,
     );
   }
   if (candidate.type === "ring") {
@@ -802,8 +830,8 @@ function isDuplicateConstraint(
     return ft.constraints.some((existing) => {
       if (existing.type !== "subset") return false;
       return (
-        arraysEqual(existing.subsetRoleIds, candidate.subsetRoleIds) &&
-        arraysEqual(existing.supersetRoleIds, candidate.supersetRoleIds)
+        arraysEqual(existing.subsetRoleIds, candidate.subsetRoleIds)
+        && arraysEqual(existing.supersetRoleIds, candidate.supersetRoleIds)
       );
     });
   }
@@ -811,8 +839,8 @@ function isDuplicateConstraint(
     return ft.constraints.some((existing) => {
       if (existing.type !== "equality") return false;
       return (
-        arraysEqual(existing.roleIds1, candidate.roleIds1) &&
-        arraysEqual(existing.roleIds2, candidate.roleIds2)
+        arraysEqual(existing.roleIds1, candidate.roleIds1)
+        && arraysEqual(existing.roleIds2, candidate.roleIds2)
       );
     });
   }
@@ -870,8 +898,8 @@ function resolveRolesByPlayerName(
 
     // No match found -- warn but do not blindly pick a role.
     warnings.push(
-      `Constraint "${constraintDesc}": could not resolve ` +
-      `role "${hint}" in fact type "${ft.name}". Skipping this role.`,
+      `Constraint "${constraintDesc}": could not resolve `
+        + `role "${hint}" in fact type "${ft.name}". Skipping this role.`,
     );
   }
   return roleIds;
@@ -882,7 +910,7 @@ function camelCase(name: string): string {
 }
 
 function buildDefaultReading(
-  roles: Array<{ name: string; playerId: string }>,
+  roles: Array<{ name: string; playerId: string; }>,
 ): string {
   // Build "{0} role_name_1 {1} role_name_2 {2}" etc.
   const parts: string[] = [];
@@ -901,7 +929,7 @@ function buildDefaultReading(
  * Returns undefined if the input is missing or has an unrecognized type name.
  */
 function resolveDataType(
-  raw: { readonly name: string; readonly length?: number; readonly scale?: number } | undefined,
+  raw: { readonly name: string; readonly length?: number; readonly scale?: number; } | undefined,
   objectTypeName: string,
   warnings: string[],
 ): DataTypeDef | undefined {
@@ -916,10 +944,10 @@ function resolveDataType(
 
   const result: DataTypeDef = { name: raw.name as ConceptualDataTypeName };
   if (raw.length !== undefined && typeof raw.length === "number") {
-    (result as { length: number }).length = raw.length;
+    (result as { length: number; }).length = raw.length;
   }
   if (raw.scale !== undefined && typeof raw.scale === "number") {
-    (result as { scale: number }).scale = raw.scale;
+    (result as { scale: number; }).scale = raw.scale;
   }
   return result;
 }

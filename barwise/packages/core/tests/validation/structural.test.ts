@@ -12,11 +12,11 @@
  * To trigger error paths, several tests inject invalid state directly
  * into OrmModel's private maps, simulating a corrupted deserialization.
  */
-import { describe, it, expect } from "vitest";
-import { structuralRules } from "../../src/validation/rules/structural.js";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { FactType } from "../../src/model/FactType.js";
 import { ObjectType } from "../../src/model/ObjectType.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
+import { structuralRules } from "../../src/validation/rules/structural.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("structuralRules", () => {
@@ -97,9 +97,7 @@ describe("structuralRules", () => {
         .build();
 
       const diagnostics = structuralRules(model);
-      const dupes = diagnostics.filter((d) =>
-        d.ruleId.includes("duplicate"),
-      );
+      const dupes = diagnostics.filter((d) => d.ruleId.includes("duplicate"));
       expect(dupes).toHaveLength(0);
     });
 

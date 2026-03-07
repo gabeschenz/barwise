@@ -8,27 +8,22 @@
  * builder itself, so that bugs in the helper do not silently corrupt
  * downstream test fixtures.
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
+import { isInternalUniqueness, isMandatoryRole } from "../../src/model/Constraint.js";
 import { expandReading } from "../../src/model/ReadingOrder.js";
-import {
-  isInternalUniqueness,
-  isMandatoryRole,
-} from "../../src/model/Constraint.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("ModelBuilder", () => {
   it("builds the order management example from the architecture doc", () => {
     const model = new ModelBuilder("Order Management", "ecommerce")
       .withEntityType("Customer", {
         referenceMode: "customer_id",
-        definition:
-          "A person or organization that has placed at least one order.",
+        definition: "A person or organization that has placed at least one order.",
         sourceContext: "crm",
       })
       .withEntityType("Order", {
         referenceMode: "order_number",
-        definition:
-          "A confirmed request by a customer for one or more products.",
+        definition: "A confirmed request by a customer for one or more products.",
       })
       .withEntityType("Product", {
         referenceMode: "product_id",
@@ -118,8 +113,7 @@ describe("ModelBuilder", () => {
       "Order contains Product",
     );
     expect(containsProduct).toBeDefined();
-    const spanningUniqueness =
-      containsProduct!.constraints.find(isInternalUniqueness);
+    const spanningUniqueness = containsProduct!.constraints.find(isInternalUniqueness);
     expect(spanningUniqueness).toBeDefined();
     expect(spanningUniqueness!.roleIds).toHaveLength(2);
 
@@ -141,7 +135,7 @@ describe("ModelBuilder", () => {
           role1: { player: "Customer", name: "places" },
           role2: { player: "Order", name: "is placed by" }, // Order not declared
         })
-        .build(),
+        .build()
     ).toThrow('object type "Order" not found');
   });
 

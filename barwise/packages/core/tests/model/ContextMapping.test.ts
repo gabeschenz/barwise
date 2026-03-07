@@ -4,7 +4,7 @@
  * Billing "Account"). These tests verify construction, entity-mapping
  * storage, semantic-conflict documentation, and context-involvement queries.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ContextMapping } from "../../src/model/ContextMapping.js";
 
 describe("ContextMapping", () => {

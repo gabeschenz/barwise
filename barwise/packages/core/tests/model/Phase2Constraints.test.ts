@@ -9,25 +9,25 @@
  * all others -- essential for the verbalization and validation engines
  * which dispatch on constraint type.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   isDisjunctiveMandatory,
+  isEquality,
   isExclusion,
   isExclusiveOr,
-  isSubset,
-  isEquality,
-  isRing,
   isFrequency,
+  isRing,
+  isSubset,
 } from "../../src/model/Constraint.js";
 import type {
+  Constraint,
   DisjunctiveMandatoryConstraint,
+  EqualityConstraint,
   ExclusionConstraint,
   ExclusiveOrConstraint,
-  SubsetConstraint,
-  EqualityConstraint,
-  RingConstraint,
   FrequencyConstraint,
-  Constraint,
+  RingConstraint,
+  SubsetConstraint,
 } from "../../src/model/Constraint.js";
 
 describe("Phase 2 Constraint types", () => {

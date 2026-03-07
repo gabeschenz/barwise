@@ -12,11 +12,11 @@ The subset and equality handlers share a code path (lines 443-522).
 Subset has 6 tests covering all 7 branches. Equality has only 4 tests,
 missing 3 branches that are tested for subset but not equality:
 
-| Branch | Line | Subset test | Equality test |
-|--------|------|-------------|---------------|
-| Missing superset_roles | 455 | Yes | **No** |
-| Superset FT not found | 467 | Yes | **No** |
-| Role resolution failure | 483 | Yes | **No** |
+| Branch                  | Line | Subset test | Equality test |
+| ----------------------- | ---- | ----------- | ------------- |
+| Missing superset_roles  | 455  | Yes         | **No**        |
+| Superset FT not found   | 467  | Yes         | **No**        |
+| Role resolution failure | 483  | Yes         | **No**        |
 
 ## Stage 1 (only stage)
 

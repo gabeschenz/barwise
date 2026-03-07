@@ -5,15 +5,15 @@
  */
 
 import { Command } from "commander";
-import { registerValidateCommand } from "./commands/validate.js";
-import { registerVerbalizeCommand } from "./commands/verbalize.js";
-import { registerSchemaCommand } from "./commands/schema.js";
-import { registerExportCommand } from "./commands/export.js";
+import { registerDescribeCommand } from "./commands/describe.js";
 import { registerDiagramCommand } from "./commands/diagram.js";
 import { registerDiffCommand } from "./commands/diff.js";
+import { registerExportCommand } from "./commands/export.js";
 import { registerImportCommand } from "./commands/import.js";
-import { registerDescribeCommand } from "./commands/describe.js";
 import { registerLineageCommand } from "./commands/lineage.js";
+import { registerSchemaCommand } from "./commands/schema.js";
+import { registerValidateCommand } from "./commands/validate.js";
+import { registerVerbalizeCommand } from "./commands/verbalize.js";
 
 export function createProgram(): Command {
   const program = new Command();

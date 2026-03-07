@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  registerImportFormat,
-  getImportFormat,
-  listImportFormats,
   clearImportFormats,
+  getImportFormat,
   ImportFormatError,
+  listImportFormats,
+  registerImportFormat,
 } from "../../src/import/registry.js";
 import type { ImportFormat, ImportOptions, ImportResult } from "../../src/import/types.js";
 import { OrmModel } from "../../src/model/OrmModel.js";

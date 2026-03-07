@@ -22,13 +22,13 @@
  * idempotent via stripBarwiseComments().
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
 import { isInternalUniqueness } from "../model/Constraint.js";
+import type { OrmModel } from "../model/OrmModel.js";
 import {
+  type AnnotationSeverity,
   formatBarwiseComment,
   stripBarwiseComments,
   truncate,
-  type AnnotationSeverity,
 } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
@@ -205,10 +205,9 @@ export function annotateOrmYaml(
       if (nameMatch) {
         const indent = nameMatch[1]!;
         const elementName = nameMatch[2]!.trim().replace(/^["']|["']$/g, "");
-        const lookup =
-          currentSection === "object_types"
-            ? objectTypeAnnotations
-            : factTypeAnnotations;
+        const lookup = currentSection === "object_types"
+          ? objectTypeAnnotations
+          : factTypeAnnotations;
         const elementAnnotations = lookup.get(elementName);
         if (elementAnnotations) {
           for (const a of elementAnnotations) {
@@ -223,10 +222,9 @@ export function annotateOrmYaml(
       if (dashNameMatch) {
         const indent = dashNameMatch[1]! + "  ";
         const elementName = dashNameMatch[2]!.trim().replace(/^["']|["']$/g, "");
-        const lookup =
-          currentSection === "object_types"
-            ? objectTypeAnnotations
-            : factTypeAnnotations;
+        const lookup = currentSection === "object_types"
+          ? objectTypeAnnotations
+          : factTypeAnnotations;
         const elementAnnotations = lookup.get(elementName);
         if (elementAnnotations) {
           for (const a of elementAnnotations) {
@@ -409,7 +407,7 @@ function hasPreferredIdentifier(
 function matchAmbiguityToElement(
   ambiguity: ProvenanceAmbiguity,
   model: OrmModel,
-): { type: "object_type" | "fact_type"; name: string } | undefined {
+): { type: "object_type" | "fact_type"; name: string; } | undefined {
   const desc = ambiguity.description.toLowerCase();
 
   // Try fact types first (more specific names).

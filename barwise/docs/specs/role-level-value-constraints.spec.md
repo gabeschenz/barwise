@@ -15,6 +15,7 @@ are also ready. The gap is entirely in the LLM extraction pipeline
 
 Current behavior: LLMs extract value constraints and emit them as
 `inferred_constraints` with `type: "value_constraint"`, but:
+
 1. The `InferredConstraint` type has no `values` field to carry the
    enumerated values.
 2. The response schema in `ExtractionPrompt.ts` does not include a
@@ -42,6 +43,7 @@ values for role-level VCs. Update prompt instructions to explain when
 to use role-level VCs vs object-type level VCs.
 
 **DraftModelParser.ts** -- Replace the skip logic with:
+
 1. Validate `ic.values` is present and non-empty.
 2. Resolve the fact type by name (already done by existing code).
 3. Resolve the role by player name using `resolveRolesByPlayerName`.
@@ -56,6 +58,7 @@ if same roleId and same values set.
 ### Prompt guidance
 
 Add to the system prompt's constraint section:
+
 - For `value_constraint` in `inferred_constraints`, the `roles` array
   identifies the constrained role (by player name), and the `values`
   array lists the allowed values.

@@ -1,15 +1,15 @@
 /**
  * Tests for the impact_analysis tool.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import { executeImpactAnalysis } from "../../src/tools/impactAnalysis.js";
-import { OrmYamlSerializer, writeManifest, hashModel } from "@barwise/core";
+import { hashModel, OrmYamlSerializer, writeManifest } from "@barwise/core";
 import type { LineageManifest } from "@barwise/core";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import { dirname, resolve } from "node:path";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { executeImpactAnalysis } from "../../src/tools/impactAnalysis.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = resolve(__dirname, "../fixtures");
@@ -126,12 +126,14 @@ describe("impact_analysis tool", () => {
     expect(parsed.changedElement).toBe(elementId);
     expect(parsed.affectedArtifacts).toHaveLength(2);
 
-    const artifactNames = parsed.affectedArtifacts.map((a: { artifact: string }) => a.artifact);
+    const artifactNames = parsed.affectedArtifacts.map((a: { artifact: string; }) => a.artifact);
     expect(artifactNames).toContain("schema.sql");
     expect(artifactNames).toContain("models/game.sql");
     expect(artifactNames).not.toContain("models/player.sql");
 
-    const schemaSql = parsed.affectedArtifacts.find((a: { artifact: string }) => a.artifact === "schema.sql");
+    const schemaSql = parsed.affectedArtifacts.find((a: { artifact: string; }) =>
+      a.artifact === "schema.sql"
+    );
     expect(schemaSql.format).toBe("ddl");
     expect(schemaSql.relationship).toContain("derived from entity type Game");
   });

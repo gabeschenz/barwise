@@ -2,13 +2,9 @@
  * import_model tool: imports from structured formats (DDL, OpenAPI, etc.).
  */
 
-import { z } from "zod";
+import { getImporter, OrmYamlSerializer, registerBuiltinFormats } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  getImporter,
-  registerBuiltinFormats,
-  OrmYamlSerializer,
-} from "@barwise/core";
+import { z } from "zod";
 import { readSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
@@ -21,10 +17,9 @@ export function registerImportModelTool(server: McpServer): void {
     "import_model",
     {
       title: "Import Model",
-      description:
-        "Import an ORM model from a structured format (DDL, OpenAPI, etc.). " +
-        "Performs deterministic parsing to produce a draft ORM model. " +
-        "The draft may need refinement but provides a useful starting point.",
+      description: "Import an ORM model from a structured format (DDL, OpenAPI, etc.). "
+        + "Performs deterministic parsing to produce a draft ORM model. "
+        + "The draft may need refinement but provides a useful starting point.",
       inputSchema: {
         source: z
           .string()
@@ -52,7 +47,7 @@ export async function executeImportModel(
   source: string,
   format: "ddl" | "openapi",
   modelName?: string,
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   // Read source (file or inline)
   const input = readSource(source);
 

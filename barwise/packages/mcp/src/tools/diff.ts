@@ -2,9 +2,9 @@
  * diff_models tool: computes the diff between two ORM models.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { diffModels } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerDiffTool(server: McpServer): void {
@@ -12,9 +12,8 @@ export function registerDiffTool(server: McpServer): void {
     "diff_models",
     {
       title: "Diff ORM Models",
-      description:
-        "Compare two ORM 2 models and return the structural deltas. " +
-        "Shows added, removed, and modified elements with breaking-level indicators.",
+      description: "Compare two ORM 2 models and return the structural deltas. "
+        + "Shows added, removed, and modified elements with breaking-level indicators.",
       inputSchema: {
         base: z
           .string()
@@ -33,7 +32,7 @@ export function registerDiffTool(server: McpServer): void {
 export function executeDiff(
   base: string,
   incoming: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const baseModel = resolveSource(base);
   const incomingModel = resolveSource(incoming);
   const diff = diffModels(baseModel, incomingModel);

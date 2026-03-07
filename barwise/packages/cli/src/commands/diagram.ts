@@ -4,8 +4,8 @@
  * Generates an SVG diagram from an ORM model.
  */
 
-import type { Command } from "commander";
 import { generateDiagram } from "@barwise/diagram";
+import type { Command } from "commander";
 import { loadModel, writeOutput } from "../helpers/io.js";
 
 export function registerDiagramCommand(program: Command): void {
@@ -14,7 +14,7 @@ export function registerDiagramCommand(program: Command): void {
     .description("Generate an SVG diagram from an ORM model")
     .argument("<file>", "Path to .orm.yaml file")
     .option("--output <file>", "Write SVG to file instead of stdout")
-    .action(async (file: string, opts: { output?: string }) => {
+    .action(async (file: string, opts: { output?: string; }) => {
       // Print deprecation notice to stderr.
       process.stderr.write(
         "Note: 'barwise diagram' is deprecated. Use 'barwise export --format svg' instead (when available).\n\n",

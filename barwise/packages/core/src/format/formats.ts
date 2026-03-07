@@ -6,12 +6,12 @@
  * startup to populate the unified registry.
  */
 
-import type { FormatDescriptor } from "./types.js";
-import { DdlImportFormat } from "../import/DdlImportFormat.js";
 import { DdlExportFormat } from "../export/DdlExportFormat.js";
-import { OpenApiImportFormat } from "../import/OpenApiImportFormat.js";
 import { OpenApiExportFormat } from "../export/OpenApiExportFormat.js";
-import { registerFormat, formatRegistry } from "./registry.js";
+import { DdlImportFormat } from "../import/DdlImportFormat.js";
+import { OpenApiImportFormat } from "../import/OpenApiImportFormat.js";
+import { formatRegistry, registerFormat } from "./registry.js";
+import type { FormatDescriptor } from "./types.js";
 
 // -- Descriptor instances ----------------------------------------------------
 

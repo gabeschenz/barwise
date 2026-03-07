@@ -12,10 +12,10 @@
  *   - Player-ID remapping (new fact types reference existing OT IDs)
  *   - Full replacement (accept all deltas)
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { diffModels } from "../../src/diff/ModelDiff.js";
-import { mergeModels, mergeAndValidate, getStructuralErrors } from "../../src/diff/ModelMerge.js";
+import { getStructuralErrors, mergeAndValidate, mergeModels } from "../../src/diff/ModelMerge.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 function baseModel() {
   return new ModelBuilder("Test")

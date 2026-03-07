@@ -1,7 +1,7 @@
 /**
  * Tests for the CLI scaffolding: program creation, version, help.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { runCli } from "./helpers/run.js";
 
 describe("CLI scaffolding", () => {

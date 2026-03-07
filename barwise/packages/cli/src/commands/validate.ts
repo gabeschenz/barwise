@@ -5,10 +5,10 @@
  * and prints diagnostics to stdout.
  */
 
-import type { Command } from "commander";
 import { ValidationEngine } from "@barwise/core";
-import { loadModel } from "../helpers/io.js";
+import type { Command } from "commander";
 import { formatDiagnostics, formatDiagnosticsJson } from "../helpers/format.js";
+import { loadModel } from "../helpers/io.js";
 
 export function registerValidateCommand(program: Command): void {
   program
@@ -17,7 +17,7 @@ export function registerValidateCommand(program: Command): void {
     .argument("<file>", "Path to .orm.yaml file")
     .option("--format <format>", "Output format (text or json)", "text")
     .option("--no-warnings", "Suppress warnings")
-    .action(async (file: string, opts: { format: string; warnings: boolean }) => {
+    .action(async (file: string, opts: { format: string; warnings: boolean; }) => {
       try {
         const model = loadModel(file);
         const engine = new ValidationEngine();

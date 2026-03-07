@@ -9,9 +9,9 @@
  *   - Duplicate-context prevention
  *   - Model attachment and retrieval for domains
  */
-import { describe, it, expect } from "vitest";
-import { OrmProject } from "../../src/model/OrmProject.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { OrmProject } from "../../src/model/OrmProject.js";
 
 describe("OrmProject", () => {
   it("creates a project with a name", () => {
@@ -41,9 +41,9 @@ describe("OrmProject", () => {
     it("rejects duplicate domain contexts", () => {
       const project = new OrmProject({ name: "Test" });
       project.addDomain({ path: "./crm.orm.yaml", context: "crm" });
-      expect(() =>
-        project.addDomain({ path: "./crm2.orm.yaml", context: "crm" }),
-      ).toThrow(/already exists/);
+      expect(() => project.addDomain({ path: "./crm2.orm.yaml", context: "crm" })).toThrow(
+        /already exists/,
+      );
     });
 
     it("looks up domain by context", () => {
@@ -128,7 +128,7 @@ describe("OrmProject", () => {
           context: "clv",
           dependsOnDomains: [],
           dependsOnMappings: [],
-        }),
+        })
       ).toThrow(/already exists/);
     });
 
@@ -141,7 +141,7 @@ describe("OrmProject", () => {
           context: "crm",
           dependsOnDomains: [],
           dependsOnMappings: [],
-        }),
+        })
       ).toThrow(/already used/);
     });
   });

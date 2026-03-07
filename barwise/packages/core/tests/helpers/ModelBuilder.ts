@@ -1,6 +1,10 @@
-import { OrmModel } from "../../src/model/OrmModel.js";
-import type { ObjectTypeKind, ValueConstraintDef, DataTypeDef } from "../../src/model/ObjectType.js";
 import type { Constraint } from "../../src/model/Constraint.js";
+import type {
+  DataTypeDef,
+  ObjectTypeKind,
+  ValueConstraintDef,
+} from "../../src/model/ObjectType.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
 import type { FactInstanceConfig } from "../../src/model/Population.js";
 
 /**
@@ -148,7 +152,7 @@ export class ModelBuilder {
   withSubtypeFact(
     subtypeName: string,
     supertypeName: string,
-    options: { providesIdentification?: boolean } = {},
+    options: { providesIdentification?: boolean; } = {},
   ): this {
     this.subtypeFactConfigs.push({
       subtypeName,
@@ -228,16 +232,16 @@ export class ModelBuilder {
       const player1 = model.getObjectTypeByName(options.role1.player);
       if (!player1) {
         throw new Error(
-          `ModelBuilder: object type "${options.role1.player}" not found ` +
-            `when building fact type "${name}".`,
+          `ModelBuilder: object type "${options.role1.player}" not found `
+            + `when building fact type "${name}".`,
         );
       }
 
       const player2 = model.getObjectTypeByName(options.role2.player);
       if (!player2) {
         throw new Error(
-          `ModelBuilder: object type "${options.role2.player}" not found ` +
-            `when building fact type "${name}".`,
+          `ModelBuilder: object type "${options.role2.player}" not found `
+            + `when building fact type "${name}".`,
         );
       }
 
@@ -324,15 +328,15 @@ export class ModelBuilder {
       const subtype = model.getObjectTypeByName(subtypeName);
       if (!subtype) {
         throw new Error(
-          `ModelBuilder: object type "${subtypeName}" not found ` +
-            `when building subtype fact.`,
+          `ModelBuilder: object type "${subtypeName}" not found `
+            + `when building subtype fact.`,
         );
       }
       const supertype = model.getObjectTypeByName(supertypeName);
       if (!supertype) {
         throw new Error(
-          `ModelBuilder: object type "${supertypeName}" not found ` +
-            `when building subtype fact.`,
+          `ModelBuilder: object type "${supertypeName}" not found `
+            + `when building subtype fact.`,
         );
       }
       model.addSubtypeFact({
@@ -347,15 +351,15 @@ export class ModelBuilder {
       const factType = model.getFactTypeByName(factTypeName);
       if (!factType) {
         throw new Error(
-          `ModelBuilder: fact type "${factTypeName}" not found ` +
-            `when building objectified fact type.`,
+          `ModelBuilder: fact type "${factTypeName}" not found `
+            + `when building objectified fact type.`,
         );
       }
       const objectType = model.getObjectTypeByName(objectTypeName);
       if (!objectType) {
         throw new Error(
-          `ModelBuilder: object type "${objectTypeName}" not found ` +
-            `when building objectified fact type.`,
+          `ModelBuilder: object type "${objectTypeName}" not found `
+            + `when building objectified fact type.`,
         );
       }
       model.addObjectifiedFactType({
@@ -369,8 +373,8 @@ export class ModelBuilder {
       const factType = model.getFactTypeByName(factTypeName);
       if (!factType) {
         throw new Error(
-          `ModelBuilder: fact type "${factTypeName}" not found ` +
-            `when building population.`,
+          `ModelBuilder: fact type "${factTypeName}" not found `
+            + `when building population.`,
         );
       }
       const pop = model.addPopulation({

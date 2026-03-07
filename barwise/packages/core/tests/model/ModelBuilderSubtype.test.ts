@@ -6,7 +6,7 @@
  *   - Error when referencing nonexistent types
  *   - Custom providesIdentification option
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("ModelBuilder withSubtypeFact", () => {
@@ -39,7 +39,7 @@ describe("ModelBuilder withSubtypeFact", () => {
       new ModelBuilder("Test")
         .withEntityType("Person", { referenceMode: "person_id" })
         .withSubtypeFact("Employee", "Person")
-        .build(),
+        .build()
     ).toThrow("not found");
   });
 
@@ -48,7 +48,7 @@ describe("ModelBuilder withSubtypeFact", () => {
       new ModelBuilder("Test")
         .withEntityType("Employee", { referenceMode: "employee_id" })
         .withSubtypeFact("Employee", "Person")
-        .build(),
+        .build()
     ).toThrow("not found");
   });
 

@@ -5,12 +5,12 @@
  * The provider takes a TextDocument and Position from the
  * vscode-languageserver package, which we construct directly.
  */
-import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { HoverProvider } from "../../src/server/HoverProvider.js";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -45,7 +45,7 @@ describe("HoverProvider", () => {
       });
 
       expect(hover).not.toBeNull();
-      const markdown = (hover!.contents as { value: string }).value;
+      const markdown = (hover!.contents as { value: string; }).value;
       expect(markdown).toContain("**Customer**");
       expect(markdown).toContain("entity");
       expect(markdown).toContain("A person who places orders.");
@@ -66,7 +66,7 @@ describe("HoverProvider", () => {
       });
 
       expect(hover).not.toBeNull();
-      const markdown = (hover!.contents as { value: string }).value;
+      const markdown = (hover!.contents as { value: string; }).value;
       expect(markdown).toContain("**Fact types:**");
       // The verbalization should mention "Customer" and "Name".
       expect(markdown).toContain("Customer");
@@ -93,7 +93,7 @@ describe("HoverProvider", () => {
       });
 
       expect(hover).not.toBeNull();
-      const markdown = (hover!.contents as { value: string }).value;
+      const markdown = (hover!.contents as { value: string; }).value;
       expect(markdown).toContain("**Customer**");
       expect(markdown).toContain("entity");
     });

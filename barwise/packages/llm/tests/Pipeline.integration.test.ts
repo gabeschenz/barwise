@@ -11,18 +11,14 @@
  *
  * This proves the full pipeline works headless, without VS Code.
  */
-import { describe, it, expect } from "vitest";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 
-import { parseExtractionFromJson } from "../src/TranscriptProcessor.js";
-import {
-  OrmYamlSerializer,
-  ValidationEngine,
-  Verbalizer,
-} from "@barwise/core";
+import { OrmYamlSerializer, ValidationEngine, Verbalizer } from "@barwise/core";
 import { generateDiagram } from "@barwise/diagram";
+import { parseExtractionFromJson } from "../src/TranscriptProcessor.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = resolve(__dirname, "fixtures");
@@ -196,8 +192,8 @@ describe("Full pipeline integration", () => {
         const diagnostics = engine.validate(model);
         const diagText = diagnostics.length > 0
           ? diagnostics
-              .map((d) => `[${d.severity}] ${d.ruleId}: ${d.message}`)
-              .join("\n")
+            .map((d) => `[${d.severity}] ${d.ruleId}: ${d.message}`)
+            .join("\n")
           : "No diagnostics.";
         writeFileSync(
           resolve(outputDir, `${slug}.diagnostics.txt`),

@@ -4,10 +4,10 @@
  * Manifests are stored in .barwise/lineage.yaml adjacent to the source model.
  */
 
-import * as YAML from "yaml";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { createHash } from "node:crypto";
+import * as YAML from "yaml";
 import type { OrmModel } from "../model/OrmModel.js";
 import { OrmYamlSerializer } from "../serialization/OrmYamlSerializer.js";
 import type { LineageManifest, ManifestExport } from "./types.js";

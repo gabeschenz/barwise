@@ -21,9 +21,8 @@ export function registerOrmSchemaResource(server: McpServer): void {
     "orm-schema://json-schema",
     {
       title: "ORM Model JSON Schema",
-      description:
-        "The JSON Schema that defines the structure of .orm.yaml files. " +
-        "Useful for understanding the model format and validating YAML content.",
+      description: "The JSON Schema that defines the structure of .orm.yaml files. "
+        + "Useful for understanding the model format and validating YAML content.",
       mimeType: "application/json",
     },
     async (uri) => ({

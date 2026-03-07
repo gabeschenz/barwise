@@ -5,8 +5,8 @@
  * and prints DDL or JSON to stdout.
  */
 
-import type { Command } from "commander";
 import { RelationalMapper, renderDdl } from "@barwise/core";
+import type { Command } from "commander";
 import { loadModel } from "../helpers/io.js";
 import { writeOutput } from "../helpers/io.js";
 
@@ -17,7 +17,7 @@ export function registerSchemaCommand(program: Command): void {
     .argument("<file>", "Path to .orm.yaml file")
     .option("--format <format>", "Output format (ddl or json)", "ddl")
     .option("--output <file>", "Write output to file instead of stdout")
-    .action(async (file: string, opts: { format: string; output?: string }) => {
+    .action(async (file: string, opts: { format: string; output?: string; }) => {
       // Print deprecation notice to stderr.
       process.stderr.write(
         "Note: 'barwise schema' is deprecated. Use 'barwise export --format ddl' instead.\n\n",

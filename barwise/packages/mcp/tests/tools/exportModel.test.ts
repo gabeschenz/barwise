@@ -5,9 +5,9 @@
  * and handles errors appropriately.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { executeExportModel } from "../../src/tools/exportModel.js";
 import { OrmYamlSerializer } from "@barwise/core";
+import { beforeEach, describe, expect, it } from "vitest";
+import { executeExportModel } from "../../src/tools/exportModel.js";
 
 const serializer = new OrmYamlSerializer();
 

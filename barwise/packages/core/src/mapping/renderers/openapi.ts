@@ -21,9 +21,9 @@
  * Foreign key columns reference their target schema via `$ref`.
  */
 
-import type { RelationalSchema, Table } from "../RelationalSchema.js";
-import type { OrmModel } from "../../model/OrmModel.js";
 import { renderPopulationAsOpenApiExamples } from "../../export/populationRenderer.js";
+import type { OrmModel } from "../../model/OrmModel.js";
+import type { RelationalSchema, Table } from "../RelationalSchema.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -86,7 +86,7 @@ export function renderOpenApi(
   if (!optionsOrModel) {
     options = {};
     model = undefined;
-  } else if ('objectTypes' in optionsOrModel) {
+  } else if ("objectTypes" in optionsOrModel) {
     // Second param is a model
     model = optionsOrModel;
     options = maybeOptions ?? {};
@@ -166,7 +166,7 @@ function renderComponentSchema(
       const prop = sqlTypeToOpenApi(col.dataType, col.nullable);
       // Add example value if available
       if (example && example[col.name] !== undefined) {
-        (prop as { example: unknown }).example = example[col.name];
+        (prop as { example: unknown; }).example = example[col.name];
       }
       properties[col.name] = prop;
     }

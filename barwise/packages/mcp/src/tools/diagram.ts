@@ -2,9 +2,9 @@
  * generate_diagram tool: generates an SVG diagram from a model.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { generateDiagram } from "@barwise/diagram";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 export function registerDiagramTool(server: McpServer): void {
@@ -13,9 +13,9 @@ export function registerDiagramTool(server: McpServer): void {
     {
       title: "Generate ORM Diagram",
       description:
-        "DEPRECATED: Use export_model with format='svg' instead. This tool will be removed in a future version. " +
-        "Generate an SVG diagram from an ORM 2 model. " +
-        "Returns the SVG markup as text.",
+        "DEPRECATED: Use export_model with format='svg' instead. This tool will be removed in a future version. "
+        + "Generate an SVG diagram from an ORM 2 model. "
+        + "Returns the SVG markup as text.",
       inputSchema: {
         source: z
           .string()
@@ -30,7 +30,7 @@ export function registerDiagramTool(server: McpServer): void {
 
 export async function executeDiagram(
   source: string,
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   const model = resolveSource(source);
   const result = await generateDiagram(model);
 

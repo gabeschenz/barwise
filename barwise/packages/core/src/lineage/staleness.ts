@@ -3,7 +3,7 @@
  */
 
 import type { OrmModel } from "../model/OrmModel.js";
-import { readManifest, hashModel } from "./manifest.js";
+import { hashModel, readManifest } from "./manifest.js";
 
 /**
  * Information about a stale artifact.
@@ -59,7 +59,9 @@ export function checkStaleness(
         artifact: exp.artifact,
         format: exp.format,
         exportedAt: exp.exportedAt,
-        reason: `model hash changed from ${exp.modelHash.substring(0, 8)}... to ${currentHash.substring(0, 8)}...`,
+        reason: `model hash changed from ${exp.modelHash.substring(0, 8)}... to ${
+          currentHash.substring(0, 8)
+        }...`,
       });
     } else {
       freshArtifacts.push(exp.artifact);

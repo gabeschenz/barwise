@@ -6,8 +6,8 @@
  *   - From dbt Project (dbt schema import)
  */
 import * as vscode from "vscode";
-import { ImportTranscriptCommand } from "./ImportTranscriptCommand.js";
 import { ImportDbtCommand } from "./ImportDbtCommand.js";
+import { ImportTranscriptCommand } from "./ImportTranscriptCommand.js";
 
 interface ImportOption extends vscode.QuickPickItem {
   readonly id: "transcript" | "dbt";

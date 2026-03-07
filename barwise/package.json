@@ -13,10 +13,13 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "knip": "knip",
+    "fmt": "dprint fmt",
+    "fmt:check": "dprint check",
     "prepare": "cd .. && husky barwise/.husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "dprint": "^0.52.0",
     "eslint": "^10.0.0",
     "husky": "^9.1.7",
     "knip": "^5.86.0",
@@ -26,7 +29,11 @@
     "typescript-eslint": "^8.56.0"
   },
   "lint-staged": {
-    "*.ts": "eslint --fix"
+    "*.ts": [
+      "dprint fmt --",
+      "eslint --fix"
+    ],
+    "*.{json,md}": "dprint fmt --"
   },
   "packageManager": "npm@10.0.0",
   "engines": {

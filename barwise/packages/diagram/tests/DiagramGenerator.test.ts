@@ -9,9 +9,9 @@
  *   - Edge counts matching role counts
  *   - Layout dimensions are positive and reasonable
  */
-import { describe, it, expect } from "vitest";
-import { generateDiagram } from "../src/DiagramGenerator.js";
+import { describe, expect, it } from "vitest";
 import { ModelBuilder } from "../../core/tests/helpers/ModelBuilder.js";
+import { generateDiagram } from "../src/DiagramGenerator.js";
 
 describe("DiagramGenerator (end-to-end)", () => {
   it("generates a complete SVG from a model", async () => {
@@ -297,8 +297,8 @@ describe("DiagramGenerator (end-to-end)", () => {
       .withBinaryFactType("Customer places Order", {
         role1: { player: "Customer", name: "places" },
         role2: { player: "Order", name: "is placed by" },
-        uniqueness: "both",  // Both roles unique.
-        mandatory: "both",   // Both roles mandatory.
+        uniqueness: "both", // Both roles unique.
+        mandatory: "both", // Both roles mandatory.
       })
       .build();
 

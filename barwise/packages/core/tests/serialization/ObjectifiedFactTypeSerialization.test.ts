@@ -9,10 +9,10 @@
  *   - Schema validation rejects invalid objectified fact types
  *   - Models without objectified fact types omit the key
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
-import { parse } from "yaml";
 
 describe("Objectified fact type serialization", () => {
   const serializer = new OrmYamlSerializer();

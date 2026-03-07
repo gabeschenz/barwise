@@ -4,21 +4,17 @@
  * Verifies that the DDL and OpenAPI descriptors are correctly shaped
  * and that registerBuiltinFormats populates the unified registry.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { ddlFormat, openApiFormat, registerBuiltinFormats } from "../../src/format/formats.js";
 import {
-  ddlFormat,
-  openApiFormat,
-  registerBuiltinFormats,
-} from "../../src/format/formats.js";
-import {
-  formatRegistry,
   clearFormats,
+  formatRegistry,
+  getExporter,
   getFormat,
   getImporter,
-  getExporter,
+  listExporters,
   listFormats,
   listImporters,
-  listExporters,
 } from "../../src/format/registry.js";
 
 describe("Built-in format descriptors", () => {

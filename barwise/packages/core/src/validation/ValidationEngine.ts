@@ -1,10 +1,10 @@
 import type { OrmModel } from "../model/OrmModel.js";
 import type { Diagnostic, DiagnosticSeverity } from "./Diagnostic.js";
-import type { ValidationRule } from "./ValidationRule.js";
-import { structuralRules } from "./rules/structural.js";
-import { constraintConsistencyRules } from "./rules/constraintConsistency.js";
 import { completenessWarnings } from "./rules/completenessWarnings.js";
+import { constraintConsistencyRules } from "./rules/constraintConsistency.js";
 import { populationValidationRules } from "./rules/populationValidation.js";
+import { structuralRules } from "./rules/structural.js";
+import type { ValidationRule } from "./ValidationRule.js";
 
 /**
  * The validation engine orchestrates rule sets against an OrmModel

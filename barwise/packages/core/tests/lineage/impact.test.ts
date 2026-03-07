@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { analyzeImpact } from "../../src/lineage/impact.js";
 import { writeManifest } from "../../src/lineage/manifest.js";
 import type { LineageManifest } from "../../src/lineage/types.js";
@@ -230,7 +230,9 @@ describe("Impact Analysis", () => {
 
     // Test FactType relationship
     const factReport = analyzeImpact(tempDir, factTypeId);
-    expect(factReport.affectedArtifacts[0].relationship).toContain("fact type Customer places Order");
+    expect(factReport.affectedArtifacts[0].relationship).toContain(
+      "fact type Customer places Order",
+    );
 
     // Test Constraint relationship
     const constraintReport = analyzeImpact(tempDir, constraintId);

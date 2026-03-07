@@ -2,19 +2,18 @@
  * impact_analysis tool: analyze impact of changing a model element.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { analyzeImpact } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { dirname, resolve } from "node:path";
+import { z } from "zod";
 
 export function registerImpactAnalysisTool(server: McpServer): void {
   server.registerTool(
     "impact_analysis",
     {
       title: "Analyze Impact",
-      description:
-        "Analyze the impact of changing a model element. " +
-        "Given an element ID, returns which exported artifacts depend on that element.",
+      description: "Analyze the impact of changing a model element. "
+        + "Given an element ID, returns which exported artifacts depend on that element.",
       inputSchema: {
         source: z
           .string()
@@ -33,7 +32,7 @@ export function registerImpactAnalysisTool(server: McpServer): void {
 export function executeImpactAnalysis(
   source: string,
   elementId: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   // Determine the directory for manifest lookup
   // If source looks like a file path, use its directory
   // Otherwise use current working directory

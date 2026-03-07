@@ -9,7 +9,7 @@
  *   - Value constraints on value types
  *   - Source-context tracking for multi-domain models
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ObjectType } from "../../src/model/ObjectType.js";
 
 describe("ObjectType", () => {

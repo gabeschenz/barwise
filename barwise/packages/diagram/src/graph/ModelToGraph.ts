@@ -1,15 +1,15 @@
 import type { OrmModel, RingType } from "@barwise/core";
 import type {
-  OrmGraph,
-  ObjectTypeNode,
-  FactTypeNode,
-  ConstraintNode,
-  ConstraintKind,
-  GraphEdge,
   ConstraintEdge,
-  SubtypeEdge,
-  RoleBox,
+  ConstraintKind,
+  ConstraintNode,
+  FactTypeNode,
+  GraphEdge,
+  ObjectTypeNode,
+  OrmGraph,
   RingTypeLabel,
+  RoleBox,
+  SubtypeEdge,
 } from "./GraphTypes.js";
 
 /** Map core RingType values to short diagram labels. */
@@ -84,7 +84,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     }
 
     // Collect frequency constraints per role.
-    const frequencyByRole = new Map<string, { min: number; max: number | "unbounded" }>();
+    const frequencyByRole = new Map<string, { min: number; max: number | "unbounded"; }>();
     for (const c of ft.constraints) {
       if (c.type === "frequency") {
         frequencyByRole.set(c.roleId, { min: c.min, max: c.max });
@@ -209,8 +209,8 @@ export function modelToGraph(model: OrmModel): OrmGraph {
         case "equality":
           addConstraintNode("equality", c.roleIds1, c.roleIds2);
           break;
-        // frequency and ring are handled inline on role boxes / fact type nodes.
-        // internal_uniqueness, mandatory, and value_constraint are Phase 1.
+          // frequency and ring are handled inline on role boxes / fact type nodes.
+          // internal_uniqueness, mandatory, and value_constraint are Phase 1.
       }
     }
   }

@@ -5,7 +5,7 @@
  * for objectified fact types, following the pattern:
  * "{EntityType} is where {primary reading of underlying fact type}."
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 

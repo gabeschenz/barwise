@@ -11,13 +11,10 @@
  *   - Optional namespace
  *   - avroSchemaToJson produces valid formatted JSON
  */
-import { describe, it, expect } from "vitest";
-import { ModelBuilder } from "../helpers/ModelBuilder.js";
+import { describe, expect, it } from "vitest";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
-import {
-  renderAvro,
-  avroSchemaToJson,
-} from "../../src/mapping/renderers/avro.js";
+import { avroSchemaToJson, renderAvro } from "../../src/mapping/renderers/avro.js";
+import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 const mapper = new RelationalMapper();
 

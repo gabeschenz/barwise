@@ -10,12 +10,8 @@
  * structured JSON output.
  */
 
+import type { CompletionRequest, CompletionResponse, LlmClient } from "@barwise/llm";
 import * as vscode from "vscode";
-import type {
-  LlmClient,
-  CompletionRequest,
-  CompletionResponse,
-} from "@barwise/llm";
 
 export interface CopilotClientOptions {
   /**
@@ -52,10 +48,10 @@ export class CopilotLlmClient implements LlmClient {
     if (models.length === 0) {
       throw new Error(
         this.family
-          ? `No Copilot language model found for family "${this.family}". ` +
-            "Ensure GitHub Copilot is installed and signed in."
-          : "No Copilot language model available. " +
-            "Ensure GitHub Copilot is installed and signed in.",
+          ? `No Copilot language model found for family "${this.family}". `
+            + "Ensure GitHub Copilot is installed and signed in."
+          : "No Copilot language model available. "
+            + "Ensure GitHub Copilot is installed and signed in.",
       );
     }
     return models[0]!;
@@ -74,8 +70,7 @@ export class CopilotLlmClient implements LlmClient {
 
     const start = Date.now();
     const response = await model.sendRequest(messages, {
-      justification:
-        "Barwise needs language model access to extract ORM models from transcripts.",
+      justification: "Barwise needs language model access to extract ORM models from transcripts.",
     });
 
     let text = "";
@@ -103,13 +98,11 @@ export class CopilotLlmClient implements LlmClient {
 
     const start = Date.now();
     const response = await model.sendRequest(messages, {
-      justification:
-        "Barwise needs language model access to extract ORM models from transcripts.",
+      justification: "Barwise needs language model access to extract ORM models from transcripts.",
       tools: [
         {
           name: toolName,
-          description:
-            "Extract a structured ORM model from the transcript analysis.",
+          description: "Extract a structured ORM model from the transcript analysis.",
           inputSchema: request.responseSchema,
         },
       ],

@@ -34,14 +34,14 @@ Two complementary strategies:
 Add the following options to the ELK graph configuration in
 `ElkLayoutEngine.ts`:
 
-| Option | Value | Rationale |
-|--------|-------|-----------|
-| `crossingMinimization.strategy` | `LAYER_SWEEP` | Explicit; standard for layered |
-| `crossingMinimization.greedySwitch.type` | `TWO_SIDED` | Post-processing pass from both directions |
-| `thoroughness` | `40` | More iterations (default 7 is too low) |
-| `nodePlacement.strategy` | `NETWORK_SIMPLEX` | Minimizes total edge length |
-| `nodePlacement.networkSimplex.nodeFlexibility.default` | `NODE_SIZE_WHERE_SPACE_PERMITS` | Allows node flex for straighter edges |
-| `considerModelOrder.strategy` | `NODES_AND_EDGES` | Uses input order as initial hint |
+| Option                                                 | Value                           | Rationale                                 |
+| ------------------------------------------------------ | ------------------------------- | ----------------------------------------- |
+| `crossingMinimization.strategy`                        | `LAYER_SWEEP`                   | Explicit; standard for layered            |
+| `crossingMinimization.greedySwitch.type`               | `TWO_SIDED`                     | Post-processing pass from both directions |
+| `thoroughness`                                         | `40`                            | More iterations (default 7 is too low)    |
+| `nodePlacement.strategy`                               | `NETWORK_SIMPLEX`               | Minimizes total edge length               |
+| `nodePlacement.networkSimplex.nodeFlexibility.default` | `NODE_SIZE_WHERE_SPACE_PERMITS` | Allows node flex for straighter edges     |
+| `considerModelOrder.strategy`                          | `NODES_AND_EDGES`               | Uses input order as initial hint          |
 
 ### Strategy 2: Pre-sort nodes by connectivity
 

@@ -2,14 +2,10 @@
  * merge_models tool: merges an incoming model into a base model.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  diffModels,
-  mergeAndValidate,
-  OrmYamlSerializer,
-} from "@barwise/core";
+import { diffModels, mergeAndValidate, OrmYamlSerializer } from "@barwise/core";
 import type { Diagnostic } from "@barwise/core";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
@@ -19,10 +15,9 @@ export function registerMergeTool(server: McpServer): void {
     "merge_models",
     {
       title: "Merge ORM Models",
-      description:
-        "Merge an incoming ORM model into a base model. Accepts all " +
-        "additions and modifications, rejects removals (non-interactive). " +
-        "Returns the merged model as YAML with validation results.",
+      description: "Merge an incoming ORM model into a base model. Accepts all "
+        + "additions and modifications, rejects removals (non-interactive). "
+        + "Returns the merged model as YAML with validation results.",
       inputSchema: {
         base: z
           .string()
@@ -41,7 +36,7 @@ export function registerMergeTool(server: McpServer): void {
 export function executeMerge(
   base: string,
   incoming: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const baseModel = resolveSource(base);
   const incomingModel = resolveSource(incoming);
 

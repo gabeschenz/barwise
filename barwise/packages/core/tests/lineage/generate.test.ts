@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { generateDdlLineage, generateModelLineage } from "../../src/lineage/generate.js";
 import { RelationalMapper } from "../../src/mapping/RelationalMapper.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
@@ -20,7 +20,7 @@ describe("Lineage Generation", () => {
 
       // Should trace back to the Customer entity type
       const entitySource = lineage[0].sources.find(
-        s => s.elementType === "EntityType" && s.elementName === "Customer"
+        s => s.elementType === "EntityType" && s.elementName === "Customer",
       );
       expect(entitySource).toBeDefined();
     });
@@ -48,19 +48,19 @@ describe("Lineage Generation", () => {
 
       // Should have the Order entity type as a source
       const orderEntitySource = orderLineage!.sources.find(
-        s => s.elementType === "EntityType" && s.elementName === "Order"
+        s => s.elementType === "EntityType" && s.elementName === "Order",
       );
       expect(orderEntitySource).toBeDefined();
 
       // Should have the fact type as a source (FK column)
       const factTypeSource = orderLineage!.sources.find(
-        s => s.elementType === "FactType" && s.elementName === "Customer places Order"
+        s => s.elementType === "FactType" && s.elementName === "Customer places Order",
       );
       expect(factTypeSource).toBeDefined();
 
       // Should have the Customer entity as a source (FK references Customer)
       const customerSource = orderLineage!.sources.find(
-        s => s.elementType === "EntityType" && s.elementName === "Customer"
+        s => s.elementType === "EntityType" && s.elementName === "Customer",
       );
       expect(customerSource).toBeDefined();
     });
@@ -87,13 +87,13 @@ describe("Lineage Generation", () => {
 
       // Should have the fact type that produced the name column
       const factTypeSource = customerLineage!.sources.find(
-        s => s.elementType === "FactType" && s.elementName === "Customer has CustomerName"
+        s => s.elementType === "FactType" && s.elementName === "Customer has CustomerName",
       );
       expect(factTypeSource).toBeDefined();
 
       // Should have the CustomerName value type
       const valueTypeSource = customerLineage!.sources.find(
-        s => s.elementType === "ValueType" && s.elementName === "CustomerName"
+        s => s.elementType === "ValueType" && s.elementName === "CustomerName",
       );
       expect(valueTypeSource).toBeDefined();
 
@@ -123,22 +123,22 @@ describe("Lineage Generation", () => {
 
       // Find the associative table
       const assocLineage = lineage.find(
-        entry => entry.artifact !== "student" && entry.artifact !== "course"
+        entry => entry.artifact !== "student" && entry.artifact !== "course",
       );
       expect(assocLineage).toBeDefined();
 
       // Should trace to the fact type
       const factTypeSource = assocLineage!.sources.find(
-        s => s.elementType === "FactType" && s.elementName === "Student enrolls in Course"
+        s => s.elementType === "FactType" && s.elementName === "Student enrolls in Course",
       );
       expect(factTypeSource).toBeDefined();
 
       // Should reference both entity types
       const studentSource = assocLineage!.sources.find(
-        s => s.elementType === "EntityType" && s.elementName === "Student"
+        s => s.elementType === "EntityType" && s.elementName === "Student",
       );
       const courseSource = assocLineage!.sources.find(
-        s => s.elementType === "EntityType" && s.elementName === "Course"
+        s => s.elementType === "EntityType" && s.elementName === "Course",
       );
       expect(studentSource).toBeDefined();
       expect(courseSource).toBeDefined();
@@ -164,10 +164,10 @@ describe("Lineage Generation", () => {
 
       // Each should have the entity itself as a source
       expect(customerEntry!.sources.some(
-        s => s.elementType === "EntityType" && s.elementName === "Customer"
+        s => s.elementType === "EntityType" && s.elementName === "Customer",
       )).toBe(true);
       expect(orderEntry!.sources.some(
-        s => s.elementType === "EntityType" && s.elementName === "Order"
+        s => s.elementType === "EntityType" && s.elementName === "Order",
       )).toBe(true);
     });
 
@@ -190,7 +190,7 @@ describe("Lineage Generation", () => {
 
       // Should include the fact type
       const factTypeSource = customerEntry!.sources.find(
-        s => s.elementType === "FactType" && s.elementName === "Customer places Order"
+        s => s.elementType === "FactType" && s.elementName === "Customer places Order",
       );
       expect(factTypeSource).toBeDefined();
 
@@ -222,7 +222,7 @@ describe("Lineage Generation", () => {
 
       // Should include the value type
       const valueTypeSource = customerEntry!.sources.find(
-        s => s.elementType === "ValueType" && s.elementName === "CustomerName"
+        s => s.elementType === "ValueType" && s.elementName === "CustomerName",
       );
       expect(valueTypeSource).toBeDefined();
     });
@@ -241,7 +241,7 @@ describe("Lineage Generation", () => {
 
       // Should include Person as a supertype
       const personSource = customerEntry!.sources.filter(
-        s => s.elementType === "EntityType" && s.elementName === "Person"
+        s => s.elementType === "EntityType" && s.elementName === "Person",
       );
       expect(personSource.length).toBeGreaterThan(0);
 
@@ -250,7 +250,7 @@ describe("Lineage Generation", () => {
 
       // Person should reference Customer as a subtype
       const customerSource = personEntry!.sources.filter(
-        s => s.elementType === "EntityType" && s.elementName === "Customer"
+        s => s.elementType === "EntityType" && s.elementName === "Customer",
       );
       expect(customerSource.length).toBeGreaterThan(0);
     });

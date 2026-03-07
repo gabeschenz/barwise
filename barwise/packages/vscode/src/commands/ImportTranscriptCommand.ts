@@ -1,20 +1,15 @@
-import * as vscode from "vscode";
-import * as path from "node:path";
 import {
-  OrmYamlSerializer,
-  ProjectSerializer,
+  annotateOrmYaml,
   diffModels,
   mergeAndValidate,
-  annotateOrmYaml,
+  OrmYamlSerializer,
+  ProjectSerializer,
 } from "@barwise/core";
-import type {
-  OrmModel,
-  ModelDelta,
-  BreakingLevel,
-  SynonymCandidate,
-} from "@barwise/core";
-import { processTranscript, AnthropicLlmClient } from "@barwise/llm";
-import type { LlmClient, DraftModelResult } from "@barwise/llm";
+import type { BreakingLevel, ModelDelta, OrmModel, SynonymCandidate } from "@barwise/core";
+import { AnthropicLlmClient, processTranscript } from "@barwise/llm";
+import type { DraftModelResult, LlmClient } from "@barwise/llm";
+import * as path from "node:path";
+import * as vscode from "vscode";
 import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
 
 const serializer = new OrmYamlSerializer();
@@ -58,8 +53,7 @@ export class ImportTranscriptCommand {
     const modelName = await vscode.window.showInputBox({
       prompt: "Name for the extracted model",
       value: baseName,
-      validateInput: (v) =>
-        v.trim().length === 0 ? "Model name is required" : null,
+      validateInput: (v) => v.trim().length === 0 ? "Model name is required" : null,
     });
 
     if (!modelName) return;
@@ -275,7 +269,7 @@ export class ImportTranscriptCommand {
    * undefined if cancelled.
    */
   private async reviewDeltas(
-    items: { delta: ModelDelta; index: number }[],
+    items: { delta: ModelDelta; index: number; }[],
     synonymCandidates: readonly SynonymCandidate[],
   ): Promise<Set<number> | undefined> {
     interface DeltaQuickPickItem extends vscode.QuickPickItem {
@@ -286,7 +280,7 @@ export class ImportTranscriptCommand {
     const synonymNotes = buildSynonymNotes(synonymCandidates, items);
 
     // Group items by breaking level.
-    const groups: Record<BreakingLevel, { delta: ModelDelta; index: number }[]> = {
+    const groups: Record<BreakingLevel, { delta: ModelDelta; index: number; }[]> = {
       breaking: [],
       caution: [],
       safe: [],
@@ -343,8 +337,7 @@ export class ImportTranscriptCommand {
       {
         canPickMany: true,
         title: "Review extracted changes (uncheck to reject)",
-        placeHolder:
-          "Grouped by risk level. Confirm your selections.",
+        placeHolder: "Grouped by risk level. Confirm your selections.",
       },
     );
 
@@ -380,7 +373,7 @@ function breakingIcon(level: BreakingLevel): string {
  */
 function buildSynonymNotes(
   candidates: readonly SynonymCandidate[],
-  items: { delta: ModelDelta; index: number }[],
+  items: { delta: ModelDelta; index: number; }[],
 ): Map<number, string> {
   const notes = new Map<string, string>();
   const indexSet = new Set(items.map((item) => item.index));
@@ -451,8 +444,8 @@ async function buildLlmClientWithPicker(
   const allModels = await vscode.lm.selectChatModels({});
   if (allModels.length === 0) {
     vscode.window.showErrorMessage(
-      "No Copilot language models available. " +
-      "Ensure GitHub Copilot is installed and signed in.",
+      "No Copilot language models available. "
+        + "Ensure GitHub Copilot is installed and signed in.",
     );
     return undefined;
   }

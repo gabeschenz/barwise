@@ -9,9 +9,9 @@
  *   - Duplicate use of the same object type as objectification target
  *   - Valid objectified fact types produce no diagnostics
  */
-import { describe, it, expect } from "vitest";
-import { OrmModel } from "../../src/model/OrmModel.js";
+import { describe, expect, it } from "vitest";
 import { ObjectifiedFactType } from "../../src/model/ObjectifiedFactType.js";
+import { OrmModel } from "../../src/model/OrmModel.js";
 import { structuralRules } from "../../src/validation/rules/structural.js";
 
 describe("objectified fact type structural rules", () => {
@@ -42,9 +42,7 @@ describe("objectified fact type structural rules", () => {
     });
 
     const diags = structuralRules(model);
-    const oftDiags = diags.filter((d) =>
-      d.ruleId?.startsWith("structural/objectified"),
-    );
+    const oftDiags = diags.filter((d) => d.ruleId?.startsWith("structural/objectified"));
     expect(oftDiags).toHaveLength(0);
   });
 

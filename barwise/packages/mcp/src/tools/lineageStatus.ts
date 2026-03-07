@@ -2,11 +2,11 @@
  * lineage_status tool: check staleness of exported artifacts.
  */
 
-import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { checkStaleness } from "@barwise/core";
-import { resolveSource } from "../helpers/resolve.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { dirname, resolve } from "node:path";
+import { z } from "zod";
+import { resolveSource } from "../helpers/resolve.js";
 
 export function registerLineageStatusTool(server: McpServer): void {
   server.registerTool(
@@ -14,8 +14,8 @@ export function registerLineageStatusTool(server: McpServer): void {
     {
       title: "Check Lineage Status",
       description:
-        "Check staleness of exported artifacts by comparing current model against lineage manifest. " +
-        "Returns which artifacts are stale (out of date) vs fresh (up to date).",
+        "Check staleness of exported artifacts by comparing current model against lineage manifest. "
+        + "Returns which artifacts are stale (out of date) vs fresh (up to date).",
       inputSchema: {
         source: z
           .string()
@@ -32,7 +32,7 @@ export function registerLineageStatusTool(server: McpServer): void {
 
 export function executeLineageStatus(
   source: string,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
 
   // Determine the directory for manifest lookup

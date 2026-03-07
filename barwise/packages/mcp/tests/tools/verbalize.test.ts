@@ -1,9 +1,9 @@
 /**
  * Tests for the verbalize_model tool.
  */
-import { describe, it, expect } from "vitest";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { executeVerbalize } from "../../src/tools/verbalize.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

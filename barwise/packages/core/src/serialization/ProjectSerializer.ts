@@ -1,14 +1,14 @@
-import { stringify, parse } from "yaml";
 import { Ajv, type ErrorObject } from "ajv";
+import { parse, stringify } from "yaml";
 import projectSchema from "../../schemas/orm-project.schema.json" with { type: "json" };
+import type { DomainModelConfig } from "../model/DomainModel.js";
 import {
+  type ExportFormat,
   OrmProject,
   type OrmProjectConfig,
-  type ProjectSettings,
-  type ExportFormat,
   type PreferredIdentifierStrategy,
+  type ProjectSettings,
 } from "../model/OrmProject.js";
-import type { DomainModelConfig } from "../model/DomainModel.js";
 import type { ProductConfig } from "../model/ProductDependency.js";
 
 /**
@@ -17,8 +17,8 @@ import type { ProductConfig } from "../model/ProductDependency.js";
 interface ProjectYamlDocument {
   project: {
     name: string;
-    domains?: Array<{ path: string; context: string }>;
-    mappings?: Array<{ path: string }>;
+    domains?: Array<{ path: string; context: string; }>;
+    mappings?: Array<{ path: string; }>;
     products?: Array<{
       path: string;
       context: string;
@@ -76,19 +76,18 @@ export class ProjectSerializer {
       doc.project.products = project.products.map((p) => {
         const entry: ProjectYamlDocument["project"]["products"] extends
           | Array<infer T>
-          | undefined
-          ? T
+          | undefined ? T
           : never = {
-          path: p.path,
-          context: p.context,
-        };
+            path: p.path,
+            context: p.context,
+          };
 
         if (
-          p.dependsOnDomains.length > 0 ||
-          p.dependsOnMappings.length > 0
+          p.dependsOnDomains.length > 0
+          || p.dependsOnMappings.length > 0
         ) {
           (
-            entry as { depends_on?: { domains?: string[]; mappings?: string[] } }
+            entry as { depends_on?: { domains?: string[]; mappings?: string[]; }; }
           ).depends_on = {};
           if (p.dependsOnDomains.length > 0) {
             entry.depends_on!.domains = [...p.dependsOnDomains];
@@ -104,12 +103,17 @@ export class ProjectSerializer {
 
     // Serialize settings (only if at least one value is set).
     const s = project.settings;
-    if (s.dbtProjectDir || s.defaultExportFormat || s.defaultExportDir || s.preferredIdentifierStrategy || s.defaultLlmModel) {
+    if (
+      s.dbtProjectDir || s.defaultExportFormat || s.defaultExportDir
+      || s.preferredIdentifierStrategy || s.defaultLlmModel
+    ) {
       const settingsDoc: NonNullable<ProjectYamlDocument["project"]["settings"]> = {};
       if (s.dbtProjectDir) settingsDoc.dbt_project_dir = s.dbtProjectDir;
       if (s.defaultExportFormat) settingsDoc.default_export_format = s.defaultExportFormat;
       if (s.defaultExportDir) settingsDoc.default_export_dir = s.defaultExportDir;
-      if (s.preferredIdentifierStrategy) settingsDoc.preferred_identifier_strategy = s.preferredIdentifierStrategy;
+      if (s.preferredIdentifierStrategy) {
+        settingsDoc.preferred_identifier_strategy = s.preferredIdentifierStrategy;
+      }
       if (s.defaultLlmModel) settingsDoc.default_llm_model = s.defaultLlmModel;
       doc.project.settings = settingsDoc;
     }
@@ -137,8 +141,7 @@ export class ProjectSerializer {
     if (!valid) {
       const messages = (this.validate.errors ?? [])
         .map(
-          (e: ErrorObject) =>
-            `${e.instancePath || "/"}: ${e.message ?? "unknown error"}`,
+          (e: ErrorObject) => `${e.instancePath || "/"}: ${e.message ?? "unknown error"}`,
         )
         .join("; ");
       throw new ProjectDeserializationError(
@@ -167,12 +170,14 @@ export class ProjectSerializer {
     // Map snake_case YAML keys to camelCase model properties.
     const settings: ProjectSettings | undefined = doc.project.settings
       ? {
-          dbtProjectDir: doc.project.settings.dbt_project_dir,
-          defaultExportFormat: doc.project.settings.default_export_format as ExportFormat | undefined,
-          defaultExportDir: doc.project.settings.default_export_dir,
-          preferredIdentifierStrategy: doc.project.settings.preferred_identifier_strategy as PreferredIdentifierStrategy | undefined,
-          defaultLlmModel: doc.project.settings.default_llm_model,
-        }
+        dbtProjectDir: doc.project.settings.dbt_project_dir,
+        defaultExportFormat: doc.project.settings.default_export_format as ExportFormat | undefined,
+        defaultExportDir: doc.project.settings.default_export_dir,
+        preferredIdentifierStrategy: doc.project.settings.preferred_identifier_strategy as
+          | PreferredIdentifierStrategy
+          | undefined,
+        defaultLlmModel: doc.project.settings.default_llm_model,
+      }
       : undefined;
 
     const config: OrmProjectConfig = {

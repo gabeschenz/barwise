@@ -1,10 +1,4 @@
-import {
-  parseDocument,
-  visit,
-  isMap,
-  isScalar,
-  LineCounter,
-} from "yaml";
+import { isMap, isScalar, LineCounter, parseDocument, visit } from "yaml";
 
 /**
  * Position in a text document (0-indexed, LSP-compatible).
@@ -72,9 +66,9 @@ export class YamlSourceMap {
 
         for (const pair of node.items) {
           if (
-            isScalar(pair.key) &&
-            pair.key.value === "id" &&
-            isScalar(pair.value)
+            isScalar(pair.key)
+            && pair.key.value === "id"
+            && isScalar(pair.value)
           ) {
             elementId = String(pair.value.value);
             break;

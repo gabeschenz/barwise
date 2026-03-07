@@ -7,8 +7,8 @@
  * optional file breakdown, annotations, constraint specifications, and lineage.
  */
 
-import type { OrmModel } from "../model/OrmModel.js";
 import type { ExportAnnotation } from "../mapping/renderers/DbtExportAnnotator.js";
+import type { OrmModel } from "../model/OrmModel.js";
 
 /**
  * The result of an export operation.
@@ -29,7 +29,7 @@ export interface ExportResult {
    * Individual files (for multi-file formats like dbt, Avro).
    * Each entry has a name (relative path) and content.
    */
-  readonly files?: ReadonlyArray<{ name: string; content: string }>;
+  readonly files?: ReadonlyArray<{ name: string; content: string; }>;
 
   /**
    * Annotations injected into the output (for reporting).

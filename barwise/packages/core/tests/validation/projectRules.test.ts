@@ -8,10 +8,10 @@
  *   - Product dependencies: a product's declared domain and mapping
  *     dependencies must be resolvable within the project
  */
-import { describe, it, expect } from "vitest";
-import { projectRules } from "../../src/validation/rules/projectRules.js";
-import { OrmProject } from "../../src/model/OrmProject.js";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
+import { OrmProject } from "../../src/model/OrmProject.js";
+import { projectRules } from "../../src/validation/rules/projectRules.js";
 
 describe("projectRules", () => {
   it("produces no diagnostics for a valid project", () => {
@@ -217,9 +217,7 @@ describe("projectRules", () => {
 
       const diagnostics = projectRules(project);
       // No entity mapping errors because models aren't loaded.
-      const entityErrors = diagnostics.filter((d) =>
-        d.ruleId.includes("entity-mapping"),
-      );
+      const entityErrors = diagnostics.filter((d) => d.ruleId.includes("entity-mapping"));
       expect(entityErrors).toHaveLength(0);
     });
   });
@@ -253,8 +251,7 @@ describe("projectRules", () => {
 
       const diagnostics = projectRules(project);
       const warnings = diagnostics.filter(
-        (d) =>
-          d.ruleId === "project/product-mapping-dependency-unresolved",
+        (d) => d.ruleId === "project/product-mapping-dependency-unresolved",
       );
       expect(warnings).toHaveLength(1);
       expect(warnings[0]!.severity).toBe("warning");
@@ -283,8 +280,8 @@ describe("projectRules", () => {
       const diagnostics = projectRules(project);
       const depErrors = diagnostics.filter(
         (d) =>
-          d.ruleId === "project/product-domain-dependency-missing" ||
-          d.ruleId === "project/product-mapping-dependency-unresolved",
+          d.ruleId === "project/product-domain-dependency-missing"
+          || d.ruleId === "project/product-mapping-dependency-unresolved",
       );
       expect(depErrors).toHaveLength(0);
     });

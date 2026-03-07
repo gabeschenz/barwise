@@ -1,11 +1,11 @@
-import type { Connection } from "vscode-languageserver/node.js";
-import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver/node.js";
-import type { TextDocument } from "vscode-languageserver-textdocument";
 import {
+  type Diagnostic as OrmDiagnostic,
   OrmYamlSerializer,
   ValidationEngine,
-  type Diagnostic as OrmDiagnostic,
 } from "@barwise/core";
+import type { TextDocument } from "vscode-languageserver-textdocument";
+import type { Connection } from "vscode-languageserver/node.js";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver/node.js";
 import { YamlSourceMap } from "./YamlSourceMap.js";
 
 const ZERO_RANGE = {
@@ -45,9 +45,9 @@ export class DiagnosticsProvider {
         const pos = sourceMap.getPosition(d.elementId);
         const range = pos
           ? {
-              start: { line: pos.line, character: pos.character },
-              end: { line: pos.line, character: pos.character },
-            }
+            start: { line: pos.line, character: pos.character },
+            end: { line: pos.line, character: pos.character },
+          }
           : ZERO_RANGE;
 
         diagnostics.push({

@@ -99,18 +99,18 @@ The metamodel is the central data structure. It represents the conceptual ORM mo
 
 #### 3.1.1 Primary Entities
 
-| Entity | Description |
-|---|---|
-| `ObjectType` | A concept in the domain. May be an **entity type** (identified by a reference scheme) or a **value type** (self-identifying, e.g., a string or number). |
-| `FactType` | A relationship between object types, expressed as a set of ordered roles. Binary fact types are the most common, but unary, ternary, and higher-arity fact types are supported. |
-| `Role` | A position within a fact type, played by an object type. Each role carries a role name used in verbalization. |
-| `SubtypeFact` | A specialization relationship: entity type A is a subtype of entity type B. |
-| `ObjectifiedFactType` | A fact type that is simultaneously treated as an entity type (nesting). |
-| `ReadingOrder` | An ordered sequence of roles with interstitial text, producing a natural-language reading of the fact type. Each fact type has at least one reading order (forward); many have two (forward and inverse). |
-| `Constraint` | A restriction on the population of one or more fact types. See constraint taxonomy below. |
-| `Population` | A set of sample fact instances used for validation with domain experts. |
-| `Definition` | A natural-language definition of an object type or fact type, forming part of the ubiquitous language. |
-| `DomainContext` | Metadata tracking the bounded context from which an object type or fact type originates. Used to document cross-context mappings. |
+| Entity                | Description                                                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ObjectType`          | A concept in the domain. May be an **entity type** (identified by a reference scheme) or a **value type** (self-identifying, e.g., a string or number).                                                   |
+| `FactType`            | A relationship between object types, expressed as a set of ordered roles. Binary fact types are the most common, but unary, ternary, and higher-arity fact types are supported.                           |
+| `Role`                | A position within a fact type, played by an object type. Each role carries a role name used in verbalization.                                                                                             |
+| `SubtypeFact`         | A specialization relationship: entity type A is a subtype of entity type B.                                                                                                                               |
+| `ObjectifiedFactType` | A fact type that is simultaneously treated as an entity type (nesting).                                                                                                                                   |
+| `ReadingOrder`        | An ordered sequence of roles with interstitial text, producing a natural-language reading of the fact type. Each fact type has at least one reading order (forward); many have two (forward and inverse). |
+| `Constraint`          | A restriction on the population of one or more fact types. See constraint taxonomy below.                                                                                                                 |
+| `Population`          | A set of sample fact instances used for validation with domain experts.                                                                                                                                   |
+| `Definition`          | A natural-language definition of an object type or fact type, forming part of the ubiquitous language.                                                                                                    |
+| `DomainContext`       | Metadata tracking the bounded context from which an object type or fact type originates. Used to document cross-context mappings.                                                                         |
 
 #### 3.1.2 Constraint Taxonomy
 
@@ -118,24 +118,24 @@ Constraints are the formal encoding of business rules. The following constraint 
 
 **Phase 1 (Core):**
 
-| Constraint | Applies To | Meaning |
-|---|---|---|
+| Constraint           | Applies To                                  | Meaning                                                                   |
+| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
 | `InternalUniqueness` | One or more roles within a single fact type | The combination of values in these roles is unique across the population. |
-| `MandatoryRole` | A single role | Every instance of the object type playing this role must participate. |
-| `ExternalUniqueness` | Roles spanning multiple fact types | Uniqueness across a combination of roles from different fact types. |
-| `ValueConstraint` | A value type or role | Restricts the allowed values (enumeration or range). |
+| `MandatoryRole`      | A single role                               | Every instance of the object type playing this role must participate.     |
+| `ExternalUniqueness` | Roles spanning multiple fact types          | Uniqueness across a combination of roles from different fact types.       |
+| `ValueConstraint`    | A value type or role                        | Restricts the allowed values (enumeration or range).                      |
 
 **Phase 2 (Extended):**
 
-| Constraint | Applies To | Meaning |
-|---|---|---|
-| `DisjunctiveMandatory` | Two or more roles | Each instance of the common object type must play at least one of the specified roles. |
-| `Exclusion` | Two or more roles | No instance may play both roles simultaneously. |
-| `ExclusiveOr` | Two or more roles | Combines disjunctive mandatory and exclusion: exactly one of the roles must be played. |
-| `Subset` | Pair of role sequences | The population of one role sequence must be a subset of the other. |
-| `Equality` | Pair of role sequences | The populations of both role sequences must be identical. |
-| `Ring` | A pair of roles in a single fact type played by the same object type | Constrains reflexive relationships (irreflexive, asymmetric, intransitive, acyclic, etc.). |
-| `Frequency` | A role | Restricts how many times an object may play this role (min..max). |
+| Constraint             | Applies To                                                           | Meaning                                                                                    |
+| ---------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `DisjunctiveMandatory` | Two or more roles                                                    | Each instance of the common object type must play at least one of the specified roles.     |
+| `Exclusion`            | Two or more roles                                                    | No instance may play both roles simultaneously.                                            |
+| `ExclusiveOr`          | Two or more roles                                                    | Combines disjunctive mandatory and exclusion: exactly one of the roles must be played.     |
+| `Subset`               | Pair of role sequences                                               | The population of one role sequence must be a subset of the other.                         |
+| `Equality`             | Pair of role sequences                                               | The populations of both role sequences must be identical.                                  |
+| `Ring`                 | A pair of roles in a single fact type played by the same object type | Constrains reflexive relationships (irreflexive, asymmetric, intransitive, acyclic, etc.). |
+| `Frequency`            | A role                                                               | Restricts how many times an object may play this role (min..max).                          |
 
 #### 3.1.3 Model Identity and References
 
@@ -153,12 +153,12 @@ Large projects span multiple bounded contexts, each modeled in its own `.orm.yam
 
 The metamodel supports this through the following additions:
 
-| Entity | Description |
-|---|---|
-| `OrmProject` | Root aggregate for a multi-domain project. Holds references to domain models and context mappings. |
-| `DomainModel` | A single bounded context's ORM model, loaded from one `.orm.yaml` file. Each has a unique context name. |
-| `ContextMapping` | A relationship between two domain models, loaded from a `.map.yaml` file. Documents how concepts translate across context boundaries. |
-| `EntityMapping` | A specific correspondence between an object type in one domain and an object type in another, within a context mapping. |
+| Entity             | Description                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `OrmProject`       | Root aggregate for a multi-domain project. Holds references to domain models and context mappings.                                     |
+| `DomainModel`      | A single bounded context's ORM model, loaded from one `.orm.yaml` file. Each has a unique context name.                                |
+| `ContextMapping`   | A relationship between two domain models, loaded from a `.map.yaml` file. Documents how concepts translate across context boundaries.  |
+| `EntityMapping`    | A specific correspondence between an object type in one domain and an object type in another, within a context mapping.                |
 | `SemanticConflict` | An explicit documentation of where two domains use the same term with different meanings, and how the warehouse resolves the conflict. |
 
 The `ContextMapping` carries a `pattern` field corresponding to the DDD context mapping patterns:
@@ -600,7 +600,7 @@ interface LlmClient {
 interface CompletionRequest {
   systemPrompt: string;
   userMessage: string;
-  responseSchema?: JsonSchema;  // for structured output
+  responseSchema?: JsonSchema; // for structured output
 }
 ```
 
@@ -623,14 +623,14 @@ The core package exposes a programmatic API (the `OrmModel`, `OrmProject`, `Rela
 
 The following integrations are anticipated. Each would be a separate project/package with its own repository, release cadence, and dependencies.
 
-| Integration | Consumes | Produces | Notes |
-|---|---|---|---|
-| **dbt export** | `OrmProject`, `RelationalSchema`, constraint model, verbalization output | Staging/integration/mart model skeletons, YAML configs with descriptions, dbt tests derived from ORM constraints | Primary integration target. Constraint-to-test mapping (uniqueness to `unique`, mandatory to `not_null`, value constraint to `accepted_values`, subset to `relationships`) is the highest-value feature. |
-| **NORMA XML import** | NORMA `.orm` XML files | `OrmModel` | One-directional. Supports teams migrating from NORMA. Low priority unless a concrete need arises. |
-| **SQL DDL export** | `RelationalSchema` | DDL statements | Useful for documentation and for teams not using dbt. |
-| **MCP server** | `OrmProject`, verbalization output | MCP tool responses | Exposes the semantic model to LLM-based tooling. Enables queries like "what does Customer mean in the billing context?" |
-| **CI/CD validator** | `OrmProject` | Pass/fail with diagnostics | CLI wrapper around the validation engine for use in pull request checks. |
-| **Data catalog sync** | `OrmProject`, verbalization output | Catalog API calls | Pushes definitions and lineage to tools like Atlan, DataHub, or OpenMetadata. |
+| Integration           | Consumes                                                                 | Produces                                                                                                         | Notes                                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **dbt export**        | `OrmProject`, `RelationalSchema`, constraint model, verbalization output | Staging/integration/mart model skeletons, YAML configs with descriptions, dbt tests derived from ORM constraints | Primary integration target. Constraint-to-test mapping (uniqueness to `unique`, mandatory to `not_null`, value constraint to `accepted_values`, subset to `relationships`) is the highest-value feature. |
+| **NORMA XML import**  | NORMA `.orm` XML files                                                   | `OrmModel`                                                                                                       | One-directional. Supports teams migrating from NORMA. Low priority unless a concrete need arises.                                                                                                        |
+| **SQL DDL export**    | `RelationalSchema`                                                       | DDL statements                                                                                                   | Useful for documentation and for teams not using dbt.                                                                                                                                                    |
+| **MCP server**        | `OrmProject`, verbalization output                                       | MCP tool responses                                                                                               | Exposes the semantic model to LLM-based tooling. Enables queries like "what does Customer mean in the billing context?"                                                                                  |
+| **CI/CD validator**   | `OrmProject`                                                             | Pass/fail with diagnostics                                                                                       | CLI wrapper around the validation engine for use in pull request checks.                                                                                                                                 |
+| **Data catalog sync** | `OrmProject`, verbalization output                                       | Catalog API calls                                                                                                | Pushes definitions and lineage to tools like Atlan, DataHub, or OpenMetadata.                                                                                                                            |
 
 To support these integrations cleanly, the core package must export stable, well-documented TypeScript interfaces for:
 
@@ -703,15 +703,15 @@ packages/vscode/src/
 
 The extension registers commands for common operations:
 
-| Command | Description |
-|---|---|
-| `orm.newProject` | Create a new `.orm.yaml` file with scaffold. |
-| `orm.importTranscript` | Run the transcript processor on a selected file. |
-| `orm.importNorma` | Import a NORMA `.orm` XML file. |
-| `orm.showDiagram` | Open the diagram panel for the current model. |
-| `orm.verbalize` | Generate a verbalization report for the current model. |
-| `orm.exportDdl` | Generate relational DDL from the current model. |
-| `orm.validateModel` | Run full validation and report results. |
+| Command                | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| `orm.newProject`       | Create a new `.orm.yaml` file with scaffold.           |
+| `orm.importTranscript` | Run the transcript processor on a selected file.       |
+| `orm.importNorma`      | Import a NORMA `.orm` XML file.                        |
+| `orm.showDiagram`      | Open the diagram panel for the current model.          |
+| `orm.verbalize`        | Generate a verbalization report for the current model. |
+| `orm.exportDdl`        | Generate relational DDL from the current model.        |
+| `orm.validateModel`    | Run full validation and report results.                |
 
 ```
 packages/vscode/src/
@@ -831,13 +831,13 @@ The testing approach is structured in layers that mirror the architecture. The g
 ### 7.1 Test Pyramid
 
 ```
-         ╱  ╲
-        ╱ E2E ╲              VS Code integration tests (slow, few)
-       ╱────────╲
-      ╱ Integration╲          Cross-module tests in core (moderate)
-     ╱──────────────╲
-    ╱   Unit Tests    ╲        Pure functions, single module (fast, many)
-   ╱────────────────────╲
+      ╱  ╲
+     ╱ E2E ╲              VS Code integration tests (slow, few)
+    ╱────────╲
+   ╱ Integration╲          Cross-module tests in core (moderate)
+  ╱──────────────╲
+ ╱   Unit Tests    ╲        Pure functions, single module (fast, many)
+╱────────────────────╲
 ```
 
 ### 7.2 Unit Tests (packages/core, packages/llm)
@@ -845,6 +845,7 @@ The testing approach is structured in layers that mirror the architecture. The g
 **Scope:** Individual functions and classes in isolation.
 
 **Characteristics:**
+
 - No I/O, no file system, no network.
 - Run in under a second per test file.
 - Use in-memory model construction helpers to build test fixtures.
@@ -852,28 +853,29 @@ The testing approach is structured in layers that mirror the architecture. The g
 
 **Key test areas in `packages/core`:**
 
-| Area | What is tested | Example test case |
-|---|---|---|
-| Model construction | Creating and linking elements | "Adding a role to a fact type with a nonexistent player ObjectType throws" |
-| Validation: structural | Well-formedness rules | "Fact type with no reading orders produces a diagnostic" |
-| Validation: constraints | Constraint consistency | "Internal uniqueness referencing a role not in its fact type produces an error" |
-| Validation: population | Sample data vs. constraints | "Population that violates a uniqueness constraint produces an error" |
-| Verbalization | FORML sentence generation | "Binary fact type with single-role uniqueness verbalizes as 'Each X ... at most one Y'" |
-| Relational mapping | ORM to tables/columns/keys | "Binary fact type with mandatory single-role uniqueness maps to FK on the mandatory side" |
-| Serialization | Round-trip YAML read/write | "Model serialized to YAML and deserialized produces an identical model" |
+| Area                    | What is tested                | Example test case                                                                         |
+| ----------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Model construction      | Creating and linking elements | "Adding a role to a fact type with a nonexistent player ObjectType throws"                |
+| Validation: structural  | Well-formedness rules         | "Fact type with no reading orders produces a diagnostic"                                  |
+| Validation: constraints | Constraint consistency        | "Internal uniqueness referencing a role not in its fact type produces an error"           |
+| Validation: population  | Sample data vs. constraints   | "Population that violates a uniqueness constraint produces an error"                      |
+| Verbalization           | FORML sentence generation     | "Binary fact type with single-role uniqueness verbalizes as 'Each X ... at most one Y'"   |
+| Relational mapping      | ORM to tables/columns/keys    | "Binary fact type with mandatory single-role uniqueness maps to FK on the mandatory side" |
+| Serialization           | Round-trip YAML read/write    | "Model serialized to YAML and deserialized produces an identical model"                   |
 
 **Key test areas in `packages/llm`:**
 
-| Area | What is tested | Example test case |
-|---|---|---|
-| Prompt construction | System prompt assembly | "Prompt includes the JSON schema for structured output" |
-| Response parsing | LLM JSON output to OrmModel | "Well-formed extraction response produces valid draft model" |
-| Malformed responses | Graceful handling of bad LLM output | "Response with missing required fields produces parse error, not crash" |
+| Area                     | What is tested                      | Example test case                                                                                                  |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Prompt construction      | System prompt assembly              | "Prompt includes the JSON schema for structured output"                                                            |
+| Response parsing         | LLM JSON output to OrmModel         | "Well-formed extraction response produces valid draft model"                                                       |
+| Malformed responses      | Graceful handling of bad LLM output | "Response with missing required fields produces parse error, not crash"                                            |
 | Fixture-based extraction | Known transcript to expected output | "Given the sample order-management transcript, extraction identifies Customer, Order, and Product as entity types" |
 
 **Framework:** Vitest (fast, TypeScript-native, compatible with VS Code testing extensions).
 
 **Conventions:**
+
 - Test files are co-located with source under `tests/` mirrors.
 - Naming: `<Module>.test.ts`.
 - Shared fixture builders live in `tests/helpers/ModelBuilder.ts`, providing a fluent API for constructing test models without boilerplate.
@@ -886,8 +888,8 @@ const model = new ModelBuilder()
   .withBinaryFactType("Customer places Order", {
     role1: { player: "Customer", name: "places" },
     role2: { player: "Order", name: "is placed by" },
-    uniqueness: "role2",    // shorthand: each Order -> at most one Customer
-    mandatory: "role2",     // shorthand: every Order must have a Customer
+    uniqueness: "role2", // shorthand: each Order -> at most one Customer
+    mandatory: "role2", // shorthand: every Order must have a Customer
   })
   .build();
 ```
@@ -897,6 +899,7 @@ const model = new ModelBuilder()
 **Scope:** Multiple modules working together within the core.
 
 **Characteristics:**
+
 - May involve file system reads (loading test fixture `.orm.yaml` files).
 - Test end-to-end flows: load a model file, validate it, verbalize it, map it to relational schema.
 - NORMA XML import tests load real `.orm` files exported from NORMA and verify the resulting model.
@@ -934,6 +937,7 @@ packages/core/tests/
 **Scope:** Extension behavior within a running VS Code instance.
 
 **Characteristics:**
+
 - Run using VS Code's `@vscode/test-electron` or `@vscode/test-web` harness.
 - Slow relative to unit tests; limited to critical user-facing flows.
 - Verify that diagnostics appear, commands execute, and the diagram panel opens.
@@ -966,15 +970,15 @@ packages/llm/tests/
 
 ### 7.6 Test Coverage Targets
 
-| Package | Target | Rationale |
-|---|---|---|
-| `core/model` | 95%+ | The metamodel is the foundation. Edge cases here propagate everywhere. |
-| `core/validation` | 95%+ | Incorrect validation erodes trust in the tool. Every rule must be tested. |
-| `core/verbalization` | 90%+ | Verbalization quality directly affects business stakeholder adoption. |
-| `core/mapping` | 90%+ | Incorrect relational mappings produce wrong schemas. |
-| `core/serialization` | 95%+ | Data loss during save/load is unacceptable. |
-| `llm` | 85%+ | Response parsing must be robust; prompt construction less so. |
-| `vscode` | 70%+ | UI integration tests cover critical paths; exhaustive coverage is impractical. |
+| Package              | Target | Rationale                                                                      |
+| -------------------- | ------ | ------------------------------------------------------------------------------ |
+| `core/model`         | 95%+   | The metamodel is the foundation. Edge cases here propagate everywhere.         |
+| `core/validation`    | 95%+   | Incorrect validation erodes trust in the tool. Every rule must be tested.      |
+| `core/verbalization` | 90%+   | Verbalization quality directly affects business stakeholder adoption.          |
+| `core/mapping`       | 90%+   | Incorrect relational mappings produce wrong schemas.                           |
+| `core/serialization` | 95%+   | Data loss during save/load is unacceptable.                                    |
+| `llm`                | 85%+   | Response parsing must be robust; prompt construction less so.                  |
+| `vscode`             | 70%+   | UI integration tests cover critical paths; exhaustive coverage is impractical. |
 
 ---
 
@@ -1032,6 +1036,7 @@ When the `.orm.yaml` schema evolves between extension versions, users should not
 ## 9. Implementation Phasing
 
 ### Phase 1: Core Model, Schemas, and Serialization
+
 - JSON Schema definitions for `.orm.yaml`, `.map.yaml`, and `.orm-project.yaml`.
 - Metamodel implementation (object types, fact types, Phase 1 constraints).
 - YAML serialization with schema validation.
@@ -1040,11 +1045,13 @@ When the `.orm.yaml` schema evolves between extension versions, users should not
 - Example project in `examples/order-management/`.
 
 ### Phase 2: Validation and Verbalization
+
 - Validation engine with structural rules and Phase 1 constraint consistency.
 - FORML verbalization for fact types and Phase 1 constraints.
 - Unit tests for all validation rules and verbalization patterns.
 
 ### Phase 3: Multi-File Models, Context Mapping, and Data Products
+
 - Project manifest loading and domain resolution.
 - Context mapping model and validation.
 - Data product dependency declarations and validation.
@@ -1052,11 +1059,13 @@ When the `.orm.yaml` schema evolves between extension versions, users should not
 - Integration tests for multi-file scenarios.
 
 ### Phase 4: VS Code Extension (Minimum Viable)
+
 - Language server with diagnostics, completion, and hover.
 - Basic command registration (new project, validate).
 - Extension packaging and local install.
 
 ### Phase 5: LLM Transcript Processing
+
 - Extraction prompt design and iteration.
 - Source reference tracking (line numbers, excerpts).
 - Draft model parser with validation.
@@ -1064,17 +1073,20 @@ When the `.orm.yaml` schema evolves between extension versions, users should not
 - Fixture-based tests.
 
 ### Phase 6: Relational Mapping
+
 - Rmap implementation for common patterns.
 - Phase 2 constraints in metamodel, validation, and verbalization.
 - Stable public API for integration consumers.
 
 ### Phase 7: Diagram Visualization
+
 - Webview panel with React and SVG rendering.
 - Layout engine integration (ELK.js).
 - Object type, fact type, and constraint rendering.
 - Model sync from editor to diagram.
 
 ### Phase 8: Integrations (Separate Projects, Prioritized Separately)
+
 - dbt export (highest priority integration).
 - CI/CD validator CLI.
 - MCP server.
@@ -1087,26 +1099,26 @@ When the `.orm.yaml` schema evolves between extension versions, users should not
 
 ### Runtime
 
-| Dependency | Purpose | Package |
-|---|---|---|
-| `yaml` | YAML parsing and serialization | core |
-| `ajv` | JSON Schema validation for .orm.yaml files | core |
-| `uuid` | Stable element identifiers | core |
-| `vscode-languageserver` | LSP implementation | vscode |
-| `vscode-languageclient` | LSP client | vscode |
-| `elkjs` | Automatic diagram layout | vscode |
-| `react`, `react-dom` | Diagram webview UI | vscode |
+| Dependency              | Purpose                                    | Package |
+| ----------------------- | ------------------------------------------ | ------- |
+| `yaml`                  | YAML parsing and serialization             | core    |
+| `ajv`                   | JSON Schema validation for .orm.yaml files | core    |
+| `uuid`                  | Stable element identifiers                 | core    |
+| `vscode-languageserver` | LSP implementation                         | vscode  |
+| `vscode-languageclient` | LSP client                                 | vscode  |
+| `elkjs`                 | Automatic diagram layout                   | vscode  |
+| `react`, `react-dom`    | Diagram webview UI                         | vscode  |
 
 ### Development
 
-| Dependency | Purpose |
-|---|---|
-| `vitest` | Test runner |
-| `typescript` | Language |
-| `turbo` | Monorepo build orchestration |
+| Dependency              | Purpose                         |
+| ----------------------- | ------------------------------- |
+| `vitest`                | Test runner                     |
+| `typescript`            | Language                        |
+| `turbo`                 | Monorepo build orchestration    |
 | `@vscode/test-electron` | VS Code integration test runner |
-| `@vscode/vsce` | Extension packaging |
-| `eslint` | Linting |
+| `@vscode/vsce`          | Extension packaging             |
+| `eslint`                | Linting                         |
 
 ---
 

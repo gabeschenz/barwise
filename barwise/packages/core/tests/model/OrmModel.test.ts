@@ -11,7 +11,7 @@
  *   - Duplicate-name prevention
  *   - Summary statistics (element counts)
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { OrmModel } from "../../src/model/OrmModel.js";
 
 describe("OrmModel", () => {
@@ -70,7 +70,7 @@ describe("OrmModel", () => {
           name: "Customer",
           kind: "entity",
           referenceMode: "cust_id",
-        }),
+        })
       ).toThrow("already exists");
     });
 
@@ -157,7 +157,7 @@ describe("OrmModel", () => {
             { name: "r2", playerId: "also-nonexistent" },
           ],
           readings: ["{0} test {1}"],
-        }),
+        })
       ).toThrow("does not exist");
     });
 
@@ -179,7 +179,7 @@ describe("OrmModel", () => {
             { name: "is placed by", playerId: order.id },
           ],
           readings: ["{0} places {1}"],
-        }),
+        })
       ).toThrow("already exists");
     });
 
@@ -217,16 +217,14 @@ describe("OrmModel", () => {
 
     it("throws on empty term", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() =>
-        model.addDefinition({ term: "", definition: "Something." }),
-      ).toThrow("non-empty");
+      expect(() => model.addDefinition({ term: "", definition: "Something." })).toThrow(
+        "non-empty",
+      );
     });
 
     it("throws on empty definition text", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() =>
-        model.addDefinition({ term: "Valid", definition: "" }),
-      ).toThrow("non-empty");
+      expect(() => model.addDefinition({ term: "Valid", definition: "" })).toThrow("non-empty");
     });
   });
 
@@ -245,12 +243,16 @@ describe("OrmModel", () => {
 
     it("throws when setting name to empty string", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() => { model.name = ""; }).toThrow("non-empty");
+      expect(() => {
+        model.name = "";
+      }).toThrow("non-empty");
     });
 
     it("throws when setting name to whitespace", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() => { model.name = "   "; }).toThrow("non-empty");
+      expect(() => {
+        model.name = "   ";
+      }).toThrow("non-empty");
     });
 
     it("sets domainContext", () => {

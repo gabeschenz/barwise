@@ -1,5 +1,5 @@
-import { stringify, parse } from "yaml";
 import { Ajv, type ErrorObject } from "ajv";
+import { parse, stringify } from "yaml";
 import mappingSchema from "../../schemas/context-mapping.schema.json" with { type: "json" };
 import {
   ContextMapping,
@@ -100,8 +100,7 @@ export class MappingSerializer {
     if (!valid) {
       const messages = (this.validate.errors ?? [])
         .map(
-          (e: ErrorObject) =>
-            `${e.instancePath || "/"}: ${e.message ?? "unknown error"}`,
+          (e: ErrorObject) => `${e.instancePath || "/"}: ${e.message ?? "unknown error"}`,
         )
         .join("; ");
       throw new MappingDeserializationError(

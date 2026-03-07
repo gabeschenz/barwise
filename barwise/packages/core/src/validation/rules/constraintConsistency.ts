@@ -18,9 +18,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
             if (!ft.hasRole(roleId)) {
               diagnostics.push({
                 severity: "error",
-                message:
-                  `Internal uniqueness constraint in fact type "${ft.name}" ` +
-                  `references role id "${roleId}" which does not belong to this fact type.`,
+                message: `Internal uniqueness constraint in fact type "${ft.name}" `
+                  + `references role id "${roleId}" which does not belong to this fact type.`,
                 elementId: ft.id,
                 ruleId: "constraint/internal-uniqueness-invalid-role",
               });
@@ -28,16 +27,15 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           }
 
           if (
-            constraint.roleIds.length === ft.arity &&
-            ft.arity > 1 &&
-            constraint.roleIds.every((rid) => ft.hasRole(rid))
+            constraint.roleIds.length === ft.arity
+            && ft.arity > 1
+            && constraint.roleIds.every((rid) => ft.hasRole(rid))
           ) {
             diagnostics.push({
               severity: "warning",
-              message:
-                `Internal uniqueness constraint in fact type "${ft.name}" ` +
-                `spans all ${ft.arity} roles. This means each complete fact ` +
-                `can only appear once, which is often redundant.`,
+              message: `Internal uniqueness constraint in fact type "${ft.name}" `
+                + `spans all ${ft.arity} roles. This means each complete fact `
+                + `can only appear once, which is often redundant.`,
               elementId: ft.id,
               ruleId: "constraint/spanning-all-roles",
             });
@@ -49,9 +47,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (!ft.hasRole(constraint.roleId)) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Mandatory constraint in fact type "${ft.name}" ` +
-                `references role id "${constraint.roleId}" which does not belong to this fact type.`,
+              message: `Mandatory constraint in fact type "${ft.name}" `
+                + `references role id "${constraint.roleId}" which does not belong to this fact type.`,
               elementId: ft.id,
               ruleId: "constraint/mandatory-invalid-role",
             });
@@ -63,9 +60,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.roleId && !ft.hasRole(constraint.roleId)) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Value constraint in fact type "${ft.name}" ` +
-                `references role id "${constraint.roleId}" which does not belong to this fact type.`,
+              message: `Value constraint in fact type "${ft.name}" `
+                + `references role id "${constraint.roleId}" which does not belong to this fact type.`,
               elementId: ft.id,
               ruleId: "constraint/value-constraint-invalid-role",
             });
@@ -74,16 +70,13 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
         }
 
         case "external_uniqueness": {
-          const allLocal = constraint.roleIds.every((rid) =>
-            ft.hasRole(rid),
-          );
+          const allLocal = constraint.roleIds.every((rid) => ft.hasRole(rid));
           if (allLocal) {
             diagnostics.push({
               severity: "warning",
-              message:
-                `External uniqueness constraint in fact type "${ft.name}" ` +
-                `references only roles within this fact type. ` +
-                `Consider using internal uniqueness instead.`,
+              message: `External uniqueness constraint in fact type "${ft.name}" `
+                + `references only roles within this fact type. `
+                + `Consider using internal uniqueness instead.`,
               elementId: ft.id,
               ruleId: "constraint/external-uniqueness-all-local",
             });
@@ -97,9 +90,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.roleIds.length < 2) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Disjunctive mandatory constraint in fact type "${ft.name}" ` +
-                `must reference at least 2 roles.`,
+              message: `Disjunctive mandatory constraint in fact type "${ft.name}" `
+                + `must reference at least 2 roles.`,
               elementId: ft.id,
               ruleId: "constraint/disjunctive-mandatory-too-few-roles",
             });
@@ -111,9 +103,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.roleIds.length < 2) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Exclusion constraint in fact type "${ft.name}" ` +
-                `must reference at least 2 roles.`,
+              message: `Exclusion constraint in fact type "${ft.name}" `
+                + `must reference at least 2 roles.`,
               elementId: ft.id,
               ruleId: "constraint/exclusion-too-few-roles",
             });
@@ -125,9 +116,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.roleIds.length < 2) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Exclusive-or constraint in fact type "${ft.name}" ` +
-                `must reference at least 2 roles.`,
+              message: `Exclusive-or constraint in fact type "${ft.name}" `
+                + `must reference at least 2 roles.`,
               elementId: ft.id,
               ruleId: "constraint/exclusive-or-too-few-roles",
             });
@@ -139,10 +129,9 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.subsetRoleIds.length !== constraint.supersetRoleIds.length) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Subset constraint in fact type "${ft.name}" ` +
-                `has mismatched role sequence lengths: subset has ${constraint.subsetRoleIds.length} roles, ` +
-                `superset has ${constraint.supersetRoleIds.length} roles.`,
+              message: `Subset constraint in fact type "${ft.name}" `
+                + `has mismatched role sequence lengths: subset has ${constraint.subsetRoleIds.length} roles, `
+                + `superset has ${constraint.supersetRoleIds.length} roles.`,
               elementId: ft.id,
               ruleId: "constraint/subset-arity-mismatch",
             });
@@ -154,10 +143,9 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.roleIds1.length !== constraint.roleIds2.length) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Equality constraint in fact type "${ft.name}" ` +
-                `has mismatched role sequence lengths: first has ${constraint.roleIds1.length} roles, ` +
-                `second has ${constraint.roleIds2.length} roles.`,
+              message: `Equality constraint in fact type "${ft.name}" `
+                + `has mismatched role sequence lengths: first has ${constraint.roleIds1.length} roles, `
+                + `second has ${constraint.roleIds2.length} roles.`,
               elementId: ft.id,
               ruleId: "constraint/equality-arity-mismatch",
             });
@@ -169,9 +157,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (!ft.hasRole(constraint.roleId1)) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Ring constraint in fact type "${ft.name}" ` +
-                `references role id "${constraint.roleId1}" which does not belong to this fact type.`,
+              message: `Ring constraint in fact type "${ft.name}" `
+                + `references role id "${constraint.roleId1}" which does not belong to this fact type.`,
               elementId: ft.id,
               ruleId: "constraint/ring-invalid-role",
             });
@@ -179,9 +166,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (!ft.hasRole(constraint.roleId2)) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Ring constraint in fact type "${ft.name}" ` +
-                `references role id "${constraint.roleId2}" which does not belong to this fact type.`,
+              message: `Ring constraint in fact type "${ft.name}" `
+                + `references role id "${constraint.roleId2}" which does not belong to this fact type.`,
               elementId: ft.id,
               ruleId: "constraint/ring-invalid-role",
             });
@@ -191,9 +177,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (r1 && r2 && r1.playerId !== r2.playerId) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Ring constraint in fact type "${ft.name}" ` +
-                `requires both roles to be played by the same object type.`,
+              message: `Ring constraint in fact type "${ft.name}" `
+                + `requires both roles to be played by the same object type.`,
               elementId: ft.id,
               ruleId: "constraint/ring-different-players",
             });
@@ -205,9 +190,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (!ft.hasRole(constraint.roleId)) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Frequency constraint in fact type "${ft.name}" ` +
-                `references role id "${constraint.roleId}" which does not belong to this fact type.`,
+              message: `Frequency constraint in fact type "${ft.name}" `
+                + `references role id "${constraint.roleId}" which does not belong to this fact type.`,
               elementId: ft.id,
               ruleId: "constraint/frequency-invalid-role",
             });
@@ -215,9 +199,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.min < 1) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Frequency constraint in fact type "${ft.name}" ` +
-                `has min ${constraint.min}, which must be at least 1.`,
+              message: `Frequency constraint in fact type "${ft.name}" `
+                + `has min ${constraint.min}, which must be at least 1.`,
               elementId: ft.id,
               ruleId: "constraint/frequency-invalid-min",
             });
@@ -225,9 +208,8 @@ export function constraintConsistencyRules(model: OrmModel): Diagnostic[] {
           if (constraint.max !== "unbounded" && constraint.max < constraint.min) {
             diagnostics.push({
               severity: "error",
-              message:
-                `Frequency constraint in fact type "${ft.name}" ` +
-                `has max (${constraint.max}) less than min (${constraint.min}).`,
+              message: `Frequency constraint in fact type "${ft.name}" `
+                + `has max (${constraint.max}) less than min (${constraint.min}).`,
               elementId: ft.id,
               ruleId: "constraint/frequency-max-less-than-min",
             });

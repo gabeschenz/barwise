@@ -7,11 +7,8 @@
  * substitutes player names for placeholders. These tests verify both
  * forward and inverse readings for unary, binary, and ternary fact types.
  */
-import { describe, it, expect } from "vitest";
-import {
-  validateReadingTemplate,
-  expandReading,
-} from "../../src/model/ReadingOrder.js";
+import { describe, expect, it } from "vitest";
+import { expandReading, validateReadingTemplate } from "../../src/model/ReadingOrder.js";
 
 describe("ReadingOrder", () => {
   describe("validateReadingTemplate", () => {

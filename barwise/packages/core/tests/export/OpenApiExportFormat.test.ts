@@ -5,12 +5,9 @@
  * integrates correctly with the registry.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { OpenApiExportFormat, openApiExportFormat } from "../../src/export/OpenApiExportFormat.js";
 import { formatRegistry } from "../../src/export/registry.js";
-import {
-  openApiExportFormat,
-  OpenApiExportFormat,
-} from "../../src/export/OpenApiExportFormat.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("OpenApiExportFormat", () => {
@@ -116,9 +113,7 @@ describe("OpenApiExportFormat", () => {
         .build();
 
       // Should not throw in strict mode with valid model.
-      expect(() =>
-        openApiExportFormat.export(model, { strict: true }),
-      ).not.toThrow();
+      expect(() => openApiExportFormat.export(model, { strict: true })).not.toThrow();
     });
 
     it("produces single-file output (no files array)", () => {

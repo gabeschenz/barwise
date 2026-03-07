@@ -2,9 +2,9 @@
  * orm-model://{path} resource template: returns a deserialized model as JSON.
  */
 
+import { OrmYamlSerializer } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { OrmYamlSerializer } from "@barwise/core";
 import { readFileSync } from "node:fs";
 
 const serializer = new OrmYamlSerializer();
@@ -15,9 +15,8 @@ export function registerOrmModelResource(server: McpServer): void {
     new ResourceTemplate("orm-model://{+path}", { list: undefined }),
     {
       title: "ORM Model",
-      description:
-        "Returns the deserialized ORM model from a .orm.yaml file as JSON. " +
-        "Allows AI tools to inspect model contents without parsing YAML.",
+      description: "Returns the deserialized ORM model from a .orm.yaml file as JSON. "
+        + "Allows AI tools to inspect model contents without parsing YAML.",
       mimeType: "application/json",
     },
     async (uri, variables) => {

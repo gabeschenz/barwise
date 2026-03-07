@@ -2,12 +2,9 @@
  * export_model tool: exports an ORM model to a specified format.
  */
 
-import { z } from "zod";
+import { getExporter, registerBuiltinFormats } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  getExporter,
-  registerBuiltinFormats,
-} from "@barwise/core";
+import { z } from "zod";
 import { resolveSource } from "../helpers/resolve.js";
 
 // Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
@@ -18,10 +15,9 @@ export function registerExportModelTool(server: McpServer): void {
     "export_model",
     {
       title: "Export ORM Model",
-      description:
-        "Export an ORM 2 model to a specified format (ddl, openapi, etc.). " +
-        "Returns the exported artifact as text. Supports validation, annotations, " +
-        "and format-specific options.",
+      description: "Export an ORM 2 model to a specified format (ddl, openapi, etc.). "
+        + "Returns the exported artifact as text. Supports validation, annotations, "
+        + "and format-specific options.",
       inputSchema: {
         source: z
           .string()
@@ -67,7 +63,7 @@ export function executeExportModel(
   source: string,
   format: string,
   options?: Record<string, unknown>,
-): { content: Array<{ type: "text"; text: string }> } {
+): { content: Array<{ type: "text"; text: string; }>; } {
   const model = resolveSource(source);
 
   // Get the exporter from the unified registry.
@@ -79,7 +75,8 @@ export function executeExportModel(
           type: "text" as const,
           text: JSON.stringify(
             {
-              error: `Unknown export format: "${format}". Use list_formats to see available formats.`,
+              error:
+                `Unknown export format: "${format}". Use list_formats to see available formats.`,
             },
             null,
             2,
@@ -105,8 +102,7 @@ export function executeExportModel(
           type: "text" as const,
           text: JSON.stringify(
             {
-              error:
-                error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? error.message : String(error),
             },
             null,
             2,
