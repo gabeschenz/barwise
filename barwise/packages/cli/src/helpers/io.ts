@@ -32,14 +32,6 @@ export function loadModel(filePath: string): OrmModel {
 }
 
 /**
- * Serialize and write an ORM model to a .orm.yaml file.
- */
-export function writeModel(filePath: string, model: OrmModel): void {
-  const yaml = serializer.serialize(model);
-  writeFileSync(filePath, yaml, "utf-8");
-}
-
-/**
  * Read a file as a UTF-8 string.
  */
 export function readFile(filePath: string): string {
