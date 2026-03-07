@@ -32,7 +32,7 @@ in CI (GitHub Actions on every PR).
 - Jobs: install, build, test, lint. Use Turborepo caching.
 - Trigger on: pull_request to main, push to main.
 - Node 20, npm ci, turbo run build test lint.
-- Status: Not Started
+- Status: Complete
 
 ### Stage 4: dprint (code formatting)
 
