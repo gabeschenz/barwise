@@ -12,6 +12,17 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Git Workflow
+
+Never commit directly to main. Always create a feature branch and
+open a pull request.
+
+## GitHub CLI
+
+Always run `gh auth switch --user gabeschenz` before using the `gh`
+command. This ensures the correct GitHub account is active for
+authentication.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
