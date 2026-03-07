@@ -520,6 +520,199 @@ describe("NormaToOrmMapper", () => {
       expect(mandatories).toHaveLength(0);
     });
 
+    it("maps external uniqueness constraint not in internalConstraintRefs", () => {
+      const extUc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc_ext",
+        name: "ExtUC1",
+        isInternal: false,
+        isPreferred: false,
+        roleRefs: ["_ft1_r2", "_ft2_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "FirstName"),
+          makeValue("_vt2", "LastName"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "EmployeeHasFirstName", "_et1", "_vt1"),
+          makeBinaryFactType("_ft2", "EmployeeHasLastName", "_et1", "_vt2"),
+        ],
+        constraints: [extUc],
+      });
+      const model = mapNormaToOrm(doc);
+
+      // External uniqueness should be attached to the first fact type
+      // containing a referenced role.
+      const allConstraints = model.factTypes.flatMap((ft) => ft.constraints);
+      const extConstraints = allConstraints.filter(
+        (c) => c.type === "external_uniqueness",
+      );
+      expect(extConstraints).toHaveLength(1);
+      if (extConstraints[0]?.type === "external_uniqueness") {
+        expect(extConstraints[0].roleIds).toContain("_ft1_r2");
+        expect(extConstraints[0].roleIds).toContain("_ft2_r2");
+      }
+    });
+
+    it("does not duplicate external uniqueness constraint already in internalConstraintRefs", () => {
+      const extUc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc_ext",
+        name: "ExtUC1",
+        isInternal: false,
+        isPreferred: false,
+        roleRefs: ["_ft1_r2"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "FirstName"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "EmployeeHasFirstName", "_et1", "_vt1", {
+            internalConstraintRefs: ["_uc_ext"],
+          }),
+        ],
+        constraints: [extUc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const extConstraints = ft.constraints.filter(
+        (c) => c.type === "external_uniqueness",
+      );
+      // Should only appear once (from internalConstraintRefs processing).
+      expect(extConstraints).toHaveLength(1);
+    });
+
+    it("skips internal uniqueness constraints in external uniqueness pass", () => {
+      const intUc: NormaConstraint = {
+        type: "uniqueness",
+        id: "_uc_int",
+        name: "IntUC1",
+        isInternal: true,
+        isPreferred: false,
+        roleRefs: ["_ft1_r1"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "FirstName"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "EmployeeHasFirstName", "_et1", "_vt1"),
+        ],
+        // Internal UC not referenced by any fact type's internalConstraintRefs.
+        constraints: [intUc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      // The external uniqueness pass should NOT pick up internal uniqueness constraints.
+      const extConstraints = ft.constraints.filter(
+        (c) => c.type === "external_uniqueness",
+      );
+      expect(extConstraints).toHaveLength(0);
+    });
+
+    it("maps role-level value constraint not in internalConstraintRefs", () => {
+      const vc: NormaConstraint = {
+        type: "value_constraint",
+        id: "_vc1",
+        name: "VC1",
+        roleRefs: ["_ft1_r2"],
+        values: ["dev", "qa", "pm"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "RoleName"),
+        ],
+        factTypes: [
+          // No internalConstraintRefs -- value constraint only in top-level.
+          makeBinaryFactType("_ft1", "EmployeeHasRoleName", "_et1", "_vt1"),
+        ],
+        constraints: [vc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const valConstraints = ft.constraints.filter(
+        (c) => c.type === "value_constraint",
+      );
+      expect(valConstraints).toHaveLength(1);
+      if (valConstraints[0]?.type === "value_constraint") {
+        expect(valConstraints[0].roleId).toBe("_ft1_r2");
+        expect(valConstraints[0].values).toEqual(["dev", "qa", "pm"]);
+      }
+    });
+
+    it("does not duplicate value constraint already in internalConstraintRefs", () => {
+      const vc: NormaConstraint = {
+        type: "value_constraint",
+        id: "_vc1",
+        name: "VC1",
+        roleRefs: ["_ft1_r2"],
+        values: ["dev", "qa", "pm"],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "RoleName"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "EmployeeHasRoleName", "_et1", "_vt1", {
+            internalConstraintRefs: ["_vc1"],
+          }),
+        ],
+        constraints: [vc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const valConstraints = ft.constraints.filter(
+        (c) => c.type === "value_constraint",
+      );
+      // Should only appear once.
+      expect(valConstraints).toHaveLength(1);
+    });
+
+    it("skips role-level value constraint with empty values", () => {
+      const vc: NormaConstraint = {
+        type: "value_constraint",
+        id: "_vc1",
+        name: "VC1",
+        roleRefs: ["_ft1_r2"],
+        values: [],
+      };
+      const doc = makeDoc({
+        entityTypes: [
+          makeEntity("_et1", "Employee", "Id"),
+        ],
+        valueTypes: [
+          makeValue("_vt1", "RoleName"),
+        ],
+        factTypes: [
+          makeBinaryFactType("_ft1", "EmployeeHasRoleName", "_et1", "_vt1"),
+        ],
+        constraints: [vc],
+      });
+      const model = mapNormaToOrm(doc);
+      const ft = model.factTypes[0]!;
+      const valConstraints = ft.constraints.filter(
+        (c) => c.type === "value_constraint",
+      );
+      expect(valConstraints).toHaveLength(0);
+    });
+
     it("maps value constraint on a role", () => {
       const vc: NormaConstraint = {
         type: "value_constraint",

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NORMA .orm fixture for testing:
+  - External uniqueness constraints (spanning multiple fact types)
+  - Role-level value constraints (on a fact type constraint, not a value type restriction)
+
+  Domain: Employee/Project assignment.
+  Each Employee has a FirstName and a LastName.
+  External uniqueness: the combination of FirstName + LastName uniquely identifies an Employee.
+  Each Employee has a Role (with role-level value constraint: "dev", "qa", "pm").
+-->
+<orm:ORM2 xmlns:orm="http://schemas.neumont.edu/ORM/2006-04/ORMCore">
+  <orm:ORMModel id="_model1" Name="Employee Project">
+    <orm:Objects>
+      <orm:EntityType id="_et_emp" Name="Employee" _ReferenceMode="Id">
+        <orm:PlayedRoles>
+          <orm:Role ref="_r_emp_fn" />
+          <orm:Role ref="_r_emp_ln" />
+          <orm:Role ref="_r_emp_role" />
+        </orm:PlayedRoles>
+      </orm:EntityType>
+      <orm:ValueType id="_vt_fn" Name="FirstName">
+        <orm:PlayedRoles>
+          <orm:Role ref="_r_fn_of" />
+        </orm:PlayedRoles>
+      </orm:ValueType>
+      <orm:ValueType id="_vt_ln" Name="LastName">
+        <orm:PlayedRoles>
+          <orm:Role ref="_r_ln_of" />
+        </orm:PlayedRoles>
+      </orm:ValueType>
+      <orm:ValueType id="_vt_role" Name="RoleName">
+        <orm:PlayedRoles>
+          <orm:Role ref="_r_role_of" />
+        </orm:PlayedRoles>
+      </orm:ValueType>
+    </orm:Objects>
+    <orm:Facts>
+      <!-- Employee has FirstName -->
+      <orm:Fact id="_ft_fn" _Name="Employee has FirstName">
+        <orm:FactRoles>
+          <orm:Role id="_r_emp_fn" Name="has" _IsMandatory="true">
+            <orm:RolePlayer ref="_et_emp" />
+          </orm:Role>
+          <orm:Role id="_r_fn_of" Name="is of" _IsMandatory="false">
+            <orm:RolePlayer ref="_vt_fn" />
+          </orm:Role>
+        </orm:FactRoles>
+        <orm:ReadingOrders>
+          <orm:ReadingOrder id="_ro_fn_1">
+            <orm:Readings>
+              <orm:Reading id="_rd_fn_1">
+                <orm:Data>{0} has {1}</orm:Data>
+              </orm:Reading>
+            </orm:Readings>
+            <orm:RoleSequence>
+              <orm:Role ref="_r_emp_fn" />
+              <orm:Role ref="_r_fn_of" />
+            </orm:RoleSequence>
+          </orm:ReadingOrder>
+        </orm:ReadingOrders>
+        <orm:InternalConstraints>
+          <orm:UniquenessConstraint ref="_uc_emp_fn" />
+          <orm:MandatoryConstraint ref="_mc_emp_fn" />
+        </orm:InternalConstraints>
+      </orm:Fact>
+      <!-- Employee has LastName -->
+      <orm:Fact id="_ft_ln" _Name="Employee has LastName">
+        <orm:FactRoles>
+          <orm:Role id="_r_emp_ln" Name="has" _IsMandatory="true">
+            <orm:RolePlayer ref="_et_emp" />
+          </orm:Role>
+          <orm:Role id="_r_ln_of" Name="is of" _IsMandatory="false">
+            <orm:RolePlayer ref="_vt_ln" />
+          </orm:Role>
+        </orm:FactRoles>
+        <orm:ReadingOrders>
+          <orm:ReadingOrder id="_ro_ln_1">
+            <orm:Readings>
+              <orm:Reading id="_rd_ln_1">
+                <orm:Data>{0} has {1}</orm:Data>
+              </orm:Reading>
+            </orm:Readings>
+            <orm:RoleSequence>
+              <orm:Role ref="_r_emp_ln" />
+              <orm:Role ref="_r_ln_of" />
+            </orm:RoleSequence>
+          </orm:ReadingOrder>
+        </orm:ReadingOrders>
+        <orm:InternalConstraints>
+          <orm:UniquenessConstraint ref="_uc_emp_ln" />
+          <orm:MandatoryConstraint ref="_mc_emp_ln" />
+        </orm:InternalConstraints>
+      </orm:Fact>
+      <!-- Employee has RoleName -->
+      <orm:Fact id="_ft_role" _Name="Employee has RoleName">
+        <orm:FactRoles>
+          <orm:Role id="_r_emp_role" Name="has" _IsMandatory="true">
+            <orm:RolePlayer ref="_et_emp" />
+          </orm:Role>
+          <orm:Role id="_r_role_of" Name="is of" _IsMandatory="false">
+            <orm:RolePlayer ref="_vt_role" />
+          </orm:Role>
+        </orm:FactRoles>
+        <orm:ReadingOrders>
+          <orm:ReadingOrder id="_ro_role_1">
+            <orm:Readings>
+              <orm:Reading id="_rd_role_1">
+                <orm:Data>{0} has {1}</orm:Data>
+              </orm:Reading>
+            </orm:Readings>
+            <orm:RoleSequence>
+              <orm:Role ref="_r_emp_role" />
+              <orm:Role ref="_r_role_of" />
+            </orm:RoleSequence>
+          </orm:ReadingOrder>
+        </orm:ReadingOrders>
+        <orm:InternalConstraints>
+          <orm:UniquenessConstraint ref="_uc_emp_role" />
+          <orm:MandatoryConstraint ref="_mc_emp_role" />
+        </orm:InternalConstraints>
+      </orm:Fact>
+    </orm:Facts>
+    <orm:Constraints>
+      <!-- Internal: each Employee has at most one FirstName -->
+      <orm:UniquenessConstraint id="_uc_emp_fn" Name="InternalUniquenessConstraint1" IsInternal="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_fn" />
+        </orm:RoleSequence>
+      </orm:UniquenessConstraint>
+      <orm:MandatoryConstraint id="_mc_emp_fn" Name="SimpleMandatoryConstraint1" IsSimple="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_fn" />
+        </orm:RoleSequence>
+      </orm:MandatoryConstraint>
+      <!-- Internal: each Employee has at most one LastName -->
+      <orm:UniquenessConstraint id="_uc_emp_ln" Name="InternalUniquenessConstraint2" IsInternal="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_ln" />
+        </orm:RoleSequence>
+      </orm:UniquenessConstraint>
+      <orm:MandatoryConstraint id="_mc_emp_ln" Name="SimpleMandatoryConstraint2" IsSimple="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_ln" />
+        </orm:RoleSequence>
+      </orm:MandatoryConstraint>
+      <!-- Internal: each Employee has at most one RoleName -->
+      <orm:UniquenessConstraint id="_uc_emp_role" Name="InternalUniquenessConstraint3" IsInternal="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_role" />
+        </orm:RoleSequence>
+      </orm:UniquenessConstraint>
+      <orm:MandatoryConstraint id="_mc_emp_role" Name="SimpleMandatoryConstraint3" IsSimple="true">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_emp_role" />
+        </orm:RoleSequence>
+      </orm:MandatoryConstraint>
+      <!-- EXTERNAL uniqueness: Employee is identified by combination of FirstName + LastName -->
+      <orm:UniquenessConstraint id="_uc_ext_name" Name="ExternalUniquenessConstraint1" IsInternal="false">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_fn_of" />
+          <orm:Role ref="_r_ln_of" />
+        </orm:RoleSequence>
+        <orm:PreferredIdentifierFor ref="_et_emp" />
+      </orm:UniquenessConstraint>
+      <!-- Role-level value constraint: RoleName must be one of "dev", "qa", "pm" -->
+      <orm:ValueConstraint id="_vc_role" Name="RoleValueConstraint1">
+        <orm:RoleSequence>
+          <orm:Role ref="_r_role_of" />
+        </orm:RoleSequence>
+        <orm:ValueRanges>
+          <orm:ValueRange MinValue="dev" MaxValue="dev" />
+          <orm:ValueRange MinValue="qa" MaxValue="qa" />
+          <orm:ValueRange MinValue="pm" MaxValue="pm" />
+        </orm:ValueRanges>
+      </orm:ValueConstraint>
+    </orm:Constraints>
+  </orm:ORMModel>
+</orm:ORM2>
