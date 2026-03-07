@@ -1,0 +1,81 @@
+orm_version: "1.0"
+
+model:
+  name: "Multi-Fact Test"
+  domain_context: "testing"
+
+  object_types:
+    - id: "ot-customer"
+      name: "Customer"
+      kind: "entity"
+      reference_mode: "customer_id"
+      definition: "A person who places orders."
+
+    - id: "ot-order"
+      name: "Order"
+      kind: "entity"
+      reference_mode: "order_number"
+      definition: "A confirmed purchase request."
+
+    - id: "ot-name"
+      name: "Name"
+      kind: "value"
+
+    - id: "ot-amount"
+      name: "Amount"
+      kind: "value"
+
+  fact_types:
+    - id: "ft-customer-has-name"
+      name: "Customer has Name"
+      roles:
+        - id: "r-customer-name"
+          player: "ot-customer"
+          role_name: "has"
+        - id: "r-name-of-customer"
+          player: "ot-name"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-customer-name"]
+        - type: "mandatory"
+          role: "r-customer-name"
+
+    - id: "ft-customer-places-order"
+      name: "Customer places Order"
+      roles:
+        - id: "r-customer-places"
+          player: "ot-customer"
+          role_name: "places"
+        - id: "r-order-placed-by"
+          player: "ot-order"
+          role_name: "is placed by"
+      readings:
+        - "{0} places {1}"
+        - "{1} is placed by {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-placed-by"]
+        - type: "mandatory"
+          role: "r-order-placed-by"
+
+    - id: "ft-order-has-amount"
+      name: "Order has Amount"
+      roles:
+        - id: "r-order-amount"
+          player: "ot-order"
+          role_name: "has"
+        - id: "r-amount-of-order"
+          player: "ot-amount"
+          role_name: "is of"
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: "internal_uniqueness"
+          roles: ["r-order-amount"]
+        - type: "mandatory"
+          role: "r-order-amount"

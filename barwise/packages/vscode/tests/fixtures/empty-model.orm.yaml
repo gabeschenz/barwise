@@ -1,0 +1,8 @@
+orm_version: "1.0"
+
+model:
+  name: "Empty Model"
+  domain_context: "testing"
+  object_types: []
+  fact_types: []
+  definitions: []
