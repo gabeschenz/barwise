@@ -5,10 +5,17 @@
  * export formats (DDL, OpenAPI, etc.) by name.
  */
 
-import { getExporter, listExporters, registerBuiltinFormats } from "@barwise/core";
+import {
+  getExporter,
+  hashModel,
+  listExporters,
+  registerBuiltinFormats,
+  updateManifest,
+} from "@barwise/core";
+import type { ManifestExport } from "@barwise/core";
 import type { Command } from "commander";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { loadModel } from "../helpers/io.js";
 
 // Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
@@ -77,6 +84,19 @@ export function registerExportCommand(program: Command): void {
               writeFileSync(opts.output, result.text, "utf-8");
               process.stdout.write(`Wrote ${opts.output}\n`);
             }
+
+            // Persist lineage manifest adjacent to the source model.
+            const modelDir = dirname(resolve(source));
+            const modelHash = hashModel(model);
+            const artifact = resolve(opts.output);
+            const entry: ManifestExport = {
+              artifact,
+              format: opts.format,
+              exportedAt: new Date().toISOString(),
+              modelHash,
+              sources: result.lineage?.flatMap((l) => l.sources) ?? [],
+            };
+            updateManifest(modelDir, entry);
           } else {
             // No --output: print to stdout.
             process.stdout.write(result.text);

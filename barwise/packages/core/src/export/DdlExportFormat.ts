@@ -11,6 +11,7 @@ import { RelationalMapper } from "../mapping/RelationalMapper.js";
 import { renderDdl } from "../mapping/renderers/ddl.js";
 import type { OrmModel } from "../model/OrmModel.js";
 import { ValidationEngine } from "../validation/ValidationEngine.js";
+import { renderPopulationAsSql } from "./populationRenderer.js";
 import type { ExportFormatAdapter, ExportOptions, ExportResult } from "./types.js";
 
 /**
@@ -25,6 +26,7 @@ export class DdlExportFormat implements ExportFormatAdapter {
   export(model: OrmModel, options?: ExportOptions): ExportResult {
     const annotate = options?.annotate ?? true;
     const strict = options?.strict ?? false;
+    const includeExamples = options?.includeExamples ?? true;
 
     // Run validation.
     const engine = new ValidationEngine();
@@ -49,6 +51,14 @@ export class DdlExportFormat implements ExportFormatAdapter {
     // If annotate is true, add constraint annotations as SQL comments.
     if (annotate) {
       ddlText = this.addConstraintAnnotations(ddlText, model, schema);
+    }
+
+    // Append population INSERT statements if requested.
+    if (includeExamples) {
+      const populationSql = renderPopulationAsSql(model, schema);
+      if (populationSql) {
+        ddlText += populationSql;
+      }
     }
 
     // Include validation diagnostics as warnings in the result if present.

@@ -6,6 +6,8 @@
  * startup to populate the unified registry.
  */
 
+import { AvroExportFormat } from "../export/AvroExportFormat.js";
+import { DbtExportFormat } from "../export/DbtExportFormat.js";
 import { DdlExportFormat } from "../export/DdlExportFormat.js";
 import { OpenApiExportFormat } from "../export/OpenApiExportFormat.js";
 import { DdlImportFormat } from "../import/DdlImportFormat.js";
@@ -35,6 +37,24 @@ export const openApiFormat: FormatDescriptor = {
   exporter: new OpenApiExportFormat(),
 };
 
+/**
+ * dbt format: export only (dbt model files + schema.yml).
+ */
+export const dbtFormat: FormatDescriptor = {
+  name: "dbt",
+  description: "dbt model files and schema.yml",
+  exporter: new DbtExportFormat(),
+};
+
+/**
+ * Avro format: export only (Avro schema definitions .avsc).
+ */
+export const avroFormat: FormatDescriptor = {
+  name: "avro",
+  description: "Apache Avro schema definitions (.avsc)",
+  exporter: new AvroExportFormat(),
+};
+
 // -- Registration helper -----------------------------------------------------
 
 /**
@@ -47,6 +67,8 @@ export function registerBuiltinFormats(): void {
   const builtins: readonly FormatDescriptor[] = [
     ddlFormat,
     openApiFormat,
+    dbtFormat,
+    avroFormat,
   ];
 
   for (const descriptor of builtins) {
