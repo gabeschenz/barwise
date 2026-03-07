@@ -9,19 +9,14 @@ import type { Command } from "commander";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
-  getFormat,
-  listFormats,
-  registerFormat,
-  ddlExportFormat,
-  openApiExportFormat,
+  getExporter,
+  listExporters,
+  registerBuiltinFormats,
 } from "@barwise/core";
 import { loadModel } from "../helpers/io.js";
 
-// Register available export formats.
-// This should ideally happen once at CLI initialization, but doing it here
-// ensures formats are available when the command runs.
-registerFormat(ddlExportFormat);
-registerFormat(openApiExportFormat);
+// Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
+registerBuiltinFormats();
 
 export function registerExportCommand(program: Command): void {
   program
@@ -47,10 +42,10 @@ export function registerExportCommand(program: Command): void {
         try {
           const model = loadModel(source);
 
-          // Look up the format in the registry.
-          const formatAdapter = getFormat(opts.format);
-          if (!formatAdapter) {
-            const available = listFormats()
+          // Look up the exporter in the unified registry.
+          const exporter = getExporter(opts.format);
+          if (!exporter) {
+            const available = listExporters()
               .map((f) => f.name)
               .join(", ");
             throw new Error(
@@ -58,8 +53,8 @@ export function registerExportCommand(program: Command): void {
             );
           }
 
-          // Call the format's export method.
-          const result = formatAdapter.export(model, {
+          // Call the exporter's export method.
+          const result = exporter.export(model, {
             annotate: opts.annotate,
             strict: opts.strict,
             includeExamples: opts.examples,

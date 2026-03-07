@@ -5,17 +5,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-  getFormat,
-  ddlExportFormat,
-  openApiExportFormat,
-  registerFormat,
+  getExporter,
+  registerBuiltinFormats,
 } from "@barwise/core";
 import { resolveSource } from "../helpers/resolve.js";
 
-// Register available formats on module load.
-// This ensures formats are available when the tool is invoked.
-registerFormat(ddlExportFormat);
-registerFormat(openApiExportFormat);
+// Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
+registerBuiltinFormats();
 
 export function registerExportModelTool(server: McpServer): void {
   server.registerTool(
@@ -74,9 +70,9 @@ export function executeExportModel(
 ): { content: Array<{ type: "text"; text: string }> } {
   const model = resolveSource(source);
 
-  // Get the format adapter from the registry.
-  const formatAdapter = getFormat(format);
-  if (!formatAdapter) {
+  // Get the exporter from the unified registry.
+  const exporter = getExporter(format);
+  if (!exporter) {
     return {
       content: [
         {
@@ -95,7 +91,7 @@ export function executeExportModel(
 
   try {
     // Export using the format adapter.
-    const result = formatAdapter.export(model, options);
+    const result = exporter.export(model, options);
 
     // Return the primary text output.
     // For multi-file formats, the text field contains a combined view.

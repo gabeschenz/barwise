@@ -5,19 +5,16 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-  getImportFormat,
-  DdlImportFormat,
-  OpenApiImportFormat,
-  registerImportFormat,
+  getImporter,
+  registerBuiltinFormats,
   OrmYamlSerializer,
 } from "@barwise/core";
 import { readSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
 
-// Register built-in formats on module load
-registerImportFormat(new DdlImportFormat());
-registerImportFormat(new OpenApiImportFormat());
+// Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
+registerBuiltinFormats();
 
 export function registerImportModelTool(server: McpServer): void {
   server.registerTool(
@@ -59,8 +56,8 @@ export async function executeImportModel(
   // Read source (file or inline)
   const input = readSource(source);
 
-  // Get the import format
-  const importFormat = getImportFormat(format);
+  // Get the importer from the unified registry
+  const importFormat = getImporter(format);
   if (!importFormat) {
     return {
       content: [
