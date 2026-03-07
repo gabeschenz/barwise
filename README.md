@@ -1,8 +1,8 @@
-# fregma
+# barwise
 
 Object-role modeling for VS Code. Transform business concepts into precise, fact-oriented schemas that everyone can understand.
 
-Fregma is an [ORM 2](https://en.wikipedia.org/wiki/Object-role_modeling) modeling tool built for data engineers and architects. It ships as a VS Code extension backed by a platform-independent core library, so all model logic is testable without launching an editor.
+Barwise is an [ORM 2](https://en.wikipedia.org/wiki/Object-role_modeling) modeling tool built for data engineers and architects. It ships as a VS Code extension backed by a platform-independent core library, so all model logic is testable without launching an editor.
 
 ## Prerequisites
 
@@ -17,8 +17,8 @@ Fregma is an [ORM 2](https://en.wikipedia.org/wiki/Object-role_modeling) modelin
 ### 1. Clone and install dependencies
 
 ```sh
-git clone <repo-url> fregma
-cd fregma/fregma
+git clone <repo-url> barwise
+cd barwise/barwise
 npm install
 ```
 
@@ -32,9 +32,9 @@ npm run build
 
 This runs `turbo run build`, which compiles the packages in dependency order:
 
-1. `@fregma/core` -- metamodel, validation, verbalization, diff/merge
-2. `@fregma/llm` -- LLM-powered transcript extraction
-3. `@fregma/diagram` -- ORM diagram layout and SVG rendering
+1. `@barwise/core` -- metamodel, validation, verbalization, diff/merge
+2. `@barwise/llm` -- LLM-powered transcript extraction
+3. `@barwise/diagram` -- ORM diagram layout and SVG rendering
 4. `packages/vscode` -- VS Code extension (esbuild bundle)
 
 ### 3. Run the tests
@@ -53,7 +53,7 @@ cd packages/core && npx vitest run
 
 **Option A -- Extension Development Host (recommended for development):**
 
-1. Open the `fregma/fregma` folder in VS Code.
+1. Open the `barwise/barwise` folder in VS Code.
 2. Press `F5` (or **Run > Start Debugging**).
 3. VS Code opens a new window with the extension loaded.
 
@@ -82,22 +82,22 @@ cd packages/vscode
 npx @vscode/vsce package --no-dependencies
 ```
 
-This produces a `fregma-vscode-0.1.0.vsix` file. Install it in VS Code:
+This produces a `barwise-vscode-0.1.0.vsix` file. Install it in VS Code:
 
 ```sh
-code --install-extension fregma-vscode-0.1.0.vsix
+code --install-extension barwise-vscode-0.1.0.vsix
 ```
 
 ## Configuration
 
-After installing, open **Settings** and search for `fregma`. The key settings are:
+After installing, open **Settings** and search for `barwise`. The key settings are:
 
 | Setting                     | Default    | Description                                              |
 |-----------------------------|------------|----------------------------------------------------------|
-| `fregma.llmProvider`        | `copilot`  | `copilot` (uses your Copilot subscription) or `anthropic` |
-| `fregma.anthropicApiKey`    | (empty)    | Anthropic API key (falls back to `ANTHROPIC_API_KEY` env var) |
-| `fregma.anthropicModel`     | `claude-sonnet-4-5-20250929` | Model ID when using Anthropic directly                   |
-| `fregma.copilotModelFamily` | (empty)    | Preferred Copilot model family (e.g. `claude-sonnet`)     |
+| `barwise.llmProvider`        | `copilot`  | `copilot` (uses your Copilot subscription) or `anthropic` |
+| `barwise.anthropicApiKey`    | (empty)    | Anthropic API key (falls back to `ANTHROPIC_API_KEY` env var) |
+| `barwise.anthropicModel`     | `claude-sonnet-4-5-20250929` | Model ID when using Anthropic directly                   |
+| `barwise.copilotModelFamily` | (empty)    | Preferred Copilot model family (e.g. `claude-sonnet`)     |
 
 ## Quick start
 
@@ -111,14 +111,14 @@ After installing, open **Settings** and search for `fregma`. The key settings ar
 ## Project structure
 
 ```
-fregma/
+barwise/
   examples/
     transcripts/                 -- sample transcripts for ORM: Import Transcript
   packages/
-    core/       @fregma/core     -- metamodel, validation, verbalization, diff/merge
-    llm/        @fregma/llm      -- LLM transcript extraction
-    diagram/    @fregma/diagram  -- diagram layout and SVG rendering
-    vscode/     fregma-vscode    -- VS Code extension (language server + commands)
+    core/       @barwise/core     -- metamodel, validation, verbalization, diff/merge
+    llm/        @barwise/llm      -- LLM transcript extraction
+    diagram/    @barwise/diagram  -- diagram layout and SVG rendering
+    vscode/     barwise-vscode    -- VS Code extension (language server + commands)
   docs/
     ARCHITECTURE.md              -- full system design and phasing plan
   CLAUDE.md                      -- conventions and development commands

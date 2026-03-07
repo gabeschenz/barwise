@@ -1,0 +1,402 @@
+version: 2
+
+models:
+  - name: stg_consignors
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for consignors (sellers). A consignor is a person or company
+      that lists equipment or assets for sale through the IronBlock marketplace.
+    columns:
+      - name: consignor_id
+        # NOTE(barwise): Primary identifier "consignor_id" detected from unique + not_null tests.
+        description: Unique identifier for each consignor.
+        data_tests:
+          - unique
+          - not_null
+      - name: consignor_name
+        # NOTE(barwise): Data type "varchar(200)" resolved for column "consignor_name" from source definitions.
+        description: Legal or display name of the consignor.
+        data_tests:
+          - not_null
+      - name: consignor_type
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "consignor_type" from source definitions.
+        description: Whether the consignor is an individual or a company.
+        data_tests:
+          - accepted_values:
+              values: ['individual', 'company', 'government', 'dealer']
+      - name: registration_date
+        # NOTE(barwise): Data type "date" resolved for column "registration_date".
+        description: Date the consignor first registered on the platform.
+        data_type: date
+      - name: country_code
+        # NOTE(barwise): Data type "varchar(2)" resolved for column "country_code".
+        description: ISO country code of the consignor's primary location.
+        data_type: varchar(2)
+      - name: is_verified
+        # NOTE(barwise): Data type "boolean" resolved for column "is_verified".
+        description: Whether the consignor has completed identity verification.
+        data_type: boolean
+
+  - name: stg_bidders
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for bidders (buyers). A bidder is a registered participant
+      who can place bids in auctions.
+    columns:
+      - name: bidder_id
+        # NOTE(barwise): Primary identifier "bidder_id" detected from unique + not_null tests.
+        description: Unique identifier for each bidder.
+        data_tests:
+          - unique
+          - not_null
+      - name: bidder_name
+        # NOTE(barwise): Data type "varchar(200)" resolved for column "bidder_name" from source definitions.
+        description: Display name of the bidder.
+        data_tests:
+          - not_null
+      - name: email
+        # NOTE(barwise): Data type "varchar(255)" resolved for column "email" from source definitions.
+        description: Contact email address for the bidder.
+        data_tests:
+          - unique
+          - not_null
+      - name: bidder_tier
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "bidder_tier" from source definitions.
+        description: Loyalty tier based on transaction history.
+        data_tests:
+          - accepted_values:
+              values: ['bronze', 'silver', 'gold', 'platinum']
+      - name: credit_limit
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "credit_limit".
+        description: Maximum approved bid amount for this bidder.
+        data_type: "decimal(12,2)"
+      - name: country_code
+        description: ISO country code of the bidder.
+        data_type: varchar(2)
+      - name: registered_at
+        # NOTE(barwise): Data type "timestamp" resolved for column "registered_at".
+        description: Timestamp when the bidder account was created.
+        data_type: timestamp
+
+  - name: stg_assets
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for assets (equipment or vehicles) consigned for sale.
+      Each asset is a distinct physical item listed in the marketplace.
+    columns:
+      - name: asset_id
+        # NOTE(barwise): Primary identifier "asset_id" detected from unique + not_null tests.
+        description: Unique identifier for the asset.
+        data_tests:
+          - unique
+          - not_null
+      - name: consignor_id
+        description: The consignor who owns this asset.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_consignors')
+              field: consignor_id
+      - name: asset_title
+        # NOTE(barwise): Data type "varchar(500)" resolved for column "asset_title" from source definitions.
+        description: Short descriptive title for the asset listing.
+        data_tests:
+          - not_null
+      - name: category
+        # NOTE(barwise): Data type "varchar(30)" resolved for column "category" from source definitions.
+        description: Equipment category for the asset.
+        data_tests:
+          - accepted_values:
+              values:
+                - 'excavators'
+                - 'loaders'
+                - 'dozers'
+                - 'cranes'
+                - 'trucks'
+                - 'trailers'
+                - 'generators'
+                - 'compressors'
+                - 'aerial_lifts'
+                - 'attachments'
+                - 'other'
+      - name: year_manufactured
+        # NOTE(barwise): Data type "integer" resolved for column "year_manufactured".
+        description: Model year of the equipment.
+        data_type: integer
+      - name: manufacturer
+        # NOTE(barwise): Data type "varchar(100)" resolved for column "manufacturer" from source definitions.
+        description: Brand or manufacturer of the equipment (e.g., Caterpillar, John Deere).
+      - name: model_number
+        # NOTE(barwise): Data type "varchar(100)" resolved for column "model_number" from source definitions.
+        description: Manufacturer model designation.
+      - name: serial_number
+        # NOTE(barwise): Data type "varchar(100)" resolved for column "serial_number" from source definitions.
+        description: Unique manufacturer serial number.
+        data_tests:
+          - unique
+      - name: hours_meter
+        # NOTE(barwise): Data type "integer" resolved for column "hours_meter".
+        description: Equipment operating hours at time of consignment.
+        data_type: integer
+      - name: condition_rating
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "condition_rating" from source definitions.
+        description: Inspector-assigned condition rating.
+        data_tests:
+          - accepted_values:
+              values: ['excellent', 'good', 'fair', 'poor', 'salvage']
+      - name: reserve_price
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "reserve_price".
+        description: Minimum acceptable sale price set by the consignor. Null for unreserved lots.
+        data_type: "decimal(12,2)"
+      - name: location_yard
+        # NOTE(barwise): Data type "varchar(100)" resolved for column "location_yard" from source definitions.
+        description: Physical yard or site where the asset is staged for inspection.
+
+  - name: stg_auctions
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for auction events. An auction is a scheduled selling event
+      that may be held at a physical site, online, or both (timed + live).
+    columns:
+      - name: auction_id
+        # NOTE(barwise): Primary identifier "auction_id" detected from unique + not_null tests.
+        description: Unique identifier for the auction event.
+        data_tests:
+          - unique
+          - not_null
+      - name: auction_name
+        # NOTE(barwise): Data type "varchar(300)" resolved for column "auction_name" from source definitions.
+        description: Descriptive name of the auction event.
+        data_tests:
+          - not_null
+      - name: auction_type
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "auction_type" from source definitions.
+        description: Format of the auction.
+        data_tests:
+          - accepted_values:
+              values: ['live', 'timed_online', 'hybrid']
+      - name: site_name
+        # NOTE(barwise): Data type "varchar(200)" resolved for column "site_name" from source definitions.
+        description: Name of the physical auction site (null for online-only).
+      - name: start_date
+        # NOTE(barwise): Data type "date" resolved for column "start_date".
+        description: Scheduled start date of the auction.
+        data_type: date
+        data_tests:
+          - not_null
+      - name: end_date
+        # NOTE(barwise): Data type "date" resolved for column "end_date".
+        description: Scheduled end date of the auction.
+        data_type: date
+      - name: auction_status
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "auction_status" from source definitions.
+        description: Current state of the auction event.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['scheduled', 'preview', 'active', 'completed', 'cancelled']
+      - name: currency_code
+        # NOTE(barwise): Data type "varchar(3)" resolved for column "currency_code".
+        description: Settlement currency for this auction.
+        data_type: varchar(3)
+        data_tests:
+          - not_null
+
+  - name: stg_lots
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for auction lots. A lot is a specific asset offered in a
+      specific auction. The same asset could appear in multiple auctions if it
+      didn't sell previously.
+    columns:
+      - name: lot_id
+        # NOTE(barwise): Primary identifier "lot_id" detected from unique + not_null tests.
+        description: Unique identifier for the lot.
+        data_tests:
+          - unique
+          - not_null
+      - name: auction_id
+        description: The auction event this lot belongs to.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_auctions')
+              field: auction_id
+      - name: asset_id
+        description: The asset being offered in this lot.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_assets')
+              field: asset_id
+      - name: lot_number
+        # NOTE(barwise): Data type "integer" resolved for column "lot_number".
+        description: Sequence number of this lot within the auction.
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: lot_status
+        # TODO(barwise): No data_type for column "lot_status" in model or source definitions.
+        description: Current status of the lot.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'open', 'sold', 'passed', 'withdrawn']
+      - name: opening_bid
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "opening_bid".
+        description: Minimum starting bid amount for this lot.
+        data_type: "decimal(12,2)"
+      - name: hammer_price
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "hammer_price".
+        description: Final winning bid amount. Null if lot did not sell.
+        data_type: "decimal(12,2)"
+      - name: sold_at
+        # NOTE(barwise): Data type "timestamp" resolved for column "sold_at".
+        description: Timestamp when the lot was sold.
+        data_type: timestamp
+
+  - name: stg_bids
+    # TODO(barwise): Model-level custom test "dbt_utils.expression_is_true" -- manual review needed.
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for bids. Each row is a single bid placed by a bidder on a lot.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          expression: "bid_amount > 0"
+    columns:
+      - name: bid_id
+        # NOTE(barwise): Primary identifier "bid_id" detected from unique + not_null tests.
+        description: Unique identifier for the bid.
+        data_tests:
+          - unique
+          - not_null
+      - name: lot_id
+        description: The lot this bid was placed on.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_lots')
+              field: lot_id
+      - name: bidder_id
+        description: The bidder who placed this bid.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bidders')
+              field: bidder_id
+      - name: bid_amount
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "bid_amount".
+        description: Dollar amount of the bid.
+        data_type: "decimal(12,2)"
+        data_tests:
+          - not_null
+      - name: bid_time
+        # NOTE(barwise): Data type "timestamp" resolved for column "bid_time".
+        description: Timestamp when the bid was placed.
+        data_type: timestamp
+        data_tests:
+          - not_null
+      - name: bid_channel
+        # NOTE(barwise): Data type "varchar(20)" resolved for column "bid_channel" from source definitions.
+        description: How the bid was submitted.
+        data_tests:
+          - accepted_values:
+              values: ['in_person', 'online', 'phone', 'mobile_app']
+      - name: is_winning_bid
+        # NOTE(barwise): Data type "boolean" resolved for column "is_winning_bid".
+        description: Whether this bid is the current winning bid for the lot.
+        data_type: boolean
+
+  - name: stg_settlements
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for settlements. A settlement is the financial transaction
+      that finalizes the sale of a lot -- collecting buyer payment and remitting
+      proceeds to the consignor minus fees.
+    columns:
+      - name: settlement_id
+        # NOTE(barwise): Primary identifier "settlement_id" detected from unique + not_null tests.
+        description: Unique identifier for the settlement.
+        data_tests:
+          - unique
+          - not_null
+      - name: lot_id
+        description: The lot being settled.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_lots')
+              field: lot_id
+      - name: buyer_premium
+        # NOTE(barwise): Data type "decimal(5,2)" resolved for column "buyer_premium".
+        description: Fee charged to the buyer as a percentage surcharge.
+        data_type: "decimal(5,2)"
+      - name: seller_commission
+        # NOTE(barwise): Data type "decimal(5,2)" resolved for column "seller_commission".
+        description: Fee charged to the consignor as a percentage of hammer price.
+        data_type: "decimal(5,2)"
+      - name: total_buyer_amount
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "total_buyer_amount".
+        description: Total amount the buyer must pay (hammer price + buyer premium + taxes).
+        data_type: "decimal(12,2)"
+        data_tests:
+          - not_null
+      - name: net_seller_proceeds
+        # NOTE(barwise): Data type "decimal(12,2)" resolved for column "net_seller_proceeds".
+        description: Amount remitted to the consignor after commission and fees.
+        data_type: "decimal(12,2)"
+        data_tests:
+          - not_null
+      - name: settlement_status
+        # TODO(barwise): No data_type for column "settlement_status" in model or source definitions.
+        description: Current status of the settlement.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'invoiced', 'paid', 'remitted', 'disputed']
+      - name: settled_at
+        # NOTE(barwise): Data type "timestamp" resolved for column "settled_at".
+        description: Timestamp when the settlement was finalized.
+        data_type: timestamp
+
+  - name: stg_inspections
+    # NOTE(barwise): Model description used from YAML.
+    description: >
+      Staging model for asset inspections. An inspection is a professional
+      evaluation of an asset's condition before it goes to auction.
+    columns:
+      - name: inspection_id
+        # NOTE(barwise): Primary identifier "inspection_id" detected from unique + not_null tests.
+        description: Unique identifier for the inspection.
+        data_tests:
+          - unique
+          - not_null
+      - name: asset_id
+        description: The asset that was inspected.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_assets')
+              field: asset_id
+      - name: inspector_name
+        # TODO(barwise): No data_type for column "inspector_name" in model or source definitions.
+        description: Name of the person who performed the inspection.
+      - name: inspection_date
+        # NOTE(barwise): Data type "date" resolved for column "inspection_date".
+        description: Date the inspection was conducted.
+        data_type: date
+        data_tests:
+          - not_null
+      - name: inspection_type
+        # TODO(barwise): No data_type for column "inspection_type" in model or source definitions.
+        description: Type of inspection performed.
+        data_tests:
+          - accepted_values:
+              values: ['standard', 'detailed', 'mechanical', 'emissions']
+      - name: overall_score
+        # NOTE(barwise): Data type "integer" resolved for column "overall_score".
+        description: Numeric condition score from the inspection.
+        data_type: integer
+      - name: inspection_notes
+        # TODO(barwise): No data_type for column "inspection_notes" in model or source definitions.
+        description: Free-text notes from the inspector.
