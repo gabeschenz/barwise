@@ -49,7 +49,7 @@ in CI (GitHub Actions on every PR).
 - Install `madge` as a root devDependency.
 - Add `npm run circular` script that checks all packages.
 - Add to CI workflow.
-- Status: Not Started
+- Status: Complete
 
 ### Stage 6: oxlint (fast linting)
 

@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "knip": "knip",
+    "circular": "madge --circular --extensions ts packages/core/src/ packages/diagram/src/ packages/llm/src/ packages/cli/src/ packages/mcp/src/ packages/vscode/src/",
     "fmt": "dprint fmt",
     "fmt:check": "dprint check",
     "prepare": "cd .. && husky barwise/.husky"
@@ -24,6 +25,7 @@
     "husky": "^9.1.7",
     "knip": "^5.86.0",
     "lint-staged": "^16.3.2",
+    "madge": "^8.0.0",
     "turbo": "^2.3.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.0"
