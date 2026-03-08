@@ -31,7 +31,8 @@
     "onLanguage:yaml",
     "workspaceContains:**/*.orm.yaml",
     "workspaceContains:**/*.orm-project.yaml",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onChatParticipant:barwise.chatParticipant"
   ],
   "main": "./dist/client/extension.js",
   "contributes": {
