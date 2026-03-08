@@ -10,15 +10,21 @@
  */
 
 import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
-import { AnthropicLlmClient, processTranscript } from "@barwise/llm";
+import { AnthropicLlmClient, processTranscript, reviewModel } from "@barwise/llm";
 import type { LlmClient } from "@barwise/llm";
 import {
+  executeDescribeDomain,
   executeDiagram,
   executeDiff,
+  executeExportModel,
+  executeImpactAnalysis,
+  executeImportModel,
+  executeLineageStatus,
   executeMerge,
   executeSchema,
   executeValidate,
   executeVerbalize,
+  resolveSource,
 } from "@barwise/mcp";
 import * as vscode from "vscode";
 import { CopilotLlmClient } from "../llm/CopilotLlmClient.js";
@@ -60,6 +66,41 @@ interface ImportTranscriptInput {
 interface MergeInput {
   base: string;
   incoming: string;
+}
+
+interface ExportModelInput {
+  source: string;
+  format: string;
+  annotate?: boolean;
+  includeExamples?: boolean;
+  strict?: boolean;
+}
+
+interface DescribeDomainInput {
+  source: string;
+  focus?: string;
+  includePopulations?: boolean;
+  filePath?: string;
+}
+
+interface ImportModelInput {
+  source: string;
+  format: "ddl" | "openapi";
+  modelName?: string;
+}
+
+interface ReviewModelInput {
+  source: string;
+  focus?: string;
+}
+
+interface LineageStatusInput {
+  source: string;
+}
+
+interface ImpactAnalysisInput {
+  source: string;
+  elementId: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -276,6 +317,219 @@ class MergeModelsTool implements vscode.LanguageModelTool<MergeInput> {
 }
 
 // ---------------------------------------------------------------------------
+// export_model
+// ---------------------------------------------------------------------------
+
+class ExportModelTool implements vscode.LanguageModelTool<ExportModelInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<ExportModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const { source, format, annotate, includeExamples, strict } = options.input;
+    const opts: Record<string, unknown> = {};
+    if (annotate !== undefined) opts.annotate = annotate;
+    if (includeExamples !== undefined) opts.includeExamples = includeExamples;
+    if (strict !== undefined) opts.strict = strict;
+    const result = executeExportModel(
+      source,
+      format,
+      Object.keys(opts).length > 0 ? opts : undefined,
+    );
+    return toToolResult(result);
+  }
+
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<ExportModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: `Exporting ORM model as ${options.input.format}...`,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// describe_domain
+// ---------------------------------------------------------------------------
+
+class DescribeDomainTool implements vscode.LanguageModelTool<DescribeDomainInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<DescribeDomainInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const { source, focus, includePopulations, filePath } = options.input;
+    const result = executeDescribeDomain(
+      source,
+      focus,
+      includePopulations,
+      filePath,
+    );
+    return toToolResult(result);
+  }
+
+  async prepareInvocation(
+    _options: vscode.LanguageModelToolInvocationPrepareOptions<DescribeDomainInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: "Describing domain model...",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// import_model (deterministic format parsing, not LLM-based)
+// ---------------------------------------------------------------------------
+
+class ImportModelTool implements vscode.LanguageModelTool<ImportModelInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<ImportModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const { source, format, modelName } = options.input;
+    const result = await executeImportModel(source, format, modelName);
+    return toToolResult(result);
+  }
+
+  async prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<ImportModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: `Importing ORM model from ${options.input.format.toUpperCase()}...`,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// review_model
+//
+// Like import_transcript, this tool uses CopilotLlmClient so the
+// user's Copilot subscription handles the LLM call.
+// ---------------------------------------------------------------------------
+
+class ReviewModelTool implements vscode.LanguageModelTool<ReviewModelInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<ReviewModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const { source, focus } = options.input;
+    const client = await this.resolveClient();
+
+    const model = resolveSource(source);
+    const result = await reviewModel(model, client, { focus });
+
+    // Format the output
+    const lines: string[] = [];
+    lines.push("# Model Review");
+    lines.push("");
+    lines.push(`**Summary**: ${result.summary}`);
+    lines.push("");
+
+    if (result.suggestions.length === 0) {
+      lines.push("No suggestions. The model looks good!");
+    } else {
+      lines.push(`## Suggestions (${result.suggestions.length})`);
+      lines.push("");
+
+      const byCategory = new Map<string, typeof result.suggestions>();
+      for (const suggestion of result.suggestions) {
+        const existing = byCategory.get(suggestion.category) || [];
+        byCategory.set(suggestion.category, [...existing, suggestion]);
+      }
+
+      for (const [category, suggestions] of byCategory.entries()) {
+        lines.push(`### ${category.charAt(0).toUpperCase() + category.slice(1)}`);
+        lines.push("");
+        for (const s of suggestions) {
+          const severity = s.severity.toUpperCase();
+          const element = s.element ? ` (${s.element})` : "";
+          lines.push(`**${severity}${element}**: ${s.description}`);
+          lines.push(`*Rationale*: ${s.rationale}`);
+          lines.push("");
+        }
+      }
+    }
+
+    return new vscode.LanguageModelToolResult([
+      new vscode.LanguageModelTextPart(lines.join("\n")),
+    ]);
+  }
+
+  async prepareInvocation(
+    _options: vscode.LanguageModelToolInvocationPrepareOptions<ReviewModelInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: "Reviewing ORM model...",
+    };
+  }
+
+  private async resolveClient(): Promise<LlmClient> {
+    const config = vscode.workspace.getConfiguration("barwise");
+    const provider = config.get<string>("llmProvider") ?? "copilot";
+
+    if (provider === "anthropic") {
+      const apiKey = config.get<string>("anthropicApiKey") || undefined;
+      const model = config.get<string>("anthropicModel") || undefined;
+      return new AnthropicLlmClient({ apiKey, model });
+    }
+
+    const family = config.get<string>("copilotModelFamily") || undefined;
+    return new CopilotLlmClient({ family });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// lineage_status
+// ---------------------------------------------------------------------------
+
+class LineageStatusTool implements vscode.LanguageModelTool<LineageStatusInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<LineageStatusInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const result = executeLineageStatus(options.input.source);
+    return toToolResult(result);
+  }
+
+  async prepareInvocation(
+    _options: vscode.LanguageModelToolInvocationPrepareOptions<LineageStatusInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: "Checking lineage status...",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// impact_analysis
+// ---------------------------------------------------------------------------
+
+class ImpactAnalysisTool implements vscode.LanguageModelTool<ImpactAnalysisInput> {
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<ImpactAnalysisInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.LanguageModelToolResult> {
+    const result = executeImpactAnalysis(
+      options.input.source,
+      options.input.elementId,
+    );
+    return toToolResult(result);
+  }
+
+  async prepareInvocation(
+    _options: vscode.LanguageModelToolInvocationPrepareOptions<ImpactAnalysisInput>,
+    _token: vscode.CancellationToken,
+  ): Promise<vscode.PreparedToolInvocation> {
+    return {
+      invocationMessage: "Analyzing impact...",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -313,5 +567,20 @@ export function registerLanguageModelTools(
       new ImportTranscriptTool(),
     ),
     vscode.lm.registerTool("barwise_merge_models", new MergeModelsTool()),
+    vscode.lm.registerTool("barwise_export_model", new ExportModelTool()),
+    vscode.lm.registerTool(
+      "barwise_describe_domain",
+      new DescribeDomainTool(),
+    ),
+    vscode.lm.registerTool("barwise_import_model", new ImportModelTool()),
+    vscode.lm.registerTool("barwise_review_model", new ReviewModelTool()),
+    vscode.lm.registerTool(
+      "barwise_lineage_status",
+      new LineageStatusTool(),
+    ),
+    vscode.lm.registerTool(
+      "barwise_impact_analysis",
+      new ImpactAnalysisTool(),
+    ),
   );
 }

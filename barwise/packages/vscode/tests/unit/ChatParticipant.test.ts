@@ -24,12 +24,18 @@ describe("ChatParticipant", () => {
     it("lists all available tool names", () => {
       const expectedTools = [
         "barwise_import_transcript",
+        "barwise_import_model",
         "barwise_validate_model",
         "barwise_verbalize_model",
         "barwise_generate_schema",
         "barwise_generate_diagram",
+        "barwise_export_model",
         "barwise_diff_models",
         "barwise_merge_models",
+        "barwise_describe_domain",
+        "barwise_review_model",
+        "barwise_lineage_status",
+        "barwise_impact_analysis",
       ];
       for (const tool of expectedTools) {
         expect(SYSTEM_PROMPT).toContain(tool);
@@ -51,13 +57,21 @@ describe("ChatParticipant", () => {
   });
 
   describe("COMMAND_INSTRUCTIONS", () => {
-    it("has instructions for all 5 slash commands", () => {
+    it("has instructions for all 13 slash commands", () => {
       const expectedCommands = [
         "import",
         "validate",
         "verbalize",
         "diagram",
         "schema",
+        "diff",
+        "merge",
+        "export",
+        "describe",
+        "import-model",
+        "review",
+        "lineage",
+        "impact",
       ];
       for (const cmd of expectedCommands) {
         expect(COMMAND_INSTRUCTIONS).toHaveProperty(cmd);
@@ -94,15 +108,65 @@ describe("ChatParticipant", () => {
         "barwise_generate_schema",
       );
     });
+
+    it("diff instruction references the diff tool", () => {
+      expect(COMMAND_INSTRUCTIONS.diff).toContain(
+        "barwise_diff_models",
+      );
+    });
+
+    it("merge instruction references the merge tool", () => {
+      expect(COMMAND_INSTRUCTIONS.merge).toContain(
+        "barwise_merge_models",
+      );
+    });
+
+    it("export instruction references the export tool", () => {
+      expect(COMMAND_INSTRUCTIONS.export).toContain(
+        "barwise_export_model",
+      );
+    });
+
+    it("describe instruction references the describe tool", () => {
+      expect(COMMAND_INSTRUCTIONS.describe).toContain(
+        "barwise_describe_domain",
+      );
+    });
+
+    it("import-model instruction references the import-model tool", () => {
+      expect(COMMAND_INSTRUCTIONS["import-model"]).toContain(
+        "barwise_import_model",
+      );
+    });
+
+    it("review instruction references the review tool", () => {
+      expect(COMMAND_INSTRUCTIONS.review).toContain(
+        "barwise_review_model",
+      );
+    });
+
+    it("lineage instruction references the lineage tool", () => {
+      expect(COMMAND_INSTRUCTIONS.lineage).toContain(
+        "barwise_lineage_status",
+      );
+    });
+
+    it("impact instruction references the impact tool", () => {
+      expect(COMMAND_INSTRUCTIONS.impact).toContain(
+        "barwise_impact_analysis",
+      );
+    });
   });
 
   describe("FOLLOWUP_SUGGESTIONS", () => {
-    it("suggests validate, diagram, verbalize, and schema", () => {
+    it("suggests validate, diagram, verbalize, schema, export, and review", () => {
       const commands = FOLLOWUP_SUGGESTIONS.map((s) => s.command);
       expect(commands).toContain("validate");
       expect(commands).toContain("diagram");
       expect(commands).toContain("verbalize");
       expect(commands).toContain("schema");
+      expect(commands).toContain("export");
+      expect(commands).toContain("review");
     });
 
     it("each suggestion has a non-empty prompt", () => {

@@ -134,6 +134,38 @@
           {
             "name": "schema",
             "description": "Generate a relational schema"
+          },
+          {
+            "name": "diff",
+            "description": "Compare two ORM models"
+          },
+          {
+            "name": "merge",
+            "description": "Merge an incoming model into a base model"
+          },
+          {
+            "name": "export",
+            "description": "Export model to DDL, OpenAPI, dbt, or Avro"
+          },
+          {
+            "name": "describe",
+            "description": "Describe domain entities and constraints"
+          },
+          {
+            "name": "import-model",
+            "description": "Import model from DDL or OpenAPI"
+          },
+          {
+            "name": "review",
+            "description": "LLM-powered semantic review of a model"
+          },
+          {
+            "name": "lineage",
+            "description": "Check staleness of exported artifacts"
+          },
+          {
+            "name": "impact",
+            "description": "Analyze impact of changing a model element"
           }
         ]
       }
@@ -339,6 +371,207 @@
           "required": [
             "base",
             "incoming"
+          ]
+        }
+      },
+      {
+        "name": "barwise_export_model",
+        "displayName": "Export ORM Model",
+        "toolReferenceName": "barwiseExport",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(export)",
+        "tags": [
+          "orm",
+          "export"
+        ],
+        "modelDescription": "Export an ORM 2 model to a specified format (ddl, openapi, dbt, avro). Returns the exported artifact as text.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "ddl",
+                "openapi",
+                "dbt",
+                "avro"
+              ],
+              "description": "Export format: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x, 'dbt' for dbt model files, 'avro' for Avro schemas"
+            },
+            "annotate": {
+              "type": "boolean",
+              "description": "Include TODO/NOTE annotations in output (default: true)"
+            },
+            "includeExamples": {
+              "type": "boolean",
+              "description": "Include population examples in output (default: true)"
+            },
+            "strict": {
+              "type": "boolean",
+              "description": "Refuse to export if model has validation errors (default: false)"
+            }
+          },
+          "required": [
+            "source",
+            "format"
+          ]
+        }
+      },
+      {
+        "name": "barwise_describe_domain",
+        "displayName": "Describe Domain",
+        "toolReferenceName": "barwiseDescribe",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(book)",
+        "tags": [
+          "orm",
+          "domain"
+        ],
+        "modelDescription": "Query an ORM 2 model for domain context: entity definitions, constraints, relationships, and business rules. Optionally focus on a specific entity, fact type, or constraint type. Can also resolve a generated artifact path back to its source model through lineage.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            },
+            "focus": {
+              "type": "string",
+              "description": "Optional focus: entity name, fact type name, or constraint type keyword (e.g., 'Patient', 'mandatory'). Omit for full summary."
+            },
+            "includePopulations": {
+              "type": "boolean",
+              "description": "Include population (example) data in the description (default: true)"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "Path to a generated artifact (e.g., DDL file). When provided, resolves through lineage to find the source model."
+            }
+          },
+          "required": [
+            "source"
+          ]
+        }
+      },
+      {
+        "name": "barwise_import_model",
+        "displayName": "Import Model from Format",
+        "toolReferenceName": "barwiseImportModel",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(file-code)",
+        "tags": [
+          "orm",
+          "import"
+        ],
+        "modelDescription": "Import an ORM model from a structured format (DDL SQL or OpenAPI spec). Performs deterministic parsing to produce a draft ORM model in YAML. Distinct from transcript import which uses LLM extraction.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Source content (inline SQL/OpenAPI) or file path to a DDL or OpenAPI file"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "ddl",
+                "openapi"
+              ],
+              "description": "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs"
+            },
+            "modelName": {
+              "type": "string",
+              "description": "Name for the resulting ORM model. Defaults to format-specific name."
+            }
+          },
+          "required": [
+            "source",
+            "format"
+          ]
+        }
+      },
+      {
+        "name": "barwise_review_model",
+        "displayName": "Review ORM Model",
+        "toolReferenceName": "barwiseReview",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(feedback)",
+        "tags": [
+          "orm",
+          "review"
+        ],
+        "modelDescription": "LLM-powered semantic review of an ORM model. Provides suggestions about naming, completeness, normalization, constraints, and definitions. Distinct from validation (which checks structural rules) -- review gives subjective modeling advice.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+            },
+            "focus": {
+              "type": "string",
+              "description": "Focus on a specific entity or fact type name. Omit for full review."
+            }
+          },
+          "required": [
+            "source"
+          ]
+        }
+      },
+      {
+        "name": "barwise_lineage_status",
+        "displayName": "Check Lineage Status",
+        "toolReferenceName": "barwiseLineage",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(history)",
+        "tags": [
+          "orm",
+          "lineage"
+        ],
+        "modelDescription": "Check staleness of exported artifacts by comparing the current model against the lineage manifest. Returns which artifacts are stale (out of date) vs fresh (up to date).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file (needed to find the project directory and model)"
+            }
+          },
+          "required": [
+            "source"
+          ]
+        }
+      },
+      {
+        "name": "barwise_impact_analysis",
+        "displayName": "Analyze Impact",
+        "toolReferenceName": "barwiseImpact",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(warning)",
+        "tags": [
+          "orm",
+          "impact"
+        ],
+        "modelDescription": "Analyze the impact of changing a model element. Given an element ID, returns which exported artifacts depend on that element and would need regeneration.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "File path to an .orm.yaml file (needed to find the project directory)"
+            },
+            "elementId": {
+              "type": "string",
+              "description": "ID of the model element to analyze (entity, fact type, constraint, etc.)"
+            }
+          },
+          "required": [
+            "source",
+            "elementId"
           ]
         }
       }
