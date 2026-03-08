@@ -43,7 +43,42 @@ describe("ExtractionPrompt", () => {
     it("instructs about ambiguity detection", () => {
       const prompt = buildSystemPrompt();
       expect(prompt).toContain("Ambiguities");
-      expect(prompt).toContain("contradictions");
+      expect(prompt).toContain("review pass");
+    });
+
+    it("includes all 8 ambiguity categories", () => {
+      const prompt = buildSystemPrompt();
+      const categories = [
+        "Identification",
+        "Cardinality",
+        "Optionality",
+        "Overloaded terms",
+        "Temporal",
+        "Granularity",
+        "Derivation",
+        "Constraint completeness",
+      ];
+      for (const category of categories) {
+        expect(prompt).toContain(`**${category}**`);
+      }
+    });
+
+    it("includes concrete examples for each ambiguity category", () => {
+      const prompt = buildSystemPrompt();
+      // Each category has an "Example:" with a concrete scenario
+      const examplePatterns = [
+        "is email also unique", // Identification
+        "belong to multiple projects", // Cardinality
+        "discount code", // Optionality
+        "user login accounts", // Overloaded terms
+        "history be tracked", // Temporal
+        "street, city, state", // Granularity
+        "derived from line item", // Derivation
+        "could a flight be neither", // Constraint completeness
+      ];
+      for (const pattern of examplePatterns) {
+        expect(prompt).toContain(pattern);
+      }
     });
 
     it("includes subtype relationship explanation", () => {
