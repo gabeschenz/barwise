@@ -28,6 +28,10 @@ export {
   parseExtractionResponse,
 } from "./ExtractionPrompt.js";
 
+// Conformance validation
+export { enforceConformance } from "./ExtractionConformance.js";
+export type { ConformanceCorrection, ConformanceResult } from "./ExtractionConformance.js";
+
 // Model parser
 export { parseDraftModel } from "./DraftModelParser.js";
 

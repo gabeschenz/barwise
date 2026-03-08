@@ -2,13 +2,14 @@
  * Orchestrates the full transcript-to-model pipeline.
  *
  * Pipeline:
- *   Raw Transcript -> LLM Extraction -> JSON Parsing -> OrmModel Construction
+ *   Raw Transcript -> LLM Extraction -> JSON Parsing -> Conformance Validation -> OrmModel Construction
  *
  * The processor is the main entry point for the LLM package. It coordinates
  * the prompt construction, LLM call, response parsing, and model building.
  */
 
 import { parseDraftModel } from "./DraftModelParser.js";
+import { enforceConformance } from "./ExtractionConformance.js";
 import {
   buildResponseSchema,
   buildSystemPrompt,
@@ -61,10 +62,15 @@ export async function processTranscript(
     );
   }
 
+  // Apply deterministic conformance checks before model construction.
+  const { response: cleaned, corrections } = enforceConformance(extraction);
+
   const modelName = options?.modelName ?? "Extracted Model";
-  const result = parseDraftModel(extraction, modelName);
+  const result = parseDraftModel(cleaned, modelName);
+  const conformanceWarnings = corrections.map((c) => c.description);
   return {
     ...result,
+    warnings: [...conformanceWarnings, ...result.warnings],
     modelUsed: response.modelUsed,
     usage: response.usage,
     latencyMs: response.latencyMs,
@@ -82,5 +88,11 @@ export function parseExtractionFromJson(
 ): DraftModelResult {
   const parsed = JSON.parse(json);
   const extraction = parseExtractionResponse(parsed);
-  return parseDraftModel(extraction, modelName);
+  const { response: cleaned, corrections } = enforceConformance(extraction);
+  const result = parseDraftModel(cleaned, modelName);
+  const conformanceWarnings = corrections.map((c) => c.description);
+  return {
+    ...result,
+    warnings: [...conformanceWarnings, ...result.warnings],
+  };
 }

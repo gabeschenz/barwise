@@ -116,9 +116,23 @@ Analyze the transcript carefully and extract:
    - Assess confidence: "high" if explicitly stated, "medium" if strongly implied, "low" if inferred from general domain knowledge
    - Include the source references that justify the inference
 
-7. **Ambiguities**: Flag contradictions, unclear terminology, or open questions. For each:
-   - Describe the ambiguity
-   - Include the source references showing the conflicting or unclear statements
+7. **Ambiguities**: After extracting all elements above, perform a review pass against each category below. Flag anything uncertain as an ambiguity with a clear, actionable description and the source references that triggered the concern. For each ambiguity, describe the specific question that needs to be answered.
+
+   **Identification**: Does every entity type have a clear, unambiguous identifier? Flag when multiple candidate identifiers exist (e.g., both "customer number" and "email" implied as unique), when no identifier is stated, or when composite identification is unclear. Example: "Each customer has a customer number and an email" -- is email also unique, or just customer number?
+
+   **Cardinality**: Is the multiplicity of each relationship clear? Flag when one-to-many vs many-to-many is not explicit, when "has" or "contains" could mean either direction, or when aggregation vs association is ambiguous. Example: "A project has team members" -- can a team member belong to multiple projects?
+
+   **Optionality**: Is participation mandatory or optional? Flag when "can have" or "may have" is used without clarifying the reverse direction, when mandatory participation is assumed but not stated, or when null/empty cases are unaddressed. Example: "An order can have a discount code" -- must every discount code be used on at least one order?
+
+   **Overloaded terms**: Are the same words used with different meanings? Flag when a term appears in multiple contexts with potentially different semantics, when abbreviations are undefined, or when domain jargon could be interpreted multiple ways. Example: "Account" used for both user login accounts and financial accounts.
+
+   **Temporal**: Are time-dependent facts modeled correctly? Flag when a relationship changes over time but is modeled as current-state only, when historical tracking may be needed but is not mentioned, or when effective dates are implied but not explicit. Example: "An employee works in a department" -- is this current assignment only, or should history be tracked?
+
+   **Granularity**: Is the level of detail appropriate? Flag when an entity could be decomposed further, when a value type might be better modeled as an entity, or when measurement precision is unstated. Example: "Each store has an address" -- is address a single text value, or structured into street, city, state, postal code?
+
+   **Derivation**: Is a fact stored or computed? Flag when a stated fact appears derivable from other facts, when aggregations are described as attributes, or when it is unclear whether a value should be stored or computed. Example: "Each order has a total amount" -- is this stored, or derived from line item prices?
+
+   **Constraint completeness**: Are business rules fully captured? Flag when a constraint is implied but not explicit enough to formalize, when mutual exclusion or dependency between facts is hinted at, or when boundary conditions are unaddressed. Example: "A flight is either domestic or international" -- is this exclusive (exactly one), or could a flight be neither?
 
 ## Critical Rules
 
