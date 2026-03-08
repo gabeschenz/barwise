@@ -123,11 +123,6 @@ export class DbtExportFormat implements ExportFormatAdapter {
 }
 
 /**
- * Singleton instance of the dbt export format.
- */
-export const dbtExportFormat = new DbtExportFormat();
-
-/**
  * Render population data as dbt seed CSV files.
  *
  * Each table with population data gets a `seeds/<table_name>.csv` file.

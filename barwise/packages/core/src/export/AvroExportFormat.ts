@@ -79,8 +79,3 @@ export class AvroExportFormat implements ExportFormatAdapter {
     };
   }
 }
-
-/**
- * Singleton instance of the Avro export format.
- */
-export const avroExportFormat = new AvroExportFormat();
