@@ -2,7 +2,7 @@
   "name": "barwise-vscode",
   "displayName": "Barwise ORM Modeler",
   "description": "ORM 2 modeling tool for data engineers and architects",
-  "version": "0.3.1",
+  "version": "1.0.0",
   "private": true,
   "publisher": "barwise",
   "author": "Gabe Schenz",
@@ -292,10 +292,10 @@
     "test:integration": "vscode-test"
   },
   "dependencies": {
-    "@barwise/core": "0.3.0",
-    "@barwise/diagram": "0.2.0",
-    "@barwise/llm": "0.3.0",
-    "@barwise/mcp": "0.2.1",
+    "@barwise/core": "1.0.0",
+    "@barwise/diagram": "1.0.0",
+    "@barwise/llm": "1.0.0",
+    "@barwise/mcp": "1.0.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
