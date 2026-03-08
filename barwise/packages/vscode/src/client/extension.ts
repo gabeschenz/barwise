@@ -6,6 +6,7 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node.js";
+import { registerChatParticipant } from "../chat/ChatParticipant.js";
 import { ExportCommand } from "../commands/ExportCommand.js";
 import { ImportCommand } from "../commands/ImportCommand.js";
 import { NewProjectCommand } from "../commands/NewProjectCommand.js";
@@ -80,6 +81,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Copilot Chat and other AI features can invoke barwise tools
   // directly in the extension host process (with Copilot access).
   registerLanguageModelTools(context);
+
+  // Register the @barwise chat participant so users can invoke barwise
+  // directly in Copilot Chat (e.g. "@barwise import this transcript").
+  registerChatParticipant(context);
 }
 
 export function deactivate(): Thenable<void> | undefined {
