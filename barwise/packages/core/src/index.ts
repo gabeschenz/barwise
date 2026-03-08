@@ -215,6 +215,8 @@ export { ImportFormatError } from "./import/registry.js";
 export type { ImportFormat, ImportOptions, ImportResult } from "./import/types.js";
 
 // Export format types and implementations
+export { AvroExportFormat } from "./export/AvroExportFormat.js";
+export { DbtExportFormat } from "./export/DbtExportFormat.js";
 export { DdlExportFormat } from "./export/DdlExportFormat.js";
 export { OpenApiExportFormat } from "./export/OpenApiExportFormat.js";
 export type {
@@ -225,7 +227,13 @@ export type {
 } from "./export/types.js";
 
 // Unified format system (registry + descriptors)
-export { ddlFormat, openApiFormat, registerBuiltinFormats } from "./format/formats.js";
+export {
+  avroFormat,
+  dbtFormat,
+  ddlFormat,
+  openApiFormat,
+  registerBuiltinFormats,
+} from "./format/formats.js";
 export {
   clearFormats,
   formatRegistry,
@@ -290,6 +298,8 @@ export { generateDdlLineage, generateModelLineage } from "./lineage/generate.js"
 export type { AffectedArtifact, ImpactReport } from "./lineage/impact.js";
 export { analyzeImpact } from "./lineage/impact.js";
 export { hashModel, readManifest, updateManifest, writeManifest } from "./lineage/manifest.js";
+export type { ArtifactResolution } from "./lineage/resolveArtifact.js";
+export { findOrmModel, resolveArtifact } from "./lineage/resolveArtifact.js";
 export type { StaleArtifact, StalenessReport } from "./lineage/staleness.js";
 export { checkStaleness } from "./lineage/staleness.js";
 export type {

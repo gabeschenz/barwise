@@ -2,7 +2,7 @@
  * Tests for the new export command (format registry dispatch).
  */
 import { existsSync, readFileSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../helpers/run.js";
@@ -118,5 +118,98 @@ describe("barwise export (new format registry)", () => {
     // Should fail in strict mode with validation errors.
     expect(result.exitCode).toBe(1);
     expect(result.stderr.toLowerCase()).toContain("error");
+  });
+
+  it("exports dbt to stdout with --format dbt", async () => {
+    const result = await runCli([
+      "export",
+      `${fixtures}/simple.orm.yaml`,
+      "--format",
+      "dbt",
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("schema.yml");
+    expect(result.stdout).toContain("version: 2");
+  });
+
+  it("exports Avro to stdout with --format avro", async () => {
+    const result = await runCli([
+      "export",
+      `${fixtures}/simple.orm.yaml`,
+      "--format",
+      "avro",
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('"type": "record"');
+    expect(result.stdout).toContain(".avsc");
+  });
+
+  it("writes dbt multi-file output with --output", async () => {
+    const outputDir = `${testOutput}/dbt-export`;
+    // Clean up from previous runs.
+    if (existsSync(outputDir)) {
+      rmSync(outputDir, { recursive: true });
+    }
+
+    const result = await runCli([
+      "export",
+      `${fixtures}/simple.orm.yaml`,
+      "--format",
+      "dbt",
+      "--output",
+      outputDir,
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(outputDir)).toBe(true);
+
+    // Should have schema.yml.
+    const schemaPath = join(outputDir, "models", "schema.yml");
+    expect(existsSync(schemaPath)).toBe(true);
+    const schemaContent = readFileSync(schemaPath, "utf-8");
+    expect(schemaContent).toContain("version: 2");
+
+    // Clean up.
+    rmSync(outputDir, { recursive: true });
+  });
+
+  it("persists lineage manifest when exporting with --output", async () => {
+    const outputFile = `${testOutput}/manifest-test.sql`;
+    const manifestPath = join(
+      dirname(resolve(`${fixtures}/simple.orm.yaml`)),
+      ".barwise",
+      "lineage.yaml",
+    );
+
+    // Clean up from previous runs.
+    if (existsSync(outputFile)) {
+      rmSync(outputFile);
+    }
+
+    const result = await runCli([
+      "export",
+      `${fixtures}/simple.orm.yaml`,
+      "--format",
+      "ddl",
+      "--output",
+      outputFile,
+    ]);
+    expect(result.exitCode).toBe(0);
+
+    // Manifest should be created next to the fixture.
+    expect(existsSync(manifestPath)).toBe(true);
+    const manifestContent = readFileSync(manifestPath, "utf-8");
+    expect(manifestContent).toContain("version: 1");
+    expect(manifestContent).toContain("format: ddl");
+
+    // Clean up.
+    rmSync(outputFile);
+    rmSync(manifestPath);
+    // Remove .barwise directory if empty.
+    const barwiseDir = dirname(manifestPath);
+    try {
+      rmSync(barwiseDir, { recursive: true });
+    } catch {
+      // Ignore if directory not empty.
+    }
   });
 });
