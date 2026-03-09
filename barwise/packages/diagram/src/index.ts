@@ -12,7 +12,7 @@ export type {
   RoleBox,
   SubtypeEdge,
 } from "./graph/GraphTypes.js";
-export { modelToGraph } from "./graph/ModelToGraph.js";
+export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
 
 // Layout types and engine.
 export { layoutGraph } from "./layout/ElkLayoutEngine.js";
@@ -38,4 +38,4 @@ export * as theme from "./render/theme.js";
 
 // Main entry point.
 export { generateDiagram } from "./DiagramGenerator.js";
-export type { DiagramResult } from "./DiagramGenerator.js";
+export type { DiagramOptions, DiagramResult } from "./DiagramGenerator.js";

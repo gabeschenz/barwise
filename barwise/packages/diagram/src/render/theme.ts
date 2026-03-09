@@ -64,3 +64,9 @@ export const OBJECTIFICATION_STROKE_WIDTH = 1.5;
 // -- Frequency and ring labels --
 export const FONT_SIZE_ANNOTATION = 9;
 export const COLOR_ANNOTATION = "#8a3ac8";
+
+// -- Annotation markers --
+export const COLOR_ANNOTATION_STROKE = "#d97706";
+export const ANNOTATION_DASH = "4,3";
+export const ANNOTATION_MARKER_RADIUS = 5;
+export const COLOR_ANNOTATION_MARKER = "#d97706";

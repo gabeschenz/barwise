@@ -3,10 +3,15 @@
  *
  * Wraps the existing renderOpenApi() function as an ExportFormat, adding:
  * - Validation with strict mode support
- * - ExportResult structure
+ * - Annotation support (x-barwise-annotations extension fields)
+ * - ExportResult structure with annotations array
  * - Option forwarding (title, version, basePath)
  */
 
+import {
+  collectExportAnnotations,
+  type ExportAnnotation,
+} from "../annotation/ExportAnnotationCollector.js";
 import { RelationalMapper } from "../mapping/RelationalMapper.js";
 import { openApiToJson, renderOpenApi } from "../mapping/renderers/openapi.js";
 import type { OrmModel } from "../model/OrmModel.js";
@@ -23,6 +28,7 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
   readonly description = "OpenAPI 3.0 specification (JSON)";
 
   export(model: OrmModel, options?: ExportOptions): ExportResult {
+    const annotate = options?.annotate ?? true;
     const strict = options?.strict ?? false;
 
     // Run validation.
@@ -42,6 +48,11 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
     const mapper = new RelationalMapper();
     const schema = mapper.map(model);
 
+    // Collect annotations from the model and schema.
+    const annotations = annotate
+      ? collectExportAnnotations(model, schema)
+      : [];
+
     // Extract OpenAPI-specific options.
     const title = (options?.title as string | undefined) ?? model.name;
     const version = (options?.version as string | undefined) ?? "1.0.0";
@@ -54,15 +65,15 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
       basePath,
     });
 
+    // Inject x-barwise-annotations extension fields into the spec.
+    if (annotate && annotations.length > 0) {
+      injectAnnotationExtensions(spec, annotations);
+    }
+
     // Serialize to JSON.
     const text = openApiToJson(spec);
 
     // Include validation diagnostics as a comment if present and not strict.
-    // OpenAPI doesn't have a native comment mechanism, so we'll prepend as a
-    // YAML-style comment block (even though the output is JSON).
-    // Alternatively, we could include it in the description field, but that's
-    // not ideal. For now, just include errors as a warning string in the result
-    // if they exist.
     const validationWarnings = errors.length > 0
       ? `/* Validation warnings:\n${
         errors.map((e) => ` * ERROR: ${e.message}`).join("\n")
@@ -71,8 +82,7 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
 
     return {
       text: validationWarnings + text,
-      // OpenAPI is a single-file format (JSON or YAML), so no files array.
-      // annotations and constraintSpecs will be added in Stage B/C.
+      annotations: annotations.length > 0 ? annotations : undefined,
     };
   }
 }
@@ -81,3 +91,81 @@ export class OpenApiExportFormat implements ExportFormatAdapter {
  * Singleton instance of the OpenAPI export format.
  */
 export const openApiExportFormat = new OpenApiExportFormat();
+
+// ---------------------------------------------------------------------------
+// Annotation injection
+// ---------------------------------------------------------------------------
+
+/** A single annotation entry in the x-barwise-annotations array. */
+interface AnnotationExtension {
+  readonly severity: "todo" | "note";
+  readonly message: string;
+}
+
+/**
+ * Inject `x-barwise-annotations` extension fields into OpenAPI schema objects.
+ *
+ * - Table-level annotations become extensions on the component schema object.
+ * - Column-level annotations become extensions on the property object.
+ *
+ * This preserves valid OpenAPI while making annotations machine-readable
+ * for downstream tooling.
+ */
+function injectAnnotationExtensions(
+  spec: { components: { schemas: Record<string, unknown>; }; },
+  annotations: readonly ExportAnnotation[],
+): void {
+  // Index annotations by table and table::column.
+  const tableAnnotations = new Map<string, AnnotationExtension[]>();
+  const columnAnnotations = new Map<string, AnnotationExtension[]>();
+
+  for (const a of annotations) {
+    const schemaName = toPascalCase(a.tableName);
+    const entry: AnnotationExtension = { severity: a.severity, message: a.message };
+
+    if (a.columnName) {
+      const key = `${schemaName}::${a.columnName}`;
+      const existing = columnAnnotations.get(key) ?? [];
+      existing.push(entry);
+      columnAnnotations.set(key, existing);
+    } else {
+      const existing = tableAnnotations.get(schemaName) ?? [];
+      existing.push(entry);
+      tableAnnotations.set(schemaName, existing);
+    }
+  }
+
+  const schemas = spec.components.schemas as Record<string, Record<string, unknown>>;
+
+  for (const [schemaName, schemaObj] of Object.entries(schemas)) {
+    // Add table-level annotations.
+    const tAnnotations = tableAnnotations.get(schemaName);
+    if (tAnnotations) {
+      schemaObj["x-barwise-annotations"] = tAnnotations;
+    }
+
+    // Add column-level annotations to properties.
+    const properties = schemaObj.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!properties) continue;
+
+    for (const [propName, propObj] of Object.entries(properties)) {
+      const key = `${schemaName}::${propName}`;
+      const cAnnotations = columnAnnotations.get(key);
+      if (cAnnotations) {
+        propObj["x-barwise-annotations"] = cAnnotations;
+      }
+    }
+  }
+}
+
+/**
+ * Convert a snake_case name to PascalCase.
+ *
+ * Must match the toPascalCase in openapi.ts so schema names align.
+ */
+function toPascalCase(name: string): string {
+  return name
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join("");
+}

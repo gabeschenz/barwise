@@ -14,7 +14,11 @@
  * preserve YAML formatting and is idempotent.
  */
 
-import { formatBarwiseComment, stripBarwiseComments, truncate } from "../../annotation/helpers.js";
+import {
+  collectExportAnnotations,
+  type ExportAnnotation,
+} from "../../annotation/ExportAnnotationCollector.js";
+import { formatBarwiseComment, stripBarwiseComments } from "../../annotation/helpers.js";
 import type { OrmModel } from "../../model/OrmModel.js";
 import type { RelationalSchema } from "../RelationalSchema.js";
 
@@ -22,18 +26,9 @@ import type { RelationalSchema } from "../RelationalSchema.js";
 // Public API
 // ---------------------------------------------------------------------------
 
-export interface ExportAnnotation {
-  /** Which table this annotation is for. */
-  readonly tableName: string;
-  /** Which column, if column-level (undefined = model-level). */
-  readonly columnName?: string;
-  /** Severity: "todo" produces `# TODO(barwise):`, "note" produces `# NOTE(barwise):`. */
-  readonly severity: "todo" | "note";
-  /** Annotation category. */
-  readonly category: string;
-  /** Human-readable message. */
-  readonly message: string;
-}
+// Re-export for backward compatibility -- consumers that imported
+// ExportAnnotation from this module continue to work.
+export type { ExportAnnotation } from "../../annotation/ExportAnnotationCollector.js";
 
 export interface ExportAnnotationResult {
   /** The annotated schema.yml string. */
@@ -55,7 +50,7 @@ export function annotateDbtExport(
   model: OrmModel,
   schema: RelationalSchema,
 ): ExportAnnotationResult {
-  const annotations = collectAnnotations(model, schema);
+  const annotations = collectExportAnnotations(model, schema);
 
   if (annotations.length === 0) {
     return { schemaYaml: stripBarwiseComments(schemaYaml), annotations };
@@ -120,134 +115,6 @@ export function annotateDbtExport(
   }
 
   return { schemaYaml: result.join("\n"), annotations };
-}
-
-// ---------------------------------------------------------------------------
-// Annotation collection
-// ---------------------------------------------------------------------------
-
-function collectAnnotations(
-  model: OrmModel,
-  schema: RelationalSchema,
-): ExportAnnotation[] {
-  const annotations: ExportAnnotation[] = [];
-
-  // Build lookup maps from ORM model.
-  const entityById = new Map(
-    model.objectTypes.filter((ot) => ot.kind === "entity").map((e) => [e.id, e]),
-  );
-  const valueById = new Map(
-    model.objectTypes.filter((ot) => ot.kind === "value").map((v) => [v.id, v]),
-  );
-
-  for (const table of schema.tables) {
-    const entity = entityById.get(table.sourceElementId);
-
-    // --- Model-level annotations ---
-
-    // Missing model description.
-    if (entity) {
-      if (entity.definition) {
-        annotations.push({
-          tableName: table.name,
-          severity: "note",
-          category: "description",
-          message: `Definition available from ORM model: "${truncate(entity.definition, 80)}"`,
-        });
-      } else {
-        annotations.push({
-          tableName: table.name,
-          severity: "todo",
-          category: "description",
-          message:
-            "No model description. Add a definition to the ORM entity type or edit the dbt YAML.",
-        });
-      }
-    }
-
-    // Composite PK note.
-    if (table.primaryKey.columnNames.length > 1) {
-      annotations.push({
-        tableName: table.name,
-        severity: "note",
-        category: "constraint",
-        message: `Composite primary key (${
-          table.primaryKey.columnNames.join(", ")
-        }). Individual unique tests are not generated.`,
-      });
-    }
-
-    // --- Column-level annotations ---
-
-    for (const col of table.columns) {
-      // Find the value type that sourced this column (via role traceability).
-      const sourceValueType = col.sourceRoleId
-        ? findValueTypeForRole(col.sourceRoleId, model, valueById)
-        : undefined;
-
-      // Missing column description.
-      annotations.push({
-        tableName: table.name,
-        columnName: col.name,
-        severity: "todo",
-        category: "description",
-        message: "No column description. Add one to the dbt YAML.",
-      });
-
-      // Default TEXT data type.
-      if (col.dataType === "TEXT") {
-        annotations.push({
-          tableName: table.name,
-          columnName: col.name,
-          severity: "todo",
-          category: "data_type",
-          message:
-            "Data type defaulted to TEXT. Add a data type to the ORM value type or edit the dbt YAML.",
-        });
-      }
-
-      // Value constraint available for accepted_values test.
-      if (sourceValueType?.valueConstraint) {
-        const vals = sourceValueType.valueConstraint.values;
-        annotations.push({
-          tableName: table.name,
-          columnName: col.name,
-          severity: "note",
-          category: "accepted_values",
-          message: `Value constraint available: [${
-            vals.map((v) => `'${v}'`).join(", ")
-          }]. Consider adding an accepted_values test.`,
-        });
-      }
-    }
-  }
-
-  return annotations;
-}
-
-/**
- * Given a role ID from a relational column's sourceRoleId, find the
- * value type in the same fact type. The sourceRoleId points to the
- * entity's role; the value type plays the *other* role.
- */
-function findValueTypeForRole(
-  roleId: string,
-  model: OrmModel,
-  valueById: Map<string, InstanceType<typeof import("../../model/ObjectType.js").ObjectType>>,
-): InstanceType<typeof import("../../model/ObjectType.js").ObjectType> | undefined {
-  for (const ft of model.factTypes) {
-    const matchIdx = ft.roles.findIndex((r) => r.id === roleId);
-    if (matchIdx === -1) continue;
-
-    // The matched role is the entity's role. Look for a value type
-    // among the other roles in this fact type.
-    for (let i = 0; i < ft.roles.length; i++) {
-      if (i === matchIdx) continue;
-      const vt = valueById.get(ft.roles[i]!.playerId);
-      if (vt) return vt;
-    }
-  }
-  return undefined;
 }
 
 // ---------------------------------------------------------------------------

@@ -884,4 +884,115 @@ describe("SvgRenderer", () => {
     const svg = renderSvg(makeMinimalGraph());
     expect(svg).not.toContain('data-kind="objectification"');
   });
+
+  it("renders annotated entity type with dashed border and title", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Customer",
+          objectTypeKind: "entity",
+          referenceMode: "customer_id",
+          annotations: ["No model description", "Review definition"],
+          x: 50,
+          y: 50,
+          width: 120,
+          height: 40,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    // Should have annotation stroke color (amber).
+    expect(svg).toContain('stroke="#d97706"');
+    // Should have dashed border (entity types normally have solid).
+    expect(svg).toContain('stroke-dasharray="4,3"');
+    // Should have a <title> element with annotation text.
+    expect(svg).toContain("<title>");
+    expect(svg).toContain("No model description");
+    expect(svg).toContain("Review definition");
+    // Should have annotation marker dot.
+    expect(svg).toContain('data-kind="annotation-marker"');
+  });
+
+  it("renders annotated value type with annotation stroke color", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "object_type",
+          id: "ot-1",
+          name: "Status",
+          objectTypeKind: "value",
+          annotations: ["Data type defaulted to TEXT"],
+          x: 50,
+          y: 50,
+          width: 90,
+          height: 40,
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    // Should use annotation stroke color instead of value type stroke.
+    expect(svg).toContain('stroke="#d97706"');
+    expect(svg).toContain("<title>");
+    expect(svg).toContain("Data type defaulted to TEXT");
+  });
+
+  it("renders annotated fact type with title element", () => {
+    const graph: PositionedGraph = {
+      width: 400,
+      height: 300,
+      nodes: [
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "Test fact",
+          hasSpanningUniqueness: false,
+          annotations: ["Review constraint coverage"],
+          x: 100,
+          y: 100,
+          width: 72,
+          height: 28,
+          roles: [
+            {
+              roleId: "r-1",
+              roleName: "has",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+              x: 0,
+              y: 0,
+              width: 36,
+              height: 28,
+            },
+          ],
+        },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+    const svg = renderSvg(graph);
+
+    expect(svg).toContain("<title>");
+    expect(svg).toContain("Review constraint coverage");
+  });
+
+  it("does not render annotation markers for unannotated nodes", () => {
+    const svg = renderSvg(makeMinimalGraph());
+    expect(svg).not.toContain('data-kind="annotation-marker"');
+    expect(svg).not.toContain("<title>");
+  });
 });

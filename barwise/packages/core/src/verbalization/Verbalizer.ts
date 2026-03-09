@@ -1,3 +1,4 @@
+import type { ExportAnnotation } from "../annotation/ExportAnnotationCollector.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type { OrmModel } from "../model/OrmModel.js";
 import { expandReading } from "../model/ReadingOrder.js";
@@ -41,6 +42,48 @@ export class Verbalizer {
     // Objectified fact type verbalizations.
     for (const oft of model.objectifiedFactTypes) {
       results.push(this.verbalizeObjectifiedFactType(oft, model));
+    }
+
+    return results;
+  }
+
+  /**
+   * Verbalize a model and append an "Open questions" section from
+   * TODO-severity annotations.
+   *
+   * NOTE-severity annotations are informational and are not included
+   * in the open questions section.
+   *
+   * @param model - The ORM model to verbalize.
+   * @param annotations - Export annotations (only TODO-severity items
+   *   are included as open questions).
+   */
+  verbalizeModelWithAnnotations(
+    model: OrmModel,
+    annotations: readonly ExportAnnotation[],
+  ): Verbalization[] {
+    const results = this.verbalizeModel(model);
+
+    const todoAnnotations = annotations.filter((a) => a.severity === "todo");
+    if (todoAnnotations.length === 0) return results;
+
+    // Add a section header.
+    results.push(
+      buildVerbalization("open-questions", "open_question", [
+        textSeg("== Open questions =="),
+      ]),
+    );
+
+    // Add each TODO as an open question.
+    for (const a of todoAnnotations) {
+      const context = a.columnName
+        ? `${a.tableName}.${a.columnName}`
+        : a.tableName;
+      results.push(
+        buildVerbalization(a.tableName, "open_question", [
+          textSeg(`[${context}] ${a.message}`),
+        ]),
+      );
     }
 
     return results;

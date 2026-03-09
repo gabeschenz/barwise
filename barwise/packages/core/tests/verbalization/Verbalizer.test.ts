@@ -9,6 +9,7 @@
  *   - Sub-verbalizer access (factTypes, constraints)
  */
 import { describe, expect, it } from "vitest";
+import type { ExportAnnotation } from "../../src/annotation/ExportAnnotationCollector.js";
 import { OrmModel } from "../../src/model/OrmModel.js";
 import { Verbalizer } from "../../src/verbalization/Verbalizer.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
@@ -101,6 +102,115 @@ describe("Verbalizer", () => {
       expect(vs[0]!.text).toBe("Customer places Order");
       expect(vs[1]!.text).toBe("Order is placed by Customer");
       expect(vs[2]!.text).toContain("at most one");
+    });
+  });
+
+  describe("verbalizeModelWithAnnotations", () => {
+    it("appends open questions section for TODO annotations", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withEntityType("Order", { referenceMode: "order_number" })
+        .withBinaryFactType("Customer places Order", {
+          role1: { player: "Customer", name: "places" },
+          role2: { player: "Order", name: "is placed by" },
+          uniqueness: "role2",
+        })
+        .build();
+
+      const annotations: ExportAnnotation[] = [
+        {
+          tableName: "customer",
+          severity: "todo",
+          category: "description",
+          message: "No model description. Add a definition.",
+        },
+        {
+          tableName: "customer",
+          columnName: "customer_id",
+          severity: "todo",
+          category: "description",
+          message: "No column description.",
+        },
+      ];
+
+      const vs = verbalizer.verbalizeModelWithAnnotations(model, annotations);
+
+      const questions = vs.filter((v) => v.category === "open_question");
+      // 1 header + 2 questions
+      expect(questions).toHaveLength(3);
+      expect(questions[0]!.text).toBe("== Open questions ==");
+      expect(questions[1]!.text).toContain("[customer]");
+      expect(questions[1]!.text).toContain("No model description");
+      expect(questions[2]!.text).toContain("[customer.customer_id]");
+    });
+
+    it("does not append section when there are no TODO annotations", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const noteOnly: ExportAnnotation[] = [
+        {
+          tableName: "customer",
+          severity: "note",
+          category: "description",
+          message: "Definition available.",
+        },
+      ];
+
+      const vs = verbalizer.verbalizeModelWithAnnotations(model, noteOnly);
+
+      const questions = vs.filter((v) => v.category === "open_question");
+      expect(questions).toHaveLength(0);
+    });
+
+    it("filters out NOTE annotations from the questions section", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const mixed: ExportAnnotation[] = [
+        {
+          tableName: "customer",
+          severity: "note",
+          category: "description",
+          message: "This is informational.",
+        },
+        {
+          tableName: "customer",
+          severity: "todo",
+          category: "data_type",
+          message: "Review data type.",
+        },
+      ];
+
+      const vs = verbalizer.verbalizeModelWithAnnotations(model, mixed);
+
+      const questions = vs.filter((v) => v.category === "open_question");
+      // 1 header + 1 question (the NOTE is excluded).
+      expect(questions).toHaveLength(2);
+      expect(questions[1]!.text).toContain("Review data type");
+      expect(questions[1]!.text).not.toContain("informational");
+    });
+
+    it("returns same result as verbalizeModel when annotations are empty", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withEntityType("Order", { referenceMode: "order_number" })
+        .withBinaryFactType("Customer places Order", {
+          role1: { player: "Customer", name: "places" },
+          role2: { player: "Order", name: "is placed by" },
+        })
+        .build();
+
+      const withAnnotations = verbalizer.verbalizeModelWithAnnotations(model, []);
+      const without = verbalizer.verbalizeModel(model);
+
+      expect(withAnnotations.length).toBe(without.length);
+      for (let i = 0; i < without.length; i++) {
+        expect(withAnnotations[i]!.text).toBe(without[i]!.text);
+        expect(withAnnotations[i]!.category).toBe(without[i]!.category);
+      }
     });
   });
 

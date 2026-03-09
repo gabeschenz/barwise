@@ -1,6 +1,6 @@
 import type { OrmModel } from "@barwise/core";
 import type { OrmGraph } from "./graph/GraphTypes.js";
-import { modelToGraph } from "./graph/ModelToGraph.js";
+import { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
 import { layoutGraph } from "./layout/ElkLayoutEngine.js";
 import type { PositionedGraph } from "./layout/LayoutTypes.js";
 import { renderSvg } from "./render/SvgRenderer.js";
@@ -19,6 +19,11 @@ export interface DiagramResult {
 }
 
 /**
+ * Options for diagram generation.
+ */
+export type DiagramOptions = ModelToGraphOptions;
+
+/**
  * Generate a complete ORM diagram from a model.
  *
  * This is the main entry point for the diagram package. It runs the
@@ -26,8 +31,9 @@ export interface DiagramResult {
  */
 export async function generateDiagram(
   model: OrmModel,
+  options?: DiagramOptions,
 ): Promise<DiagramResult> {
-  const graph = modelToGraph(model);
+  const graph = modelToGraph(model, options);
   const layout = await layoutGraph(graph);
   const svg = renderSvg(layout);
   return { svg, layout, graph };

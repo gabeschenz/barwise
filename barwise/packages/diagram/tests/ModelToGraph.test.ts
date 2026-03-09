@@ -700,4 +700,63 @@ describe("ModelToGraph", () => {
       expect(ftNode.objectifiedEntityName).toBeUndefined();
     }
   });
+
+  it("populates annotations on object type nodes from options map", () => {
+    const model = new ModelBuilder("Annotations")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const customer = model.getObjectTypeByName("Customer")!;
+    const annotations = new Map<string, readonly string[]>([
+      [customer.id, ["No model description", "Missing definition"]],
+    ]);
+
+    const graph = modelToGraph(model, { annotations });
+    const otNode = graph.nodes.find(
+      (n) => n.kind === "object_type" && n.name === "Customer",
+    );
+    expect(otNode).toBeDefined();
+    if (otNode?.kind === "object_type") {
+      expect(otNode.annotations).toEqual([
+        "No model description",
+        "Missing definition",
+      ]);
+    }
+  });
+
+  it("populates annotations on fact type nodes from options map", () => {
+    const model = new ModelBuilder("Annotations")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .withEntityType("Order", { referenceMode: "order_number" })
+      .withBinaryFactType("Customer places Order", {
+        role1: { player: "Customer", name: "places" },
+        role2: { player: "Order", name: "is placed by" },
+      })
+      .build();
+
+    const ft = model.getFactTypeByName("Customer places Order")!;
+    const annotations = new Map<string, readonly string[]>([
+      [ft.id, ["Review constraint coverage"]],
+    ]);
+
+    const graph = modelToGraph(model, { annotations });
+    const ftNode = graph.nodes.find((n) => n.kind === "fact_type");
+    if (ftNode?.kind === "fact_type") {
+      expect(ftNode.annotations).toEqual(["Review constraint coverage"]);
+    }
+  });
+
+  it("omits annotations when options map does not contain the element", () => {
+    const model = new ModelBuilder("NoAnnotations")
+      .withEntityType("Customer", { referenceMode: "customer_id" })
+      .build();
+
+    const graph = modelToGraph(model, { annotations: new Map() });
+    const otNode = graph.nodes.find(
+      (n) => n.kind === "object_type" && n.name === "Customer",
+    );
+    if (otNode?.kind === "object_type") {
+      expect(otNode.annotations).toBeUndefined();
+    }
+  });
 });

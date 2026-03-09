@@ -97,6 +97,103 @@ describe("AvroExportFormat", () => {
     });
   });
 
+  describe("annotation support", () => {
+    it("injects TODO in record doc for missing definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const result = avroFormat.export(model, { annotate: true });
+
+      // Parse the first .avsc file.
+      const file = result.files![0]!;
+      const parsed = JSON.parse(file.content);
+
+      // Record doc should contain a TODO annotation.
+      expect(parsed.doc).toBeDefined();
+      expect(parsed.doc).toContain("[TODO(barwise):");
+      expect(parsed.doc).toContain("No model description");
+    });
+
+    it("injects NOTE in record doc when entity has a definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A buyer of goods.",
+        })
+        .build();
+
+      const result = avroFormat.export(model, { annotate: true });
+
+      const file = result.files![0]!;
+      const parsed = JSON.parse(file.content);
+
+      expect(parsed.doc).toBeDefined();
+      expect(parsed.doc).toContain("[NOTE(barwise):");
+      expect(parsed.doc).toContain("Definition available");
+    });
+
+    it("injects field-level TODO for default TEXT data type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withValueType("Status")
+        .withBinaryFactType("Customer has Status", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Status", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const result = avroFormat.export(model, { annotate: true });
+
+      const file = result.files![0]!;
+      const parsed = JSON.parse(file.content);
+
+      // Find the status field.
+      const statusField = parsed.fields.find(
+        (f: { name: string; }) => f.name === "status",
+      );
+      expect(statusField).toBeDefined();
+      expect(statusField.doc).toContain("[TODO(barwise):");
+      expect(statusField.doc).toContain("Data type defaulted to TEXT");
+    });
+
+    it("returns annotations array in the result", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const result = avroFormat.export(model, { annotate: true });
+
+      expect(result.annotations).toBeDefined();
+      expect(result.annotations!.length).toBeGreaterThan(0);
+      const descTodo = result.annotations!.find(
+        (a) => a.tableName === "customer" && a.category === "description",
+      );
+      expect(descTodo).toBeDefined();
+    });
+
+    it("omits annotations when annotate is false", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const result = avroFormat.export(model, { annotate: false });
+
+      const file = result.files![0]!;
+      const parsed = JSON.parse(file.content);
+
+      // Record doc should NOT contain barwise annotations.
+      // (It may have "Primary key" doc on the PK field, but no barwise annotations.)
+      if (parsed.doc) {
+        expect(parsed.doc).not.toContain("barwise");
+      }
+
+      // annotations array should be undefined.
+      expect(result.annotations).toBeUndefined();
+    });
+  });
+
   describe("result structure", () => {
     it("returns ExportResult with text and files", () => {
       const model = new ModelBuilder("Test")

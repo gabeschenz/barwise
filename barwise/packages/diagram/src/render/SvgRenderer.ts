@@ -70,21 +70,37 @@ export function renderSvg(graph: PositionedGraph): string {
 
 function renderObjectType(node: PositionedObjectTypeNode): string {
   const isEntity = node.objectTypeKind === "entity";
+  const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const fill = isEntity ? theme.COLOR_ENTITY_FILL : theme.COLOR_VALUE_FILL;
-  const stroke = isEntity ? theme.COLOR_ENTITY_STROKE : theme.COLOR_VALUE_STROKE;
+  const stroke = hasAnnotations
+    ? theme.COLOR_ANNOTATION_STROKE
+    : isEntity
+    ? theme.COLOR_ENTITY_STROKE
+    : theme.COLOR_VALUE_STROKE;
+  const dashArray = hasAnnotations
+    ? theme.ANNOTATION_DASH
+    : isEntity
+    ? undefined
+    : "4,3";
   const cx = node.x + node.width / 2;
   const cy = node.y + node.height / 2;
 
   const parts: string[] = [];
   parts.push(`<g data-id="${esc(node.id)}" data-kind="object_type">`);
 
+  // Add hover title with annotation messages.
+  if (hasAnnotations) {
+    parts.push(`<title>${esc(node.annotations!.join("\n"))}</title>`);
+  }
+
   if (isEntity) {
     // Entity types are rounded rectangles (soft corners).
+    const dashAttr = dashArray ? ` stroke-dasharray="${dashArray}"` : "";
     parts.push(
       `<rect x="${node.x}" y="${node.y}" `
         + `width="${node.width}" height="${node.height}" `
         + `rx="${theme.OT_CORNER_RADIUS}" ry="${theme.OT_CORNER_RADIUS}" `
-        + `fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`,
+        + `fill="${fill}" stroke="${stroke}" stroke-width="1.5"${dashAttr}/>`,
     );
   } else {
     // Value types are rendered as dashed-border ovals.
@@ -93,7 +109,19 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
     parts.push(
       `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" `
         + `fill="${fill}" stroke="${stroke}" stroke-width="1.5" `
-        + `stroke-dasharray="4,3"/>`,
+        + `stroke-dasharray="${dashArray ?? "4,3"}"/>`,
+    );
+  }
+
+  // Annotation marker (small warning dot at top-right corner).
+  if (hasAnnotations) {
+    const markerX = node.x + node.width - 4;
+    const markerY = node.y + 4;
+    parts.push(
+      `<circle data-kind="annotation-marker" `
+        + `cx="${markerX}" cy="${markerY}" `
+        + `r="${theme.ANNOTATION_MARKER_RADIUS}" `
+        + `fill="${theme.COLOR_ANNOTATION_MARKER}"/>`,
     );
   }
 
@@ -144,8 +172,14 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
 }
 
 function renderFactType(node: PositionedFactTypeNode): string {
+  const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const parts: string[] = [];
   parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type">`);
+
+  // Add hover title with annotation messages.
+  if (hasAnnotations) {
+    parts.push(`<title>${esc(node.annotations!.join("\n"))}</title>`);
+  }
 
   // Objectification box: rounded rectangle enclosing the role boxes.
   if (node.isObjectified) {
