@@ -1,5 +1,16 @@
 cd barwise
+
+# 1. Lint staged files (dprint, eslint, oxlint).
 npx lint-staged
+
+# 2. Build all packages to catch cross-package type errors.
+#    Turbo caches unchanged packages, so this is fast (~1s) in the
+#    common case and ~3s on a full rebuild.
+npm run build
+
+# 3. Run tests in packages affected by uncommitted changes.
+#    The ...[HEAD] filter selects changed packages and their dependents.
+npx turbo run test --filter='...[HEAD]'
 
 # Chain beads hook if bd is available.
 if command -v bd >/dev/null 2>&1; then
