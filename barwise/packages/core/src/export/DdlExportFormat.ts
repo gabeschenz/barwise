@@ -3,10 +3,14 @@
  *
  * Wraps the existing renderDdl() function as an ExportFormat, adding:
  * - Validation with strict mode support
- * - Annotation support (constraint comments in SQL)
- * - ExportResult structure
+ * - Annotation support (TODO/NOTE SQL comments from ExportAnnotationCollector)
+ * - ExportResult structure with annotations array
  */
 
+import {
+  collectExportAnnotations,
+  type ExportAnnotation,
+} from "../annotation/ExportAnnotationCollector.js";
 import { RelationalMapper } from "../mapping/RelationalMapper.js";
 import { renderDdl } from "../mapping/renderers/ddl.js";
 import type { OrmModel } from "../model/OrmModel.js";
@@ -45,12 +49,19 @@ export class DdlExportFormat implements ExportFormatAdapter {
     const mapper = new RelationalMapper();
     const schema = mapper.map(model);
 
+    // Collect annotations from the model and schema.
+    const annotations = annotate
+      ? collectExportAnnotations(model, schema)
+      : [];
+
     // Render DDL.
     let ddlText = renderDdl(schema);
 
-    // If annotate is true, add constraint annotations as SQL comments.
+    // If annotate is true, add source/definition comments and
+    // TODO/NOTE annotations as SQL comments.
     if (annotate) {
       ddlText = this.addConstraintAnnotations(ddlText, model, schema);
+      ddlText = injectAnnotationComments(ddlText, annotations);
     }
 
     // Append population INSERT statements if requested.
@@ -70,8 +81,7 @@ export class DdlExportFormat implements ExportFormatAdapter {
 
     return {
       text,
-      // DDL is a single-file format, so no files array.
-      // annotations and constraintSpecs will be added in Stage B/C.
+      annotations: annotations.length > 0 ? annotations : undefined,
     };
   }
 
@@ -130,3 +140,98 @@ export class DdlExportFormat implements ExportFormatAdapter {
  * Singleton instance of the DDL export format.
  */
 export const ddlExportFormat = new DdlExportFormat();
+
+// ---------------------------------------------------------------------------
+// Annotation injection
+// ---------------------------------------------------------------------------
+
+/**
+ * Format a severity tag for SQL comments.
+ */
+function formatSqlAnnotation(severity: "todo" | "note", message: string): string {
+  const prefix = severity === "note" ? "NOTE(barwise)" : "TODO(barwise)";
+  return `-- ${prefix}: ${message}`;
+}
+
+/**
+ * Inject TODO/NOTE annotation comments into rendered DDL.
+ *
+ * - Table-level annotations are placed above the `CREATE TABLE` line.
+ * - Column-level annotations are placed above the column definition line.
+ */
+function injectAnnotationComments(
+  ddl: string,
+  annotations: readonly ExportAnnotation[],
+): string {
+  if (annotations.length === 0) return ddl;
+
+  // Index annotations by table and table::column.
+  const tableAnnotations = new Map<string, ExportAnnotation[]>();
+  const columnAnnotations = new Map<string, ExportAnnotation[]>();
+
+  for (const a of annotations) {
+    if (a.columnName) {
+      const key = `${a.tableName}::${a.columnName}`;
+      const existing = columnAnnotations.get(key) ?? [];
+      existing.push(a);
+      columnAnnotations.set(key, existing);
+    } else {
+      const existing = tableAnnotations.get(a.tableName) ?? [];
+      existing.push(a);
+      tableAnnotations.set(a.tableName, existing);
+    }
+  }
+
+  const lines = ddl.split("\n");
+  const result: string[] = [];
+
+  for (const line of lines) {
+    // Detect CREATE TABLE lines.
+    const createMatch = line.match(/^CREATE TABLE (?:"|)([a-z_][a-z0-9_]*)(?:"|) \(/);
+    if (createMatch) {
+      const tableName = createMatch[1]!;
+      const tAnnotations = tableAnnotations.get(tableName);
+      if (tAnnotations) {
+        for (const a of tAnnotations) {
+          result.push(formatSqlAnnotation(a.severity, a.message));
+        }
+      }
+      result.push(line);
+      continue;
+    }
+
+    // Detect column definition lines (indented with 2 spaces).
+    const colMatch = line.match(/^\s{2}(?:"|)([a-z_][a-z0-9_]*)(?:"|)\s+/);
+    if (colMatch) {
+      const colName = colMatch[1]!;
+      // Find which table we're in by looking backwards for the most
+      // recent CREATE TABLE.
+      const currentTable = findCurrentTable(result);
+      if (currentTable) {
+        const key = `${currentTable}::${colName}`;
+        const cAnnotations = columnAnnotations.get(key);
+        if (cAnnotations) {
+          for (const a of cAnnotations) {
+            result.push(`  ${formatSqlAnnotation(a.severity, a.message)}`);
+          }
+        }
+      }
+    }
+
+    result.push(line);
+  }
+
+  return result.join("\n");
+}
+
+/**
+ * Scan backwards through already-emitted lines to find the current
+ * table name from the most recent CREATE TABLE statement.
+ */
+function findCurrentTable(lines: readonly string[]): string | undefined {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const match = lines[i]!.match(/^CREATE TABLE (?:"|)([a-z_][a-z0-9_]*)(?:"|) \(/);
+    if (match) return match[1];
+  }
+  return undefined;
+}

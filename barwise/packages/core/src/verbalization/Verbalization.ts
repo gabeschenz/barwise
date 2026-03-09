@@ -37,7 +37,7 @@ export interface Verbalization {
   /** The id of the model element this verbalization describes. */
   readonly sourceElementId: string;
   /** What kind of element was verbalized. */
-  readonly category: "fact_type" | "constraint" | "subtype" | "objectification";
+  readonly category: "fact_type" | "constraint" | "subtype" | "objectification" | "open_question";
 }
 
 /**

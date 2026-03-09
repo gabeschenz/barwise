@@ -84,8 +84,92 @@ describe("DdlExportFormat", () => {
       expect(result.text).not.toContain("-- Table:");
       expect(result.text).not.toContain("-- Source:");
       expect(result.text).not.toContain("-- Definition:");
+      expect(result.text).not.toContain("TODO(barwise)");
+      expect(result.text).not.toContain("NOTE(barwise)");
       // But should still have the CREATE TABLE.
       expect(result.text).toContain("CREATE TABLE");
+      // annotations array should be undefined.
+      expect(result.annotations).toBeUndefined();
+    });
+
+    it("injects TODO comment for missing entity definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const result = ddlFormat.export(model, { annotate: true });
+
+      // Table-level TODO for missing description.
+      expect(result.text).toContain("-- TODO(barwise): No model description");
+      // The TODO should appear before CREATE TABLE.
+      const todoIdx = result.text.indexOf("-- TODO(barwise): No model description");
+      const createIdx = result.text.indexOf("CREATE TABLE customer");
+      expect(todoIdx).toBeLessThan(createIdx);
+    });
+
+    it("injects NOTE comment when entity has a definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "customer_id",
+          definition: "A buyer of goods.",
+        })
+        .build();
+
+      const result = ddlFormat.export(model, { annotate: true });
+
+      expect(result.text).toContain("-- NOTE(barwise): Definition available from ORM model");
+    });
+
+    it("injects column-level TODO for default TEXT data type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withValueType("Status")
+        .withBinaryFactType("Customer has Status", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Status", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const result = ddlFormat.export(model, { annotate: true });
+
+      // Column-level TODO for defaulted TEXT type.
+      expect(result.text).toContain("-- TODO(barwise): Data type defaulted to TEXT");
+    });
+
+    it("injects NOTE for value constraints", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .withValueType("Status", {
+          valueConstraint: { values: ["active", "inactive"] },
+        })
+        .withBinaryFactType("Customer has Status", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Status", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const result = ddlFormat.export(model, { annotate: true });
+
+      expect(result.text).toContain("-- NOTE(barwise): Value constraint available");
+      expect(result.text).toContain("'active'");
+    });
+
+    it("returns annotations array in the result", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "customer_id" })
+        .build();
+
+      const result = ddlFormat.export(model, { annotate: true });
+
+      expect(result.annotations).toBeDefined();
+      expect(result.annotations!.length).toBeGreaterThan(0);
+      // Should include the table-level description TODO.
+      const descTodo = result.annotations!.find(
+        (a) => a.tableName === "customer" && a.category === "description",
+      );
+      expect(descTodo).toBeDefined();
     });
   });
 

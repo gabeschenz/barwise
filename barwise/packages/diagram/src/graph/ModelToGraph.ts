@@ -25,6 +25,18 @@ const RING_TYPE_LABELS: Record<RingType, RingTypeLabel> = {
 };
 
 /**
+ * Options for modelToGraph conversion.
+ */
+export interface ModelToGraphOptions {
+  /**
+   * Per-element annotation messages, keyed by element ID.
+   * When present, the corresponding graph node gets an `annotations`
+   * array and the SVG renderer can add visual markers.
+   */
+  readonly annotations?: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
  * Convert an OrmModel into an OrmGraph suitable for layout and rendering.
  *
  * This is the bridge between the semantic model and the visual representation.
@@ -32,7 +44,11 @@ const RING_TYPE_LABELS: Record<RingType, RingTypeLabel> = {
  * FactTypeNode with RoleBox children, and each role-player relationship
  * becomes a GraphEdge.
  */
-export function modelToGraph(model: OrmModel): OrmGraph {
+export function modelToGraph(
+  model: OrmModel,
+  options?: ModelToGraphOptions,
+): OrmGraph {
+  const annotationMap = options?.annotations;
   const nodes: (ObjectTypeNode | FactTypeNode | ConstraintNode)[] = [];
   const edges: GraphEdge[] = [];
   const constraintEdges: ConstraintEdge[] = [];
@@ -40,6 +56,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
 
   // Create object type nodes.
   for (const ot of model.objectTypes) {
+    const otAnnotations = annotationMap?.get(ot.id);
     nodes.push({
       kind: "object_type",
       id: ot.id,
@@ -47,6 +64,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       objectTypeKind: ot.kind,
       referenceMode: ot.referenceMode,
       aliases: ot.aliases?.length ? ot.aliases : undefined,
+      annotations: otAnnotations?.length ? otAnnotations : undefined,
     });
   }
 
@@ -121,6 +139,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
     });
 
     const objectifiedEntityName = objectifiedMap.get(ft.id);
+    const ftAnnotations = annotationMap?.get(ft.id);
 
     nodes.push({
       kind: "fact_type",
@@ -131,6 +150,7 @@ export function modelToGraph(model: OrmModel): OrmGraph {
       ringConstraint,
       isObjectified: objectifiedEntityName !== undefined,
       objectifiedEntityName,
+      annotations: ftAnnotations?.length ? ftAnnotations : undefined,
     });
 
     // Create edges from each role's player object type to the fact type.

@@ -127,6 +127,117 @@ describe("OpenApiExportFormat", () => {
     });
   });
 
+  describe("annotation support", () => {
+    it("injects x-barwise-annotations on schema for missing definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "cust_id" })
+        .build();
+
+      const result = openApiExportFormat.export(model, { annotate: true });
+      const spec = JSON.parse(result.text);
+
+      // Customer schema should have x-barwise-annotations.
+      const customerSchema = spec.components.schemas.Customer;
+      expect(customerSchema["x-barwise-annotations"]).toBeDefined();
+      const annotations = customerSchema["x-barwise-annotations"] as Array<{
+        severity: string;
+        message: string;
+      }>;
+      expect(annotations.length).toBeGreaterThan(0);
+
+      // Should include a TODO for missing description.
+      const descTodo = annotations.find(
+        (a) => a.severity === "todo" && a.message.includes("No model description"),
+      );
+      expect(descTodo).toBeDefined();
+    });
+
+    it("injects NOTE on schema when entity has a definition", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", {
+          referenceMode: "cust_id",
+          definition: "A buyer of goods.",
+        })
+        .build();
+
+      const result = openApiExportFormat.export(model, { annotate: true });
+      const spec = JSON.parse(result.text);
+
+      const customerSchema = spec.components.schemas.Customer;
+      expect(customerSchema["x-barwise-annotations"]).toBeDefined();
+      const annotations = customerSchema["x-barwise-annotations"] as Array<{
+        severity: string;
+        message: string;
+      }>;
+
+      const defNote = annotations.find(
+        (a) => a.severity === "note" && a.message.includes("Definition available"),
+      );
+      expect(defNote).toBeDefined();
+    });
+
+    it("injects column-level x-barwise-annotations for default TEXT type", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "cust_id" })
+        .withValueType("Status")
+        .withBinaryFactType("Customer has Status", {
+          role1: { player: "Customer", name: "has" },
+          role2: { player: "Status", name: "is of" },
+          uniqueness: "role1",
+        })
+        .build();
+
+      const result = openApiExportFormat.export(model, { annotate: true });
+      const spec = JSON.parse(result.text);
+
+      // The Customer schema should have a status property with annotations.
+      const customerSchema = spec.components.schemas.Customer;
+      const statusProp = customerSchema.properties?.status;
+      expect(statusProp).toBeDefined();
+      expect(statusProp["x-barwise-annotations"]).toBeDefined();
+
+      const colAnnotations = statusProp["x-barwise-annotations"] as Array<{
+        severity: string;
+        message: string;
+      }>;
+      const textTodo = colAnnotations.find(
+        (a) => a.severity === "todo" && a.message.includes("Data type defaulted to TEXT"),
+      );
+      expect(textTodo).toBeDefined();
+    });
+
+    it("returns annotations array in the result", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "cust_id" })
+        .build();
+
+      const result = openApiExportFormat.export(model, { annotate: true });
+
+      expect(result.annotations).toBeDefined();
+      expect(result.annotations!.length).toBeGreaterThan(0);
+      const descTodo = result.annotations!.find(
+        (a) => a.tableName === "customer" && a.category === "description",
+      );
+      expect(descTodo).toBeDefined();
+    });
+
+    it("omits annotations when annotate is false", () => {
+      const model = new ModelBuilder("Test")
+        .withEntityType("Customer", { referenceMode: "cust_id" })
+        .build();
+
+      const result = openApiExportFormat.export(model, { annotate: false });
+      const spec = JSON.parse(result.text);
+
+      // Should not have any x-barwise-annotations.
+      const customerSchema = spec.components.schemas.Customer;
+      expect(customerSchema["x-barwise-annotations"]).toBeUndefined();
+
+      // annotations array should be undefined.
+      expect(result.annotations).toBeUndefined();
+    });
+  });
+
   describe("registry integration", () => {
     beforeEach(() => {
       formatRegistry.clear();

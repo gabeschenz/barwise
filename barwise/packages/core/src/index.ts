@@ -119,7 +119,6 @@ export {
 } from "./mapping/renderers/dbt.js";
 export {
   annotateDbtExport,
-  type ExportAnnotation,
   type ExportAnnotationResult,
 } from "./mapping/renderers/DbtExportAnnotator.js";
 export { renderDdl } from "./mapping/renderers/ddl.js";
@@ -262,7 +261,11 @@ export {
   registerImportFormat,
 } from "./import/registry.js";
 
-// Annotation (shared helpers + ORM YAML annotator)
+// Annotation (shared helpers, ORM YAML annotator, export annotation collector)
+export {
+  collectExportAnnotations,
+  type ExportAnnotation,
+} from "./annotation/ExportAnnotationCollector.js";
 export {
   type AnnotationSeverity,
   formatBarwiseComment,

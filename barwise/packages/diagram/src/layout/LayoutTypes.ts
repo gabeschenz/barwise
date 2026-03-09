@@ -40,6 +40,8 @@ export interface PositionedObjectTypeNode {
   readonly referenceMode?: string;
   /** Alternative names / synonyms for this object type. */
   readonly aliases?: readonly string[];
+  /** Annotation messages for visual markers. */
+  readonly annotations?: readonly string[];
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -61,6 +63,8 @@ export interface PositionedFactTypeNode {
   readonly isObjectified?: boolean;
   /** The name of the entity type created by objectification. */
   readonly objectifiedEntityName?: string;
+  /** Annotation messages for visual markers. */
+  readonly annotations?: readonly string[];
   readonly x: number;
   readonly y: number;
   readonly width: number;
