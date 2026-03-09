@@ -44,7 +44,7 @@ full monorepo build and tests after modifying core's public API.
 
 ## Current State
 
-All phases are complete. The project has 1,580 passing tests across 6
+All phases are complete. The project has 1,686 passing tests across 6
 packages. The CLI tool (`barwise`) and MCP server (`barwise-mcp`) provide
 the same capabilities as the VS Code extension for terminal and AI
 workflows. Import and export formats (DDL, OpenAPI) are managed through
@@ -96,6 +96,68 @@ enhancements are complete.
 - `cd packages/core && npx vitest run` -- run core tests only
 - `cd packages/core && npx vitest run --coverage` -- core tests with coverage
 - `cd packages/core && npx tsc --noEmit` -- type-check core
+
+## Versioning and Releases
+
+The project uses a single version number across all packages, tracked
+by git tags on the main branch. Versions follow semver. Changes
+accumulate on main; a release is an intentional act, not automatic.
+
+### Version lifecycle
+
+1. **Develop** -- merge PRs to main. CI runs build + test + lint.
+2. **Decide to release** -- when a meaningful set of changes has landed.
+3. **Bump versions** -- update package.json files and tag.
+4. **Create a GitHub release** -- triggers the VSIX build workflow.
+
+### Bump versions and tag
+
+All commands run from `barwise/`. The `--no-workspaces-update` flag
+prevents npm from resolving workspace dependencies against the public
+registry (these packages are not published).
+
+The `barwise-vscode` extension has its own version (visible in the VS
+Code marketplace) which may differ from the library packages. The
+`npm version` command bumps each package relative to its current
+version, so they stay in sync if they start in sync.
+
+For a patch release (bug fixes, small improvements):
+
+```bash
+npm version patch --workspaces --include-workspace-root \
+  --no-git-tag-version --no-workspaces-update
+VER=$(node -p "require('./package.json').version")
+git add -A && git commit -m "bump to $VER"
+git tag -a "v$VER" -m "v$VER: brief description"
+git push origin main --tags
+```
+
+For a minor release (new features, new format support):
+
+```bash
+npm version minor --workspaces --include-workspace-root \
+  --no-git-tag-version --no-workspaces-update
+VER=$(node -p "require('./package.json').version")
+git add -A && git commit -m "bump to $VER"
+git tag -a "v$VER" -m "v$VER: brief description"
+git push origin main --tags
+```
+
+### Create a GitHub release
+
+```bash
+gh release create v1.3.0 --title "v1.3.0" --generate-notes
+```
+
+The `--generate-notes` flag auto-generates a changelog from merged PRs
+since the last tag. The `release-vsix.yml` workflow then builds and
+attaches the VS Code extension VSIX to the release.
+
+### Review what changed since the last release
+
+```bash
+git log --oneline v1.2.0..HEAD
+```
 
 ## Conventions (Monorepo-Wide)
 
