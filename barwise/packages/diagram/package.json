@@ -1,6 +1,6 @@
 {
   "name": "@barwise/diagram",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "ORM diagram layout and SVG rendering (platform-independent)",
   "type": "module",
@@ -12,7 +12,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

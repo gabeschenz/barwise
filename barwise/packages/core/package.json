@@ -1,6 +1,6 @@
 {
   "name": "@barwise/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Platform-independent ORM 2 metamodel, validation, and verbalization",
   "type": "module",
@@ -12,7 +12,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
