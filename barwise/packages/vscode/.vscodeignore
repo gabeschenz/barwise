@@ -2,10 +2,13 @@ src/**
 tests/**
 tsconfig.json
 tsconfig.test.json
+tsconfig.client.json
+tsconfig.server.json
 vitest.config.ts
 esbuild.mjs
 .vscode-test.mjs
 **/*.map
 node_modules/**
 .eslintrc*
+.turbo/**
 CLAUDE.md
