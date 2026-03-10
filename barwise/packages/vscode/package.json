@@ -600,10 +600,10 @@
     "test:integration": "vscode-test"
   },
   "dependencies": {
-    "@barwise/core": "1.0.0",
-    "@barwise/diagram": "1.0.0",
-    "@barwise/llm": "1.0.0",
-    "@barwise/mcp": "1.0.0",
+    "@barwise/core": "1.1.0",
+    "@barwise/diagram": "1.1.0",
+    "@barwise/llm": "1.1.0",
+    "@barwise/mcp": "1.1.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "vscode-languageclient": "^9.0.1",
