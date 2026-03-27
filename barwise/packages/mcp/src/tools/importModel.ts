@@ -1,5 +1,5 @@
 /**
- * import_model tool: imports from structured formats (DDL, OpenAPI, etc.).
+ * import_model tool: imports from structured formats (DDL, OpenAPI, dbt, etc.).
  */
 
 import { getImporter, OrmYamlSerializer, registerBuiltinFormats } from "@barwise/core";
@@ -9,7 +9,7 @@ import { readSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
 
-// Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
+// Register built-in formats (DDL, OpenAPI, dbt, etc.) with the unified registry.
 registerBuiltinFormats();
 
 export function registerImportModelTool(server: McpServer): void {
@@ -17,19 +17,23 @@ export function registerImportModelTool(server: McpServer): void {
     "import_model",
     {
       title: "Import Model",
-      description: "Import an ORM model from a structured format (DDL, OpenAPI, etc.). "
+      description: "Import an ORM model from a structured format (DDL, OpenAPI, dbt, etc.). "
         + "Performs deterministic parsing to produce a draft ORM model. "
-        + "The draft may need refinement but provides a useful starting point.",
+        + "For text formats (ddl, openapi), source is file content or a file path. "
+        + "For directory formats (dbt), source is a directory path.",
       inputSchema: {
         source: z
           .string()
           .describe(
-            "Source content (inline) or file path to DDL, OpenAPI spec, etc.",
+            "Source content (inline) or file/directory path. "
+              + "For text formats: file content or path to file. "
+              + "For directory formats (dbt): path to project directory.",
           ),
         format: z
-          .enum(["ddl", "openapi"])
+          .enum(["ddl", "openapi", "dbt"])
           .describe(
-            "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs",
+            "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs, "
+              + "'dbt' for dbt project directory",
           ),
         modelName: z
           .string()
@@ -45,12 +49,9 @@ export function registerImportModelTool(server: McpServer): void {
 
 export async function executeImportModel(
   source: string,
-  format: "ddl" | "openapi",
+  format: "ddl" | "openapi" | "dbt",
   modelName?: string,
 ): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
-  // Read source (file or inline)
-  const input = readSource(source);
-
   // Get the importer from the unified registry
   const importFormat = getImporter(format);
   if (!importFormat) {
@@ -58,14 +59,43 @@ export async function executeImportModel(
       content: [
         {
           type: "text" as const,
-          text: `Error: Unknown import format "${format}". Supported formats: ddl, openapi`,
+          text: `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt`,
         },
       ],
     };
   }
 
-  // Parse the input
-  const result = importFormat.parse(input, { modelName });
+  // Route based on input kind
+  let result;
+  if (importFormat.inputKind === "directory") {
+    // Directory-based format: source is a path
+    if (!importFormat.parseAsync) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text:
+              `Error: Format "${format}" is directory-based but does not support async parsing.`,
+          },
+        ],
+      };
+    }
+    result = await importFormat.parseAsync(source, { modelName });
+  } else {
+    // Text-based format: source is file content or file path
+    if (!importFormat.parse) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error: Format "${format}" does not support synchronous text parsing.`,
+          },
+        ],
+      };
+    }
+    const input = readSource(source);
+    result = importFormat.parse(input, { modelName });
+  }
 
   // Serialize to YAML
   const yaml = serializer.serialize(result.model);

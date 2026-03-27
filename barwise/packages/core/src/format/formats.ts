@@ -10,6 +10,7 @@ import { AvroExportFormat } from "../export/AvroExportFormat.js";
 import { DbtExportFormat } from "../export/DbtExportFormat.js";
 import { DdlExportFormat } from "../export/DdlExportFormat.js";
 import { OpenApiExportFormat } from "../export/OpenApiExportFormat.js";
+import { DbtImportFormat } from "../import/DbtImportFormat.js";
 import { DdlImportFormat } from "../import/DdlImportFormat.js";
 import { OpenApiImportFormat } from "../import/OpenApiImportFormat.js";
 import { formatRegistry, registerFormat } from "./registry.js";
@@ -38,11 +39,12 @@ export const openApiFormat: FormatDescriptor = {
 };
 
 /**
- * dbt format: export only (dbt model files + schema.yml).
+ * dbt format: bidirectional (import dbt project YAML, export dbt models).
  */
 export const dbtFormat: FormatDescriptor = {
   name: "dbt",
-  description: "dbt model files and schema.yml",
+  description: "dbt project (schema YAML + SQL models)",
+  importer: new DbtImportFormat(),
   exporter: new DbtExportFormat(),
 };
 

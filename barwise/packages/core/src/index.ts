@@ -208,6 +208,7 @@ export { DbtMappingError, type DbtMapResult, mapDbtToOrm } from "./import/DbtToO
 export { annotateDbtYaml, type AnnotationOptions } from "./import/DbtYamlAnnotator.js";
 
 // Import format types and implementations
+export { DbtImportFormat } from "./import/DbtImportFormat.js";
 export { DdlImportFormat } from "./import/DdlImportFormat.js";
 export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
 export { ImportFormatError } from "./import/registry.js";
