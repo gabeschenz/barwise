@@ -1,0 +1,1064 @@
+orm_version: "1.0"
+model:
+  name: rb-global-account-taxonomy
+  # TODO(barwise): Ask: Temporal: Audit fields (CreatedAt, CreatedBy, UpdatedAt, UpdatedBy) are required on relationship entities and recommended on primary entities. These are not modeled as explicit fact types since they are cross-cutting audit concerns. It is unclear whether they should be formalized as part of the conceptual model or treated as infrastructure metadata. (line 204)
+  # NOTE(barwise): Applied with medium confidence: "Every User has a UserStatus." (line 19)
+  # NOTE(barwise): Applied with medium confidence: "Every Account has an AccountStatus." (line 135)
+  # NOTE(barwise): Applied with medium confidence: "Each Organization has at most one LegalName." (line 75)
+  # NOTE(barwise): Applied with medium confidence: "Each Organization has at most one LegalEntityIdentifier." (line 75)
+  # NOTE(barwise): Applied with medium confidence: "Each Organization has at most one TaxId." (line 75)
+  # NOTE(barwise): Applied with medium confidence: "Each Organization has at most one BuyerProfile." (lines 97-99)
+  # NOTE(barwise): Applied with medium confidence: "Each Organization has at most one SellerProfile." (lines 97-99)
+  # NOTE(barwise): Removed population for "User has UserStatus" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "Account has AccountStatus" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "UserAccountMembership has MembershipStatus" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "UserAccountMembership has AccountRoleType" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "Organization has OrgType" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "AccountOrganizationLink has LinkStatus" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "AccountOrganizationLink has LinkTransactionRole" that duplicates a value constraint.
+  # NOTE(barwise): Removed population for "Invitation has InvitationStatus" that duplicates a value constraint.
+  # NOTE(barwise): Removed duplicate constraint "Organization parentage hierarchy must be acyclic." (ring on Organization has parent Organization).
+  object_types:
+    - id: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+      name: User
+      # TODO(barwise): Ask: Identification of UserAccountMembership: The transcript states uniqueness is by (UserId, AccountId) but also mentions historical rows are allowed with EffectiveTo tracking. A surrogate MembershipId was assumed as the identifier. It is unclear whether the natural composite key (UserId, AccountId, EffectiveFrom) should be the true identifier or whether a surrogate MembershipId is used. The stakeholders should clarify whether MembershipId exists or if composite identification is intended. (line 39)
+      # TODO(barwise): Ask: Temporal: The direct UserOrganizationScope (narrowing layer) is described as optional and may be deferred to a future version. It is unclear whether this should be modeled in v1. The Domain Architect flagged this as an open question. (line 143)
+      # TODO(barwise): Ask: Derivation: User access to Organizations is described as derived (through active Membership + active Link), not stored directly. Should the derived access path be formalized as a derived fact type, or is it purely application logic? The transcript describes it as a derivation rule but does not specify whether it should be materialized. (line 139)
+      # TODO(barwise): Ask: Overloaded terms: The term 'role' is used in two different senses: (1) AccountRoleType for user permissions within an account (account_owner, account_admin, etc.), and (2) LinkTransactionRole for buyer/seller transaction scope on an AccountOrganizationLink. These are distinct concepts but could cause confusion. (line 51)
+      kind: entity
+      reference_mode: UserId
+      definition: A human identity that can authenticate and act in RB Global's digital platforms. Has one global user profile and can access multiple accounts.
+      aliases:
+        - person identity
+    - id: 842b39ab-3fcd-42b6-8e4c-e3327360142f
+      name: UserId
+      kind: value
+      definition: Globally unique, immutable identifier for a User, issued by the identity platform.
+      data_type:
+        name: text
+        length: 50
+    - id: 497317c0-7c68-412b-8f27-3ab7881f278d
+      name: EmailAddress
+      kind: value
+      definition: An email address used as login identifier for a User or as target for an Invitation.
+      data_type:
+        name: text
+        length: 200
+    - id: e4c9f2be-c1b9-4d51-a4e0-6783863ec89d
+      name: UserStatus
+      kind: value
+      definition: The current status of a User in the system.
+      value_constraint:
+        values:
+          - active
+          - suspended
+          - invited
+          - deactivated
+      data_type:
+        name: text
+        length: 20
+    - id: e1122653-3fc2-45ff-b1d9-ecec0929597f
+      name: Account
+      # TODO(barwise): Ask: Identification of AccountOrganizationLink: The transcript describes uniqueness per (Account, Organization, OperatingRegion) for current active links, but allows historical rows. A surrogate LinkId was assumed. It is unclear whether a surrogate LinkId exists or if identification is by composite (AccountId, OrganizationId, OperatingRegion, EffectiveFrom). (line 71)
+      # TODO(barwise): Ask: Optionality: Is OperatingRegion mandatory on every AccountOrganizationLink, or only for cross-border organizations? The Domain Architect explicitly flagged this as an open question. (line 276)
+      # TODO(barwise): Ask: Optionality: Whether Organization should be mandatory at account creation for all onboarding channels. The transcript notes setup accounts can temporarily have zero organizations, but the rule for when linkage becomes mandatory is unclear across channels. (line 131)
+      # TODO(barwise): Ask: Constraint completeness: Whether the account_owner role must be unique per account (exactly one owner) or can remain many (multiple co-owners). The transcript says 'at least one, potentially many' but this was explicitly flagged as an open question. (line 254)
+      # TODO(barwise): Ask: Constraint completeness: The conditional rule 'If account status is active, at least one active AccountOrganizationLink must exist' is a conditional mandatory constraint that depends on AccountStatus being 'active'. Standard ORM constraints may not directly express this conditional logic without a subset constraint or external rule. Clarification is needed on how to enforce this. (line 135)
+      # TODO(barwise): Ask: Constraint completeness: The rule that 'no active membership can exist if account status is closed' and 'no active link can exist if account status is closed' are cross-entity conditional constraints. These may require formalization as external rules or triggers rather than standard ORM constraints. (line 246)
+      kind: entity
+      reference_mode: AccountId
+      definition: A commercial participation container where permissions, preferences, and transaction capabilities are managed for one or more organizations.
+    - id: 9aeccaf0-5cb7-4e31-aac2-038eeefef7dd
+      name: AccountId
+      kind: value
+      definition: Globally unique, immutable identifier for an Account.
+      data_type:
+        name: text
+        length: 50
+    - id: b89ace9b-0892-4391-9003-4b886add2e89
+      name: AccountNumber
+      kind: value
+      definition: A unique account number used for support and invoicing displays. Immutable once account status becomes active.
+      data_type:
+        name: text
+        length: 30
+    - id: fe6cfe49-89b2-486d-a0ec-774a3ab0636e
+      name: AccountStatus
+      kind: value
+      definition: The current status of an Account.
+      value_constraint:
+        values:
+          - setup
+          - active
+          - suspended
+          - closed
+      data_type:
+        name: text
+        length: 20
+    - id: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+      name: Organization
+      # TODO(barwise): Ask: Cardinality: Is the Organization-to-OrgType relationship truly many-to-many (one OrgType value can apply to many Organizations AND one Organization can have many OrgType values), or is it one-to-many from Organization? The transcript says 'many-to-many' but since OrgType is a value type with fixed values, this is really multi-valued per Organization (each Organization can have multiple OrgType values). The uniqueness should be on the (Organization, OrgType) pair. (line 87)
+      # TODO(barwise): Ask: Granularity: BuyerProfile and SellerProfile are mentioned as optional, role-specific profiles under Organization, but their attributes and lifecycle details are not specified. It is unclear what properties these profiles carry beyond the organizational identity (e.g., onboarding state, compliance controls, permissions). (line 95)
+      kind: entity
+      reference_mode: OrganizationId
+      definition: A transacting entity — the legal or operating party that participates in commercial transactions on the platform.
+      aliases:
+        - Org
+        - transacting entity
+    - id: 6f7534ba-b0d9-41f7-b0e9-ac6d72398fd8
+      name: OrganizationId
+      kind: value
+      definition: Globally unique, immutable platform identifier for an Organization.
+      data_type:
+        name: text
+        length: 50
+    - id: 10b02f3b-024d-4c94-a0e9-b1366d3d89e0
+      name: LegalName
+      kind: value
+      definition: The legal name of an Organization. Mandatory.
+      data_type:
+        name: text
+        length: 200
+    - id: a4aa04ba-fa05-4b34-873a-56f5d4c2c427
+      name: LegalEntityIdentifier
+      kind: value
+      definition: A legal entity identifier (e.g., LEI) for an Organization, conditional based on country and business process.
+      data_type:
+        name: text
+        length: 50
+    - id: a2eac7f4-4bf5-429e-844d-06b761858f69
+      name: TaxId
+      kind: value
+      definition: A tax identifier for an Organization, conditional based on jurisdiction.
+      data_type:
+        name: text
+        length: 50
+    - id: 11f82916-88b2-4393-9cb2-5fd5a3a4d48f
+      name: OrgType
+      kind: value
+      definition: A classification type for an Organization. Multiple types can apply to one organization.
+      value_constraint:
+        values:
+          - buyer
+          - seller
+          - logistics_partner
+          - internal_entity
+      data_type:
+        name: text
+        length: 30
+    - id: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+      name: UserAccountMembership
+      kind: entity
+      reference_mode: MembershipId
+      definition: Records the user's role and lifecycle within an account. Represents the many-to-many relationship between User and Account with attributes.
+      aliases:
+        - Membership
+    - id: 42da79ff-b043-40e2-a45c-6f1f73b9d5f9
+      name: MembershipId
+      kind: value
+      definition: Identifier for a UserAccountMembership instance.
+      data_type:
+        name: text
+        length: 50
+    - id: 8a5c7c2d-c626-473f-9786-c08f88abc53f
+      name: MembershipStatus
+      kind: value
+      definition: The lifecycle status of a UserAccountMembership.
+      value_constraint:
+        values:
+          - pending_invite
+          - active
+          - suspended
+          - revoked
+      data_type:
+        name: text
+        length: 20
+    - id: 8e04ce2b-758a-4c27-8d7f-dcbbf64dff29
+      name: AccountRoleType
+      kind: value
+      definition: A role type that can be assigned to a user within an account membership context.
+      value_constraint:
+        values:
+          - account_owner
+          - account_admin
+          - account_member
+          - billing_admin
+          - read_only
+      data_type:
+        name: text
+        length: 30
+    - id: 0c22947c-d995-4dfe-bf85-4918db482ba7
+      name: AccountOrganizationLink
+      kind: entity
+      reference_mode: LinkId
+      definition: Represents the many-to-many relationship between Account and Organization, carrying operational scope and lifecycle data.
+      aliases:
+        - Link
+    - id: 0ef78186-1b14-4ee5-adca-771b49c77acb
+      name: LinkId
+      kind: value
+      definition: Identifier for an AccountOrganizationLink instance.
+      data_type:
+        name: text
+        length: 50
+    - id: 1d108608-8d6c-4394-923e-18b92807d99b
+      name: LinkStatus
+      kind: value
+      definition: The lifecycle status of an AccountOrganizationLink.
+      value_constraint:
+        values:
+          - active
+          - pending_verification
+          - suspended
+          - terminated
+      data_type:
+        name: text
+        length: 30
+    - id: 7e058fb6-c46c-4768-af17-0ee25c2686fb
+      name: LinkTransactionRole
+      kind: value
+      definition: Represents whether an AccountOrganizationLink supports buyer, seller, or both transaction scopes.
+      value_constraint:
+        values:
+          - buyer
+          - seller
+      data_type:
+        name: text
+        length: 20
+    - id: 0daf7ab7-c37f-41a0-a2d4-57f5a537d84d
+      name: OperatingRegion
+      kind: value
+      definition: The operating region associated with an AccountOrganizationLink.
+      data_type:
+        name: text
+        length: 50
+    - id: 394931a8-c914-47d8-8628-ed88ab531b24
+      name: EffectiveFromTimestamp
+      kind: value
+      definition: Timestamp marking the beginning of an effective period.
+      data_type:
+        name: timestamp
+    - id: 407746e3-f47e-48ff-b120-aec9b7e733ed
+      name: EffectiveToTimestamp
+      kind: value
+      definition: Timestamp marking the end of an effective period. Null indicates the current/active row.
+      data_type:
+        name: timestamp
+    - id: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+      name: Invitation
+      kind: entity
+      reference_mode: InvitationId
+      definition: An invitation sent by an existing account admin to an email address for a specific account.
+    - id: 47e625fd-02e4-4550-8497-f2397ea119b8
+      name: InvitationId
+      kind: value
+      definition: Globally unique, immutable identifier for an Invitation.
+      data_type:
+        name: text
+        length: 50
+    - id: e5af300b-1ce5-4537-9172-ec0e8e31fa0b
+      name: InvitationStatus
+      kind: value
+      definition: The status of an Invitation.
+      value_constraint:
+        values:
+          - issued
+          - accepted
+          - expired
+          - revoked
+      data_type:
+        name: text
+        length: 20
+    - id: d26eae8a-a4ea-4fe4-b65e-c3ceeebe0f0c
+      name: Timestamp
+      kind: value
+      definition: A point-in-time timestamp used for audit and lifecycle tracking (e.g., CreatedAt, UpdatedAt, IssuedAt, ExpiryAt).
+      data_type:
+        name: timestamp
+    - id: fd9a4368-0570-4ef6-8b91-f48471f8b9ff
+      name: SuspensionReasonCode
+      # TODO(barwise): Ask: Granularity: SuspensionReasonCode and RevocationReasonCode are described as 'enumerated values maintained by policy' but no specific allowed values are given. The exact value lists need to be specified. (line 212)
+      kind: value
+      definition: An enumerated reason code for when a membership is suspended, maintained by policy.
+      data_type:
+        name: text
+        length: 50
+    - id: 29da202a-8ec2-46fc-b082-21877b30c9ca
+      name: RevocationReasonCode
+      kind: value
+      definition: An enumerated reason code for when a membership is revoked, maintained by policy.
+      data_type:
+        name: text
+        length: 50
+    - id: e77a9a8a-4b23-4240-bf0a-402bc9c62567
+      name: BuyerProfile
+      kind: entity
+      reference_mode: BuyerProfileId
+      definition: A role-specific profile under an Organization representing buyer-side capabilities, onboarding state, and compliance controls.
+    - id: 1cf46acf-3f6d-48b5-9735-eb3764473090
+      name: BuyerProfileId
+      kind: value
+      definition: Identifier for a BuyerProfile.
+      data_type:
+        name: text
+        length: 50
+    - id: 4f838232-23a7-45fa-91a3-7ae33436cda9
+      name: SellerProfile
+      kind: entity
+      reference_mode: SellerProfileId
+      definition: A role-specific profile under an Organization representing seller-side capabilities, onboarding state, and compliance controls.
+    - id: cdb18430-b01d-4067-8bd2-f152bdd4c7d9
+      name: SellerProfileId
+      kind: value
+      definition: Identifier for a SellerProfile.
+      data_type:
+        name: text
+        length: 50
+  fact_types:
+    - id: 17ae1e44-0d9f-473c-831d-2c5ba9d13bf2
+      name: User has UserId
+      roles:
+        - id: ca0efc4e-985d-42d1-9ba3-16aad8e95aff
+          player: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+          role_name: has
+        - id: 8cb64708-b11d-46b6-9d7e-776f56dcdb2a
+          player: 842b39ab-3fcd-42b6-8e4c-e3327360142f
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - ca0efc4e-985d-42d1-9ba3-16aad8e95aff
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 8cb64708-b11d-46b6-9d7e-776f56dcdb2a
+        - type: mandatory
+          role: ca0efc4e-985d-42d1-9ba3-16aad8e95aff
+    - id: ac69c95b-ef46-466f-af1f-e29ca53016b2
+      name: User has primary EmailAddress
+      roles:
+        - id: a13df530-2fe6-434b-907f-eee18f986d0a
+          player: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+          role_name: has primary
+        - id: 17f32dae-c2e6-4212-98b2-ee633c4f881f
+          player: 497317c0-7c68-412b-8f27-3ab7881f278d
+          role_name: is primary email of
+      readings:
+        - "{0} has primary {1}"
+        - "{1} is primary email of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - a13df530-2fe6-434b-907f-eee18f986d0a
+    - id: c7860772-900d-4800-b7b8-5b69dbd29eb9
+      name: User has UserStatus
+      roles:
+        - id: 042e388d-f85d-434c-bda2-17e2660bc356
+          player: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+          role_name: has
+        - id: 24cb13cd-58a4-42f0-aab8-7525e787bb19
+          player: e4c9f2be-c1b9-4d51-a4e0-6783863ec89d
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 042e388d-f85d-434c-bda2-17e2660bc356
+        - type: mandatory
+          role: 042e388d-f85d-434c-bda2-17e2660bc356
+    - id: d0dce71e-cb30-4e9b-98c1-603019a9061d
+      name: Account has AccountId
+      roles:
+        - id: 5c16943c-a432-45a8-8e68-0b6895ee09a4
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+        - id: 43ca3385-354a-4ba6-9f86-ba5952dfa9cb
+          player: 9aeccaf0-5cb7-4e31-aac2-038eeefef7dd
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 5c16943c-a432-45a8-8e68-0b6895ee09a4
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 43ca3385-354a-4ba6-9f86-ba5952dfa9cb
+        - type: mandatory
+          role: 5c16943c-a432-45a8-8e68-0b6895ee09a4
+    - id: 7d5ba9a9-9a2a-4fa7-96fb-fd47b7874dd6
+      name: Account has AccountNumber
+      roles:
+        - id: 11c3124c-9dfa-4ff3-bfc9-19e25807268b
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+        - id: 8e8dc658-264b-4a1d-ae16-c2a866d1bfa5
+          player: b89ace9b-0892-4391-9003-4b886add2e89
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 11c3124c-9dfa-4ff3-bfc9-19e25807268b
+        - type: internal_uniqueness
+          roles:
+            - 8e8dc658-264b-4a1d-ae16-c2a866d1bfa5
+    - id: 1cd83eb3-299f-4871-a6ec-856e48f7b8fd
+      name: Account has AccountStatus
+      roles:
+        - id: 5781274d-4474-4b1a-9532-3ddc24ec764f
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+        - id: 1f03b2ff-69d8-47d6-bc07-c9a14d110c1b
+          player: fe6cfe49-89b2-486d-a0ec-774a3ab0636e
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 5781274d-4474-4b1a-9532-3ddc24ec764f
+        - type: mandatory
+          role: 5781274d-4474-4b1a-9532-3ddc24ec764f
+    - id: 55aed37a-7340-4cb7-9fc5-3c8e471c44a8
+      name: Organization has OrganizationId
+      roles:
+        - id: 00000d1e-28fb-4f42-8b5c-946c298012e3
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+        - id: 640dafbb-5b82-465c-86a9-747298d5b9de
+          player: 6f7534ba-b0d9-41f7-b0e9-ac6d72398fd8
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 00000d1e-28fb-4f42-8b5c-946c298012e3
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 640dafbb-5b82-465c-86a9-747298d5b9de
+        - type: mandatory
+          role: 00000d1e-28fb-4f42-8b5c-946c298012e3
+    - id: c47020d3-20ea-49f8-be9e-e672f18c3b68
+      name: Organization has LegalName
+      roles:
+        - id: bff0eb22-99ff-479a-909e-16f9c2773b1e
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+        - id: 52ec5d8d-95f3-4c37-8248-736fd0ea7ecd
+          player: 10b02f3b-024d-4c94-a0e9-b1366d3d89e0
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: mandatory
+          role: bff0eb22-99ff-479a-909e-16f9c2773b1e
+        - type: internal_uniqueness
+          roles:
+            - bff0eb22-99ff-479a-909e-16f9c2773b1e
+    - id: af8652d4-1f4a-441e-88fe-4c8723a1c80c
+      name: Organization has LegalEntityIdentifier
+      roles:
+        - id: 776a0f64-e57c-493c-8558-2c9e54e4abcd
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+        - id: 0bf5c305-9937-4c47-9de0-bb2ae625dc23
+          player: a4aa04ba-fa05-4b34-873a-56f5d4c2c427
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 776a0f64-e57c-493c-8558-2c9e54e4abcd
+    - id: 70c8cfa0-5f2f-4f6d-9205-4eb0463971a4
+      name: Organization has TaxId
+      roles:
+        - id: 9f393d84-abe1-43a2-b79e-8f0778526d0d
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+        - id: e4dfbd32-a0c7-4328-a6c2-395a613cc543
+          player: a2eac7f4-4bf5-429e-844d-06b761858f69
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 9f393d84-abe1-43a2-b79e-8f0778526d0d
+    - id: 7606daf4-417e-4bf0-bf0e-ca9896595cbb
+      name: Organization has OrgType
+      roles:
+        - id: 509796fa-96bd-4b6e-aca4-2a83cf5556a3
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+        - id: 5ff1eb3a-eb5b-4317-9b04-58771822807c
+          player: 11f82916-88b2-4393-9cb2-5fd5a3a4d48f
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+    - id: d93c4a57-3c32-4b75-b659-8cd74de6b912
+      name: UserAccountMembership has MembershipId
+      roles:
+        - id: 1b35bc58-7d97-45d9-978d-81690fa85c6f
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: 39a0cec0-1f83-42ae-93f3-a042bbfc678f
+          player: 42da79ff-b043-40e2-a45c-6f1f73b9d5f9
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 1b35bc58-7d97-45d9-978d-81690fa85c6f
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 39a0cec0-1f83-42ae-93f3-a042bbfc678f
+        - type: mandatory
+          role: 1b35bc58-7d97-45d9-978d-81690fa85c6f
+    - id: a14b2d50-341e-4e61-974e-58346ff64e30
+      name: UserAccountMembership involves User
+      roles:
+        - id: 02486f08-8dc0-47b0-8512-5f0afb2d7769
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: involves
+        - id: 8dc6dcfb-2363-4742-b189-77ae61b7f0c3
+          player: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+          role_name: participates in
+      readings:
+        - "{0} involves {1}"
+        - "{1} participates in {0}"
+      constraints:
+        - type: mandatory
+          role: 02486f08-8dc0-47b0-8512-5f0afb2d7769
+        - type: internal_uniqueness
+          roles:
+            - 02486f08-8dc0-47b0-8512-5f0afb2d7769
+    - id: c30db50b-1902-4080-99e7-736471ea81c2
+      name: UserAccountMembership involves Account
+      roles:
+        - id: 55cd1ed5-e2b9-45f9-8f0f-9a93e75f9516
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: involves
+        - id: 872b8996-4164-443f-8ca1-ecc95c85ff4b
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+      readings:
+        - "{0} involves {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: 55cd1ed5-e2b9-45f9-8f0f-9a93e75f9516
+        - type: internal_uniqueness
+          roles:
+            - 55cd1ed5-e2b9-45f9-8f0f-9a93e75f9516
+    - id: d0f18e2e-6e17-4a32-a9bf-111e950cc713
+      name: UserAccountMembership has MembershipStatus
+      roles:
+        - id: 2b8dc38b-12bd-4e0d-bf0c-101e4783c7fd
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: 798b85bd-5672-4d9c-a5af-a8504014577f
+          player: 8a5c7c2d-c626-473f-9786-c08f88abc53f
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: mandatory
+          role: 2b8dc38b-12bd-4e0d-bf0c-101e4783c7fd
+        - type: internal_uniqueness
+          roles:
+            - 2b8dc38b-12bd-4e0d-bf0c-101e4783c7fd
+    - id: 876af3ac-8183-4c13-80ae-372c21233be5
+      name: UserAccountMembership has EffectiveFrom
+      roles:
+        - id: 41e8e2bf-9f6a-4d3b-9ab3-c3a67183e449
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: 0ab66294-055f-47b6-a52e-1f55519449df
+          player: 394931a8-c914-47d8-8628-ed88ab531b24
+          role_name: is effective-from of
+      readings:
+        - "{0} has effective-from {1}"
+        - "{1} is effective-from of {0}"
+      constraints:
+        - type: mandatory
+          role: 41e8e2bf-9f6a-4d3b-9ab3-c3a67183e449
+        - type: internal_uniqueness
+          roles:
+            - 41e8e2bf-9f6a-4d3b-9ab3-c3a67183e449
+    - id: 50845b9c-ce28-47c9-9df9-54f9a25a5989
+      name: UserAccountMembership has EffectiveTo
+      roles:
+        - id: b56cba01-6b28-48cd-b973-e3dc6c4399e7
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: 3c20be85-7705-450a-8eb4-30297e1381e8
+          player: 407746e3-f47e-48ff-b120-aec9b7e733ed
+          role_name: is effective-to of
+      readings:
+        - "{0} has effective-to {1}"
+        - "{1} is effective-to of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - b56cba01-6b28-48cd-b973-e3dc6c4399e7
+    - id: 6f80ddca-67c4-4213-8c27-4a134fdd72d2
+      name: UserAccountMembership has AccountRoleType
+      roles:
+        - id: 8f5ebd93-653f-4696-b571-ff28b8819b45
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: 8de8272e-f90c-4a7f-9049-29e9c327bd1d
+          player: 8e04ce2b-758a-4c27-8d7f-dcbbf64dff29
+          role_name: is assigned to
+      readings:
+        - "{0} has {1}"
+        - "{1} is assigned to {0}"
+    - id: 15da2c00-e221-4084-a547-280f48bb746b
+      name: UserAccountMembership has SuspensionReasonCode
+      roles:
+        - id: a35b73ad-4db2-4c55-86f7-403bdf4d9b5c
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: d0157874-ee3f-455b-922d-72d57f03fff1
+          player: fd9a4368-0570-4ef6-8b91-f48471f8b9ff
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+    - id: 11236b70-0261-47fa-b48b-4ddfb00dba15
+      name: UserAccountMembership has RevocationReasonCode
+      roles:
+        - id: 9ad86c5b-153f-4a55-9593-abe90f06555e
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: has
+        - id: ce61683c-a268-4c02-b915-99ed52a3d16a
+          player: 29da202a-8ec2-46fc-b082-21877b30c9ca
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+    - id: 91e01f62-94dd-408e-a79a-da2118272265
+      name: AccountOrganizationLink has LinkId
+      roles:
+        - id: 517e5358-2c97-4834-8860-f4466031af49
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: 1bad3b43-b1e8-4a64-9f04-63a115eb565d
+          player: 0ef78186-1b14-4ee5-adca-771b49c77acb
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 517e5358-2c97-4834-8860-f4466031af49
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 1bad3b43-b1e8-4a64-9f04-63a115eb565d
+        - type: mandatory
+          role: 517e5358-2c97-4834-8860-f4466031af49
+    - id: 3e88952e-30b2-4e20-a109-f602e5710128
+      name: AccountOrganizationLink involves Account
+      roles:
+        - id: 30de0fb8-006d-4a58-a137-01e65e1e3e5a
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: involves
+        - id: 7c95fc46-71cb-4ac9-8040-66cfd93a2a2f
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+      readings:
+        - "{0} involves {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: 30de0fb8-006d-4a58-a137-01e65e1e3e5a
+        - type: internal_uniqueness
+          roles:
+            - 30de0fb8-006d-4a58-a137-01e65e1e3e5a
+    - id: 92e91ec4-86e9-4254-a12a-e68217d729a6
+      name: AccountOrganizationLink involves Organization
+      roles:
+        - id: aa923be8-21e2-4ba4-9bc1-ff8f77f1037c
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: involves
+        - id: 0b2ef9fb-bb31-487c-8a5e-1b43bcbe7119
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+      readings:
+        - "{0} involves {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: aa923be8-21e2-4ba4-9bc1-ff8f77f1037c
+        - type: internal_uniqueness
+          roles:
+            - aa923be8-21e2-4ba4-9bc1-ff8f77f1037c
+    - id: 281b0e5b-f953-47ea-94bb-3440e48ae336
+      name: AccountOrganizationLink has LinkStatus
+      roles:
+        - id: 080d159e-a7f2-487b-9de2-cb0fa49eb79d
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: 8b573521-6c75-4192-8f9e-6bda426b107c
+          player: 1d108608-8d6c-4394-923e-18b92807d99b
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: mandatory
+          role: 080d159e-a7f2-487b-9de2-cb0fa49eb79d
+        - type: internal_uniqueness
+          roles:
+            - 080d159e-a7f2-487b-9de2-cb0fa49eb79d
+    - id: 272cc4a4-6f94-4641-a46e-67d24f0a8a64
+      name: AccountOrganizationLink has EffectiveFrom
+      roles:
+        - id: 0cc7d9b6-53f4-4607-90b7-199366fc09a1
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: dc2b1a82-aaa1-4670-93fd-15fcfedac583
+          player: 394931a8-c914-47d8-8628-ed88ab531b24
+          role_name: is effective-from of
+      readings:
+        - "{0} has effective-from {1}"
+        - "{1} is effective-from of {0}"
+      constraints:
+        - type: mandatory
+          role: 0cc7d9b6-53f4-4607-90b7-199366fc09a1
+        - type: internal_uniqueness
+          roles:
+            - 0cc7d9b6-53f4-4607-90b7-199366fc09a1
+    - id: f6448648-956a-4e32-b34c-77bc15aa4541
+      name: AccountOrganizationLink has EffectiveTo
+      roles:
+        - id: 0c453d83-da2c-4658-a75a-6a7913423375
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: e36931e6-c81f-4f22-a834-9cd5982a1332
+          player: 407746e3-f47e-48ff-b120-aec9b7e733ed
+          role_name: is effective-to of
+      readings:
+        - "{0} has effective-to {1}"
+        - "{1} is effective-to of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 0c453d83-da2c-4658-a75a-6a7913423375
+    - id: 02af3182-ed1c-4cf4-8a2d-c515b74a38e8
+      name: AccountOrganizationLink has OperatingRegion
+      roles:
+        - id: bf4763ac-b76f-4dcd-ab15-322342b11193
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: 1a1833ec-83ef-438b-aa6b-cfe7f99c7200
+          player: 0daf7ab7-c37f-41a0-a2d4-57f5a537d84d
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - bf4763ac-b76f-4dcd-ab15-322342b11193
+    - id: 95ab3bfc-bc15-45b0-9f13-54110df9867a
+      name: AccountOrganizationLink has LinkTransactionRole
+      roles:
+        - id: 935fdc09-b82d-4034-801b-6aa507af7cd9
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has
+        - id: f56a2170-c1d8-4e9b-ae51-2bb11e9f14ed
+          player: 7e058fb6-c46c-4768-af17-0ee25c2686fb
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+    - id: eab2a590-f420-4bae-8c30-56de191a4bfd
+      name: AccountOrganizationLink has PrimaryContactMembership
+      roles:
+        - id: 301f4807-d95c-436d-91f1-d244f88bff6b
+          player: 0c22947c-d995-4dfe-bf85-4918db482ba7
+          role_name: has primary contact
+        - id: b1e0bc88-d91c-4337-9b86-6e711cccc565
+          player: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+          role_name: is primary contact for
+      readings:
+        - "{0} has primary contact {1}"
+        - "{1} is primary contact for {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 301f4807-d95c-436d-91f1-d244f88bff6b
+        - type: subset
+          subset_roles:
+            - b1e0bc88-d91c-4337-9b86-6e711cccc565
+          superset_roles:
+            - 55cd1ed5-e2b9-45f9-8f0f-9a93e75f9516
+    - id: daa49863-1c34-422a-b75e-4d6052f76f30
+      name: Invitation has InvitationId
+      roles:
+        - id: 1491c0b6-c67e-47ad-81ed-62e99d002e6e
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: has
+        - id: b96092ce-5ceb-4ae2-af26-92ba16741d41
+          player: 47e625fd-02e4-4550-8497-f2397ea119b8
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 1491c0b6-c67e-47ad-81ed-62e99d002e6e
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - b96092ce-5ceb-4ae2-af26-92ba16741d41
+        - type: mandatory
+          role: 1491c0b6-c67e-47ad-81ed-62e99d002e6e
+    - id: 9ef8cd6d-7c6e-47ba-8166-cfef6561c499
+      name: Invitation targets EmailAddress
+      roles:
+        - id: 7e6f0f0f-2bfa-4df1-a7b4-d43a6919b451
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: targets
+        - id: b5712371-9de7-4ea5-be57-4df556e851ee
+          player: 497317c0-7c68-412b-8f27-3ab7881f278d
+          role_name: is targeted by
+      readings:
+        - "{0} targets {1}"
+        - "{1} is targeted by {0}"
+      constraints:
+        - type: mandatory
+          role: 7e6f0f0f-2bfa-4df1-a7b4-d43a6919b451
+        - type: internal_uniqueness
+          roles:
+            - 7e6f0f0f-2bfa-4df1-a7b4-d43a6919b451
+    - id: 7aa99b74-a5af-403a-b176-7161b179b2d4
+      name: Invitation is sent by User
+      roles:
+        - id: c5803189-b5ac-46e5-b52b-6713130947df
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: is sent by
+        - id: 2583d564-e5e4-4849-a245-9a3ef0725193
+          player: 60fda4ce-8708-4da3-95af-6b84ae4422b4
+          role_name: sends
+      readings:
+        - "{0} is sent by {1}"
+        - "{1} sends {0}"
+      constraints:
+        - type: mandatory
+          role: c5803189-b5ac-46e5-b52b-6713130947df
+        - type: internal_uniqueness
+          roles:
+            - c5803189-b5ac-46e5-b52b-6713130947df
+    - id: af3910d9-5d32-4b89-989a-666e490e18d2
+      name: Invitation is for Account
+      roles:
+        - id: 51096ee5-01cf-4890-94c9-99ca8423b297
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: is for
+        - id: 3904900b-2883-4b52-bba1-71f278d192a8
+          player: e1122653-3fc2-45ff-b1d9-ecec0929597f
+          role_name: has
+      readings:
+        - "{0} is for {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: 51096ee5-01cf-4890-94c9-99ca8423b297
+        - type: internal_uniqueness
+          roles:
+            - 51096ee5-01cf-4890-94c9-99ca8423b297
+    - id: 0de27f33-c89d-49f8-b5d4-bdd54e081f79
+      name: Invitation has IssuedTimestamp
+      roles:
+        - id: 6762e1a7-5b53-40a9-b310-b185fb016ec6
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: has issued
+        - id: 667e607e-b9fa-4eaa-a4f2-2db62662e0cc
+          player: d26eae8a-a4ea-4fe4-b65e-c3ceeebe0f0c
+          role_name: is issued-at of
+      readings:
+        - "{0} has issued timestamp {1}"
+        - "{1} is issued-at of {0}"
+      constraints:
+        - type: mandatory
+          role: 6762e1a7-5b53-40a9-b310-b185fb016ec6
+        - type: internal_uniqueness
+          roles:
+            - 6762e1a7-5b53-40a9-b310-b185fb016ec6
+    - id: 8a88892f-8e92-49c2-92ab-f42e6411083d
+      name: Invitation has ExpiryTimestamp
+      roles:
+        - id: 0585dfcf-fb16-4d8b-9bbe-366331845081
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: has expiry
+        - id: f512ca65-151f-42d8-8c1c-c71e6f47aacf
+          player: d26eae8a-a4ea-4fe4-b65e-c3ceeebe0f0c
+          role_name: is expiry-at of
+      readings:
+        - "{0} has expiry timestamp {1}"
+        - "{1} is expiry-at of {0}"
+      constraints:
+        - type: mandatory
+          role: 0585dfcf-fb16-4d8b-9bbe-366331845081
+        - type: internal_uniqueness
+          roles:
+            - 0585dfcf-fb16-4d8b-9bbe-366331845081
+    - id: 1643aede-62d1-4731-a752-d006ead33fb7
+      name: Invitation has InvitationStatus
+      roles:
+        - id: 709c246b-7a6c-470d-9343-0230e942adba
+          player: fe58d71f-349b-4d6c-a202-0e65c2f37ebc
+          role_name: has
+        - id: 9891efad-c766-4fe6-8179-315bcf612574
+          player: e5af300b-1ce5-4537-9172-ec0e8e31fa0b
+          role_name: is of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: mandatory
+          role: 709c246b-7a6c-470d-9343-0230e942adba
+        - type: internal_uniqueness
+          roles:
+            - 709c246b-7a6c-470d-9343-0230e942adba
+    - id: eb6702dc-8928-405e-b071-67f50f862474
+      name: Organization has parent Organization
+      roles:
+        - id: 43490dc1-f458-4e52-800c-690eaa5ba7c8
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: is child of
+        - id: 513990f9-e8f1-4068-9b5f-81f975169675
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: is parent of
+      readings:
+        - "{0} is child of {1}"
+        - "{1} is parent of {0}"
+      constraints:
+        - type: ring
+          role_1: 43490dc1-f458-4e52-800c-690eaa5ba7c8
+          role_2: 513990f9-e8f1-4068-9b5f-81f975169675
+          ring_type: irreflexive
+        - type: internal_uniqueness
+          roles:
+            - 43490dc1-f458-4e52-800c-690eaa5ba7c8
+    - id: 240626e8-efad-4488-950f-76bd9b9e5044
+      name: BuyerProfile has BuyerProfileId
+      roles:
+        - id: cf27a96c-4072-4a36-ba0d-343414f026a5
+          player: e77a9a8a-4b23-4240-bf0a-402bc9c62567
+          role_name: has
+        - id: 745675c5-f45d-4d47-b894-89d32ec4e010
+          player: 1cf46acf-3f6d-48b5-9735-eb3764473090
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - cf27a96c-4072-4a36-ba0d-343414f026a5
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 745675c5-f45d-4d47-b894-89d32ec4e010
+        - type: mandatory
+          role: cf27a96c-4072-4a36-ba0d-343414f026a5
+    - id: f91a59b9-1a12-4812-a1cb-fdcfe89cd9a6
+      name: BuyerProfile belongs to Organization
+      roles:
+        - id: ffc49fd8-8fbc-4d2e-84df-fdb3de8daa7f
+          player: e77a9a8a-4b23-4240-bf0a-402bc9c62567
+          role_name: belongs to
+        - id: 1fb0d00f-ef5c-4715-b278-a50edc93b055
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+      readings:
+        - "{0} belongs to {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: ffc49fd8-8fbc-4d2e-84df-fdb3de8daa7f
+        - type: internal_uniqueness
+          roles:
+            - ffc49fd8-8fbc-4d2e-84df-fdb3de8daa7f
+        - type: internal_uniqueness
+          roles:
+            - 1fb0d00f-ef5c-4715-b278-a50edc93b055
+    - id: bc47b133-6c8a-4fe6-a242-3d14291f016b
+      name: SellerProfile has SellerProfileId
+      roles:
+        - id: 194fe0c3-0968-481c-b4f9-cb2a7d210570
+          player: 4f838232-23a7-45fa-91a3-7ae33436cda9
+          role_name: has
+        - id: 32af60b5-b3a8-4462-bedf-51496921d131
+          player: cdb18430-b01d-4067-8bd2-f152bdd4c7d9
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 194fe0c3-0968-481c-b4f9-cb2a7d210570
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 32af60b5-b3a8-4462-bedf-51496921d131
+        - type: mandatory
+          role: 194fe0c3-0968-481c-b4f9-cb2a7d210570
+    - id: e9ba28e1-b284-4af2-bbc2-60937e5de041
+      name: SellerProfile belongs to Organization
+      roles:
+        - id: 116a7200-8c4d-4c18-8add-dc2e10df9d23
+          player: 4f838232-23a7-45fa-91a3-7ae33436cda9
+          role_name: belongs to
+        - id: 2d5b5448-2659-486a-b2b8-429e5c7375a3
+          player: ccbbf790-be0b-4f95-8a1e-b9816c12a4ff
+          role_name: has
+      readings:
+        - "{0} belongs to {1}"
+        - "{1} has {0}"
+      constraints:
+        - type: mandatory
+          role: 116a7200-8c4d-4c18-8add-dc2e10df9d23
+        - type: internal_uniqueness
+          roles:
+            - 116a7200-8c4d-4c18-8add-dc2e10df9d23
+        - type: internal_uniqueness
+          roles:
+            - 2d5b5448-2659-486a-b2b8-429e5c7375a3
+  objectified_fact_types:
+    - id: aa43cb18-fefc-45f8-8c94-898f9a3ee87d
+      fact_type: a14b2d50-341e-4e61-974e-58346ff64e30
+      object_type: ac9f73ff-ccb7-4990-8d0c-88a70b55c155
+    - id: 3353d15f-7ca7-4dd9-98c1-7e474793bd78
+      fact_type: 3e88952e-30b2-4e20-a109-f602e5710128
+      object_type: 0c22947c-d995-4dfe-bf85-4918db482ba7
