@@ -171,6 +171,33 @@ components:
     });
   });
 
+  describe("TypeScript format", () => {
+    it("should import TypeScript project directory", async () => {
+      const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+      const { join } = await import("node:path");
+      const { tmpdir } = await import("node:os");
+
+      const dir = join(tmpdir(), `mcp-ts-test-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      try {
+        writeFileSync(
+          join(dir, "models.ts"),
+          `export enum OrderStatus { Draft, Submitted, Fulfilled }
+export interface Order { id: string; total: number; }`,
+        );
+
+        const result = await executeImportModel(dir, "typescript", "TS Model");
+        const yaml = result.content[0]!.text;
+
+        expect(yaml).toContain("name: TS Model");
+        expect(yaml).toContain("OrderStatus");
+        expect(yaml).toContain("Order");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("unknown format", () => {
     it("should return error for unknown format", async () => {
       const result = await executeImportModel(
