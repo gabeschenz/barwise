@@ -21,6 +21,7 @@ export { defaultTypeScriptConfig } from "./lsp/servers/typescript.js";
 // Context assembler and collectors
 export { collectAnnotations } from "./context/AnnotationCollector.js";
 export { assembleTypeScriptContext } from "./context/ContextAssembler.js";
+export { filterByGuidingModel, loadGuidingEntityNames } from "./context/GuidingModelLoader.js";
 export { assembleJavaContext, assembleKotlinContext } from "./context/JvmContextAssembler.js";
 export { collectStateTransitions } from "./context/StateTransitionCollector.js";
 export { collectTypeDefinitions } from "./context/TypeCollector.js";

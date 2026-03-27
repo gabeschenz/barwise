@@ -194,4 +194,54 @@ public class Employee {
     expect(employee).toBeDefined();
     expect(employee!.referenceMode).toBe("employeeId");
   });
+
+  describe("guidingModel support", () => {
+    it("filters types to match guiding model entities", async () => {
+      const guidingYaml = `
+orm_version: "1.0"
+model:
+  name: Guiding
+  object_types:
+    - id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+      name: Customer
+      kind: entity
+      reference_mode: id
+`;
+      writeFileSync(join(fixtureDir, "guide.orm.yaml"), guidingYaml);
+
+      writeFileSync(
+        join(fixtureDir, "Customer.java"),
+        `@Entity
+public class Customer {
+    @Id
+    private Long id;
+    private String name;
+}`,
+      );
+      writeFileSync(
+        join(fixtureDir, "Product.java"),
+        `@Entity
+public class Product {
+    @Id
+    private Long id;
+    private String sku;
+}`,
+      );
+      writeFileSync(
+        join(fixtureDir, "Status.java"),
+        `public enum Status { Active, Inactive }`,
+      );
+
+      const result = await importer.parseAsync!(fixtureDir, {
+        guidingModel: join(fixtureDir, "guide.orm.yaml"),
+      });
+
+      // Customer matches guiding model
+      expect(result.model.getObjectTypeByName("Customer")).toBeDefined();
+      // Status enum is always kept
+      expect(result.model.getObjectTypeByName("Status")).toBeDefined();
+      // Product is filtered out
+      expect(result.model.getObjectTypeByName("Product")).toBeUndefined();
+    });
+  });
 });
