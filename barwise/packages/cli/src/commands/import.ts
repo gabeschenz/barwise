@@ -7,6 +7,7 @@
  * and produces .orm.yaml files.
  */
 
+import { registerCodeFormats } from "@barwise/code-analysis";
 import {
   annotateOrmYaml,
   diffModels,
@@ -26,6 +27,8 @@ const serializer = new OrmYamlSerializer();
 
 // Register built-in formats (DDL, OpenAPI, etc.) with the unified registry.
 registerBuiltinFormats();
+// Register code-analysis formats (TypeScript, etc.)
+registerCodeFormats();
 
 /**
  * Slugify a model name for use in output filenames.
@@ -267,6 +270,83 @@ export function registerImportCommand(program: Command): void {
             process.exitCode = 1;
             return;
           }
+
+          // Serialize to YAML
+          const serializer = new OrmYamlSerializer();
+          const yaml = serializer.serialize(result.model);
+
+          writeOutput(yaml, opts.output);
+
+          // Summary to stderr
+          const ots = result.model.objectTypes.length;
+          const fts = result.model.factTypes.length;
+          process.stderr.write(
+            `Imported ${ots} object types, ${fts} fact types.\n`,
+          );
+          process.stderr.write(`Confidence: ${result.confidence}\n`);
+
+          if (result.warnings.length > 0) {
+            process.stderr.write(`${result.warnings.length} warning(s):\n`);
+            for (const warning of result.warnings) {
+              process.stderr.write(`  - ${warning}\n`);
+            }
+          }
+        } catch (err) {
+          process.stderr.write(`Error: ${(err as Error).message}\n`);
+          process.exitCode = 1;
+        }
+      },
+    );
+
+  // TypeScript project import (directory-based, async)
+  importCmd
+    .command("typescript")
+    .description("Import ORM model from a TypeScript project directory")
+    .argument("<dir>", "Path to TypeScript project directory")
+    .option("--output <file>", "Write .orm.yaml to file instead of stdout")
+    .option("--name <name>", "Model name (defaults to directory name)")
+    .option("--lsp-command <cmd>", "Custom LSP command (e.g. 'typescript-language-server --stdio')")
+    .action(
+      async (
+        dir: string,
+        opts: {
+          output?: string;
+          name?: string;
+          lspCommand?: string;
+        },
+      ) => {
+        try {
+          const resolvedDir = resolve(dir);
+
+          const format = getImporter("typescript");
+          if (!format) {
+            process.stderr.write(
+              "Error: TypeScript import format not registered.\n",
+            );
+            process.exitCode = 1;
+            return;
+          }
+
+          if (!format.parseAsync) {
+            process.stderr.write(
+              "Error: TypeScript format does not support async parsing.\n",
+            );
+            process.exitCode = 1;
+            return;
+          }
+
+          const modelName = opts.name ?? basename(resolvedDir);
+
+          process.stderr.write(
+            `Importing ORM model from TypeScript project: ${resolvedDir}\n`,
+          );
+
+          const importOpts: Record<string, unknown> = { modelName };
+          if (opts.lspCommand) {
+            importOpts["lspCommand"] = opts.lspCommand;
+          }
+
+          const result = await format.parseAsync(resolvedDir, importOpts);
 
           // Serialize to YAML
           const serializer = new OrmYamlSerializer();

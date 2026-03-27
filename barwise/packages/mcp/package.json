@@ -42,6 +42,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@barwise/code-analysis": "1.1.0",
     "@barwise/core": "1.1.0",
     "@barwise/diagram": "1.1.0",
     "@barwise/llm": "1.1.0",

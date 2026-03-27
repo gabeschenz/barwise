@@ -2,6 +2,7 @@
  * import_model tool: imports from structured formats (DDL, OpenAPI, dbt, sql, etc.).
  */
 
+import { registerCodeFormats } from "@barwise/code-analysis";
 import { getImporter, OrmYamlSerializer, registerBuiltinFormats } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -11,16 +12,19 @@ const serializer = new OrmYamlSerializer();
 
 // Register built-in formats (DDL, OpenAPI, dbt, sql, etc.) with the unified registry.
 registerBuiltinFormats();
+// Register code-analysis formats (TypeScript, etc.)
+registerCodeFormats();
 
 export function registerImportModelTool(server: McpServer): void {
   server.registerTool(
     "import_model",
     {
       title: "Import Model",
-      description: "Import an ORM model from a structured format (DDL, OpenAPI, dbt, sql, etc.). "
+      description:
+        "Import an ORM model from a structured format (DDL, OpenAPI, dbt, sql, typescript, etc.). "
         + "Performs deterministic parsing to produce a draft ORM model. "
         + "For text formats (ddl, openapi, sql), source is file content or a file path. "
-        + "For directory formats (dbt), source is a directory path. "
+        + "For directory formats (dbt, typescript), source is a directory path. "
         + "The sql format also supports directory paths for analyzing multiple SQL files.",
       inputSchema: {
         source: z
@@ -28,14 +32,15 @@ export function registerImportModelTool(server: McpServer): void {
           .describe(
             "Source content (inline) or file/directory path. "
               + "For text formats: file content or path to file. "
-              + "For directory formats (dbt): path to project directory. "
+              + "For directory formats (dbt, typescript): path to project directory. "
               + "For sql: file content, file path, or directory path.",
           ),
         format: z
-          .enum(["ddl", "openapi", "dbt", "sql"])
+          .enum(["ddl", "openapi", "dbt", "sql", "typescript"])
           .describe(
             "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs, "
-              + "'dbt' for dbt project directory, 'sql' for raw SQL files/directories",
+              + "'dbt' for dbt project directory, 'sql' for raw SQL files/directories, "
+              + "'typescript' for TypeScript project directory",
           ),
         modelName: z
           .string()
@@ -55,7 +60,7 @@ export function registerImportModelTool(server: McpServer): void {
 
 export async function executeImportModel(
   source: string,
-  format: "ddl" | "openapi" | "dbt" | "sql",
+  format: "ddl" | "openapi" | "dbt" | "sql" | "typescript",
   modelName?: string,
   dialect?: string,
 ): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
@@ -67,7 +72,7 @@ export async function executeImportModel(
         {
           type: "text" as const,
           text:
-            `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt, sql`,
+            `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt, sql, typescript`,
         },
       ],
     };
