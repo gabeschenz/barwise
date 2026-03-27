@@ -4,13 +4,19 @@
  * Presents a picker with import source options:
  *   - From Transcript  (LLM extraction)
  *   - From dbt Project (dbt schema import)
+ *   - From TypeScript Project (code analysis)
+ *   - From Java Project (code analysis)
+ *   - From Kotlin Project (code analysis)
  */
 import * as vscode from "vscode";
+import { ImportCodeCommand } from "./ImportCodeCommand.js";
 import { ImportDbtCommand } from "./ImportDbtCommand.js";
 import { ImportTranscriptCommand } from "./ImportTranscriptCommand.js";
 
+type ImportOptionId = "transcript" | "dbt" | "typescript" | "java" | "kotlin";
+
 interface ImportOption extends vscode.QuickPickItem {
-  readonly id: "transcript" | "dbt";
+  readonly id: ImportOptionId;
 }
 
 const IMPORT_OPTIONS: ImportOption[] = [
@@ -23,6 +29,21 @@ const IMPORT_OPTIONS: ImportOption[] = [
     id: "dbt",
     label: "From dbt Project",
     description: "Import entity and fact types from a dbt project's schema YAML",
+  },
+  {
+    id: "typescript",
+    label: "From TypeScript Project",
+    description: "Analyze TypeScript types, validations, and state machines",
+  },
+  {
+    id: "java",
+    label: "From Java Project",
+    description: "Analyze Java annotations, entity types, and validations",
+  },
+  {
+    id: "kotlin",
+    label: "From Kotlin Project",
+    description: "Analyze Kotlin data classes, sealed hierarchies, and annotations",
   },
 ];
 
@@ -40,6 +61,10 @@ export class ImportCommand {
         return new ImportTranscriptCommand().execute();
       case "dbt":
         return new ImportDbtCommand().execute();
+      case "typescript":
+      case "java":
+      case "kotlin":
+        return new ImportCodeCommand(picked.id).execute();
     }
   }
 }

@@ -165,4 +165,77 @@ export type Region = "US" | "EU" | "APAC";
       true,
     );
   });
+
+  describe("guidingModel support", () => {
+    it("filters types to match guiding model entities", async () => {
+      // Create a guiding model with only Order as an entity
+      const guidingYaml = `
+orm_version: "1.0"
+model:
+  name: Guiding
+  object_types:
+    - id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      name: Order
+      kind: entity
+      reference_mode: id
+`;
+      writeFileSync(join(fixtureDir, "guide.orm.yaml"), guidingYaml);
+
+      // Create source with multiple types
+      writeFileSync(
+        join(fixtureDir, "models.ts"),
+        `
+export interface Order { id: string; total: number; }
+export interface Customer { id: string; name: string; }
+export interface Product { id: string; sku: string; }
+export enum Status { Active, Inactive }
+`,
+      );
+
+      const result = await importer.parseAsync!(fixtureDir, {
+        guidingModel: join(fixtureDir, "guide.orm.yaml"),
+      });
+
+      // Order should be kept (matches guiding entity)
+      expect(result.model.getObjectTypeByName("Order")).toBeDefined();
+      // Status enum should be kept (enums always kept)
+      expect(result.model.getObjectTypeByName("Status")).toBeDefined();
+      // Customer and Product should be filtered out
+      expect(result.model.getObjectTypeByName("Customer")).toBeUndefined();
+      expect(result.model.getObjectTypeByName("Product")).toBeUndefined();
+    });
+
+    it("keeps all types when guidingModel is not provided", async () => {
+      writeFileSync(
+        join(fixtureDir, "models.ts"),
+        `
+export interface Order { id: string; }
+export interface Customer { id: string; }
+`,
+      );
+
+      const result = await importer.parseAsync!(fixtureDir);
+
+      expect(result.model.getObjectTypeByName("Order")).toBeDefined();
+      expect(result.model.getObjectTypeByName("Customer")).toBeDefined();
+    });
+
+    it("keeps all types when guidingModel file does not exist", async () => {
+      writeFileSync(
+        join(fixtureDir, "models.ts"),
+        `
+export interface Order { id: string; }
+export interface Customer { id: string; }
+`,
+      );
+
+      const result = await importer.parseAsync!(fixtureDir, {
+        guidingModel: "/nonexistent/model.orm.yaml",
+      });
+
+      // Non-existent guiding model should not filter anything
+      expect(result.model.getObjectTypeByName("Order")).toBeDefined();
+      expect(result.model.getObjectTypeByName("Customer")).toBeDefined();
+    });
+  });
 });

@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { CodeContext, CodeImportOptions, LspSession } from "../types.js";
+import { filterByGuidingModel, loadGuidingEntityNames } from "./GuidingModelLoader.js";
 import { collectStateTransitions } from "./StateTransitionCollector.js";
 import { collectTypeDefinitions } from "./TypeCollector.js";
 import { collectValidations } from "./ValidationCollector.js";
@@ -81,10 +82,16 @@ export async function assembleTypeScriptContext(
     }
   }
 
+  // Apply guiding model filter if provided
+  const guidingNames = options?.guidingModel
+    ? loadGuidingEntityNames(options.guidingModel)
+    : new Set<string>();
+  const filteredTypes = filterByGuidingModel(allTypes, guidingNames);
+
   return {
     root: workspaceRoot,
     language: "typescript",
-    types: allTypes,
+    types: filteredTypes,
     validations: allValidations,
     stateTransitions: allStateTransitions,
     annotations: [], // TypeScript doesn't have annotations (Java/Kotlin Phase 4)

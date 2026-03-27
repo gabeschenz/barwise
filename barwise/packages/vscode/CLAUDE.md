@@ -33,6 +33,7 @@ src/
     VerbalizeCommand.ts       orm.verbalize -- generate verbalization report
     ShowDiagramCommand.ts     orm.showDiagram -- open diagram webview panel
     ImportTranscriptCommand.ts orm.importTranscript -- LLM transcript extraction
+    ImportCodeCommand.ts      orm.import -- TypeScript/Java/Kotlin code analysis
   diagram/
     DiagramPanel.ts           VS Code Webview panel host for SVG diagrams
   llm/
@@ -114,6 +115,7 @@ Test fixtures live in `tests/fixtures/` (`.orm.yaml` files).
 
 | Direction | Package                        | What is used                                                                       |
 | --------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| Upstream  | `@barwise/code-analysis`       | `registerCodeFormats`, `getImporter` for TypeScript/Java/Kotlin code import        |
 | Upstream  | `@barwise/core`                | Model types, validation, verbalization, serialization, mapping                     |
 | Upstream  | `@barwise/diagram`             | `generateDiagram` for webview SVG rendering                                        |
 | Upstream  | `@barwise/llm`                 | `processTranscript`, `LlmClient` interface, extraction types                       |
