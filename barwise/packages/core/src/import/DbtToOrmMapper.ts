@@ -383,7 +383,7 @@ class DbtMapper {
         const role2Id = `${factName}::role2`;
 
         // Build constraints from tests.
-        const constraints = buildConstraints(col, role1Id, role2Id);
+        const constraints = buildConstraints(col, role1Id, role2Id, this.report, m.name);
 
         this.model.addFactType({
           name: factName,
@@ -466,6 +466,8 @@ function buildConstraints(
   col: DbtColumn,
   role1Id: string,
   role2Id: string,
+  report: ReportBuilder,
+  modelName: string,
 ): Constraint[] {
   const constraints: Constraint[] = [];
 
@@ -489,11 +491,20 @@ function buildConstraints(
     (t): t is Extract<DbtTest, { type: "accepted_values"; }> => t.type === "accepted_values",
   );
   if (avTest) {
-    constraints.push({
-      type: "value_constraint",
-      roleId: role2Id,
-      values: avTest.values as string[],
-    });
+    if (avTest.values.length > 0) {
+      constraints.push({
+        type: "value_constraint",
+        roleId: role2Id,
+        values: avTest.values as string[],
+      });
+    } else {
+      report.warning(
+        "constraint",
+        modelName,
+        `accepted_values test on column "${col.name}" has an empty values list -- no value constraint generated. Check the dbt schema YAML.`,
+        col.name,
+      );
+    }
   }
 
   return constraints;

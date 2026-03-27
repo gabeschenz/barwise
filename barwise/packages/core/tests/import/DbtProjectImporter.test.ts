@@ -239,6 +239,37 @@ describe("DbtProjectImporter", () => {
       ).toEqual(["placed", "shipped", "completed", "returned"]);
     });
 
+    it("skips value_constraint when accepted_values list is empty and reports warning", () => {
+      const yaml = `
+models:
+  - name: sites
+    columns:
+      - name: site_id
+        data_tests:
+          - not_null
+          - unique
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: []
+`;
+      const result = importDbtProject([yaml]);
+      const ft = result.model.getFactTypeByName("Sites has Status");
+      expect(ft).toBeDefined();
+      const vc = ft!.constraints.find((c) => c.type === "value_constraint");
+      expect(vc).toBeUndefined();
+
+      // Should warn the user about the empty accepted_values list.
+      const warnings = result.report.entries.filter(
+        (e) =>
+          e.severity === "warning"
+          && e.category === "constraint"
+          && e.columnName === "status",
+      );
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]!.message).toContain("empty values list");
+    });
+
     it("maps unique tests to internal uniqueness on value role", () => {
       // A non-PK column with unique test means each value belongs to at most one entity.
       // We need a fixture with a unique non-PK column.
