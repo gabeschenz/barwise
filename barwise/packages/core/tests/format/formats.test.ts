@@ -12,6 +12,7 @@ import {
   ddlFormat,
   openApiFormat,
   registerBuiltinFormats,
+  sqlFormat,
 } from "../../src/format/formats.js";
 import {
   clearFormats,
@@ -100,6 +101,35 @@ describe("Built-in format descriptors", () => {
     });
   });
 
+  describe("sqlFormat", () => {
+    it("has name 'sql'", () => {
+      expect(sqlFormat.name).toBe("sql");
+    });
+
+    it("has a description", () => {
+      expect(sqlFormat.description).toBeTruthy();
+    });
+
+    it("has importer only (no exporter)", () => {
+      expect(sqlFormat.importer).toBeDefined();
+      expect(sqlFormat.exporter).toBeUndefined();
+    });
+
+    it("importer has both parse and parseAsync", () => {
+      expect(sqlFormat.importer!.parse).toBeDefined();
+      expect(sqlFormat.importer!.parseAsync).toBeDefined();
+    });
+
+    it("importer can parse SQL", () => {
+      const sql = "CREATE TABLE orders (id INT PRIMARY KEY, total DECIMAL(10,2));";
+      const result = sqlFormat.importer!.parse!(sql);
+
+      expect(result.model).toBeDefined();
+      expect(result.warnings).toBeDefined();
+      expect(result.confidence).toBeDefined();
+    });
+  });
+
   describe("avroFormat", () => {
     it("has name 'avro'", () => {
       expect(avroFormat.name).toBe("avro");
@@ -131,8 +161,9 @@ describe("registerBuiltinFormats", () => {
     expect(getFormat("ddl")).toBeDefined();
     expect(getFormat("openapi")).toBeDefined();
     expect(getFormat("dbt")).toBeDefined();
+    expect(getFormat("sql")).toBeDefined();
     expect(getFormat("avro")).toBeDefined();
-    expect(listFormats()).toHaveLength(4);
+    expect(listFormats()).toHaveLength(5);
   });
 
   it("makes DDL available as both importer and exporter", () => {
@@ -155,11 +186,11 @@ describe("registerBuiltinFormats", () => {
     const importers = listImporters();
     const exporters = listExporters();
 
-    // 3 formats (ddl, openapi, dbt) have importers.
-    expect(importers).toHaveLength(3);
+    // 4 formats (ddl, openapi, dbt, sql) have importers.
+    expect(importers).toHaveLength(4);
     // 4 formats (ddl, openapi, dbt, avro) have exporters.
     expect(exporters).toHaveLength(4);
-    expect(importers.map((f) => f.name).sort()).toEqual(["dbt", "ddl", "openapi"]);
+    expect(importers.map((f) => f.name).sort()).toEqual(["dbt", "ddl", "openapi", "sql"]);
     expect(exporters.map((f) => f.name).sort()).toEqual(["avro", "dbt", "ddl", "openapi"]);
   });
 
@@ -168,7 +199,7 @@ describe("registerBuiltinFormats", () => {
     registerBuiltinFormats();
     registerBuiltinFormats();
 
-    expect(listFormats()).toHaveLength(4);
+    expect(listFormats()).toHaveLength(5);
   });
 
   it("skips already-registered formats", () => {
@@ -178,10 +209,11 @@ describe("registerBuiltinFormats", () => {
     // registerBuiltinFormats should skip DDL and register the rest.
     registerBuiltinFormats();
 
-    expect(listFormats()).toHaveLength(4);
+    expect(listFormats()).toHaveLength(5);
     expect(getFormat("ddl")).toBe(ddlFormat);
     expect(getFormat("openapi")).toBeDefined();
     expect(getFormat("dbt")).toBeDefined();
+    expect(getFormat("sql")).toBeDefined();
     expect(getFormat("avro")).toBeDefined();
   });
 });

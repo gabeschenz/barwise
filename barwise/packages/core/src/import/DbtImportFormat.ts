@@ -1,19 +1,25 @@
 /**
  * dbt import format.
  *
- * Directory-based importer that reads dbt schema YAML files from a
- * project directory and produces an ORM model. Wraps the existing
- * DbtProjectImporter (which takes raw YAML strings) with filesystem
- * discovery.
+ * Directory-based importer that reads dbt schema YAML files and SQL
+ * models from a project directory and produces an ORM model. Wraps
+ * the existing DbtProjectImporter (YAML) with filesystem discovery,
+ * and optionally compiles and analyzes SQL models through the cascade
+ * parser for additional constraint extraction.
  *
  * Accepts a directory path as input. Discovers all `.yml` and `.yaml`
  * files under `models/` (or the project root if no `models/` directory
  * exists). Reads and parses them through the existing dbt pipeline.
+ * Then compiles SQL files (via dbt compile or stub Jinja rendering)
+ * and extracts JOIN, WHERE, CASE, and constraint patterns.
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parseSqlFile } from "../sql/SqlCascadeParser.js";
+import { detectDbtDialect } from "./DbtDialectDetector.js";
 import { importDbtProject } from "./DbtProjectImporter.js";
+import { compileDbtSql } from "./DbtSqlCompiler.js";
 import type { ImportFormat, ImportOptions, ImportResult } from "./types.js";
 
 /**
@@ -75,7 +81,7 @@ function isDbtSchemaYaml(content: string): boolean {
  */
 export class DbtImportFormat implements ImportFormat {
   readonly name = "dbt";
-  readonly description = "Import ORM model from a dbt project (schema YAML files)";
+  readonly description = "Import ORM model from a dbt project (schema YAML + SQL models)";
   readonly inputKind = "directory" as const;
 
   async parseAsync(input: string, options?: ImportOptions): Promise<ImportResult> {
@@ -135,7 +141,7 @@ export class DbtImportFormat implements ImportFormat {
       };
     }
 
-    // Delegate to the existing dbt project importer.
+    // Delegate to the existing dbt project importer (YAML-based).
     const result = importDbtProject(yamlContents);
 
     // Override model name if provided.
@@ -143,15 +149,56 @@ export class DbtImportFormat implements ImportFormat {
       (result.model as { name: string; }).name = options.modelName;
     }
 
+    // SQL analysis: compile and parse SQL files for additional patterns.
+    const sqlPatternCount = this.analyzeSqlFiles(projectDir, warnings);
+
     // Convert report entries to warnings for the ImportResult interface.
     const reportWarnings = result.report.entries
       .filter((e) => e.severity === "warning" || e.severity === "gap")
       .map((e) => `[${e.severity}] ${e.modelName}: ${e.message}`);
+
+    if (sqlPatternCount > 0) {
+      warnings.push(
+        `SQL analysis: found ${sqlPatternCount} pattern(s) from compiled SQL models`,
+      );
+    }
 
     return {
       model: result.model,
       warnings: [...warnings, ...reportWarnings],
       confidence: "medium",
     };
+  }
+
+  /**
+   * Analyze SQL files in the dbt project.
+   *
+   * Compiles Jinja-templated SQL via dbt compile output or stub rendering,
+   * then extracts patterns through the SQL cascade parser.
+   *
+   * @returns Number of patterns found
+   */
+  private analyzeSqlFiles(projectDir: string, warnings: string[]): number {
+    try {
+      const dialect = detectDbtDialect(projectDir);
+      const compiledFiles = compileDbtSql(projectDir);
+
+      if (compiledFiles.length === 0) {
+        return 0;
+      }
+
+      let totalPatterns = 0;
+      for (const file of compiledFiles) {
+        const result = parseSqlFile(file.sql, file.sourcePath, dialect);
+        totalPatterns += result.patterns.length;
+      }
+
+      return totalPatterns;
+    } catch (err) {
+      warnings.push(
+        `SQL analysis skipped: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return 0;
+    }
   }
 }
