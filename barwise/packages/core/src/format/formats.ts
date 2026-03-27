@@ -13,6 +13,7 @@ import { OpenApiExportFormat } from "../export/OpenApiExportFormat.js";
 import { DbtImportFormat } from "../import/DbtImportFormat.js";
 import { DdlImportFormat } from "../import/DdlImportFormat.js";
 import { OpenApiImportFormat } from "../import/OpenApiImportFormat.js";
+import { SqlImportFormat } from "../import/SqlImportFormat.js";
 import { formatRegistry, registerFormat } from "./registry.js";
 import type { FormatDescriptor } from "./types.js";
 
@@ -49,6 +50,15 @@ export const dbtFormat: FormatDescriptor = {
 };
 
 /**
+ * SQL format: import only (raw SQL files -- DDL, migrations, queries).
+ */
+export const sqlFormat: FormatDescriptor = {
+  name: "sql",
+  description: "Raw SQL files (DDL, migrations, queries)",
+  importer: new SqlImportFormat(),
+};
+
+/**
  * Avro format: export only (Avro schema definitions .avsc).
  */
 export const avroFormat: FormatDescriptor = {
@@ -70,6 +80,7 @@ export function registerBuiltinFormats(): void {
     ddlFormat,
     openApiFormat,
     dbtFormat,
+    sqlFormat,
     avroFormat,
   ];
 

@@ -1,5 +1,5 @@
 /**
- * import_model tool: imports from structured formats (DDL, OpenAPI, dbt, etc.).
+ * import_model tool: imports from structured formats (DDL, OpenAPI, dbt, sql, etc.).
  */
 
 import { getImporter, OrmYamlSerializer, registerBuiltinFormats } from "@barwise/core";
@@ -9,7 +9,7 @@ import { readSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
 
-// Register built-in formats (DDL, OpenAPI, dbt, etc.) with the unified registry.
+// Register built-in formats (DDL, OpenAPI, dbt, sql, etc.) with the unified registry.
 registerBuiltinFormats();
 
 export function registerImportModelTool(server: McpServer): void {
@@ -17,40 +17,47 @@ export function registerImportModelTool(server: McpServer): void {
     "import_model",
     {
       title: "Import Model",
-      description: "Import an ORM model from a structured format (DDL, OpenAPI, dbt, etc.). "
+      description: "Import an ORM model from a structured format (DDL, OpenAPI, dbt, sql, etc.). "
         + "Performs deterministic parsing to produce a draft ORM model. "
-        + "For text formats (ddl, openapi), source is file content or a file path. "
-        + "For directory formats (dbt), source is a directory path.",
+        + "For text formats (ddl, openapi, sql), source is file content or a file path. "
+        + "For directory formats (dbt), source is a directory path. "
+        + "The sql format also supports directory paths for analyzing multiple SQL files.",
       inputSchema: {
         source: z
           .string()
           .describe(
             "Source content (inline) or file/directory path. "
               + "For text formats: file content or path to file. "
-              + "For directory formats (dbt): path to project directory.",
+              + "For directory formats (dbt): path to project directory. "
+              + "For sql: file content, file path, or directory path.",
           ),
         format: z
-          .enum(["ddl", "openapi", "dbt"])
+          .enum(["ddl", "openapi", "dbt", "sql"])
           .describe(
             "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs, "
-              + "'dbt' for dbt project directory",
+              + "'dbt' for dbt project directory, 'sql' for raw SQL files/directories",
           ),
         modelName: z
           .string()
           .optional()
           .describe("Name for the resulting ORM model (defaults to format-specific)"),
+        dialect: z
+          .enum(["ansi", "snowflake", "bigquery", "postgres", "mysql", "redshift", "databricks"])
+          .optional()
+          .describe("SQL dialect (for sql format). Auto-detected if omitted."),
       },
     },
-    async ({ source, format, modelName }) => {
-      return executeImportModel(source, format, modelName);
+    async ({ source, format, modelName, dialect }) => {
+      return executeImportModel(source, format, modelName, dialect);
     },
   );
 }
 
 export async function executeImportModel(
   source: string,
-  format: "ddl" | "openapi" | "dbt",
+  format: "ddl" | "openapi" | "dbt" | "sql",
   modelName?: string,
+  dialect?: string,
 ): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   // Get the importer from the unified registry
   const importFormat = getImporter(format);
@@ -59,10 +66,17 @@ export async function executeImportModel(
       content: [
         {
           type: "text" as const,
-          text: `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt`,
+          text:
+            `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt, sql`,
         },
       ],
     };
+  }
+
+  // Build options
+  const options: Record<string, unknown> = { modelName };
+  if (dialect) {
+    options["dialect"] = dialect;
   }
 
   // Route based on input kind
@@ -80,21 +94,36 @@ export async function executeImportModel(
         ],
       };
     }
-    result = await importFormat.parseAsync(source, { modelName });
+    result = await importFormat.parseAsync(source, options);
   } else {
-    // Text-based format: source is file content or file path
-    if (!importFormat.parse) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Error: Format "${format}" does not support synchronous text parsing.`,
-          },
-        ],
-      };
+    // Text-based format: try parseAsync for directory paths first, then parse
+    if (importFormat.parseAsync) {
+      // Some text formats (sql) also support directories via parseAsync
+      try {
+        const { statSync } = await import("node:fs");
+        const stat = statSync(source);
+        if (stat.isDirectory()) {
+          result = await importFormat.parseAsync(source, options);
+        }
+      } catch {
+        // Not a directory or doesn't exist -- fall through to parse
+      }
     }
-    const input = readSource(source);
-    result = importFormat.parse(input, { modelName });
+
+    if (!result) {
+      if (!importFormat.parse) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: Format "${format}" does not support synchronous text parsing.`,
+            },
+          ],
+        };
+      }
+      const input = readSource(source);
+      result = importFormat.parse(input, options);
+    }
   }
 
   // Serialize to YAML

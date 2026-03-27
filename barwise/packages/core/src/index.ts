@@ -208,11 +208,29 @@ export { DbtMappingError, type DbtMapResult, mapDbtToOrm } from "./import/DbtToO
 export { annotateDbtYaml, type AnnotationOptions } from "./import/DbtYamlAnnotator.js";
 
 // Import format types and implementations
+export { detectDbtDialect } from "./import/DbtDialectDetector.js";
 export { DbtImportFormat } from "./import/DbtImportFormat.js";
+export { compileDbtSql, stubRenderJinja } from "./import/DbtSqlCompiler.js";
+export type { CompiledSqlFile } from "./import/DbtSqlCompiler.js";
 export { DdlImportFormat } from "./import/DdlImportFormat.js";
 export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
 export { ImportFormatError } from "./import/registry.js";
+export { SqlImportFormat } from "./import/SqlImportFormat.js";
 export type { ImportFormat, ImportOptions, ImportResult } from "./import/types.js";
+
+// SQL analysis infrastructure
+export { detectStatementType, parseSqlFile, parseSqlStatement } from "./sql/SqlCascadeParser.js";
+export { extractSqlPatterns, splitSqlStatements } from "./sql/SqlPatternExtractor.js";
+export type {
+  CalciteParseRequest,
+  CalciteParseResponse,
+  CalciteSidecarConfig,
+  CascadeFileResult,
+  CascadeStatementResult,
+  ParseLevel,
+  SqlDialect,
+  SqlPatternContext,
+} from "./sql/types.js";
 
 // Export format types and implementations
 export { AvroExportFormat } from "./export/AvroExportFormat.js";
@@ -233,6 +251,7 @@ export {
   ddlFormat,
   openApiFormat,
   registerBuiltinFormats,
+  sqlFormat,
 } from "./format/formats.js";
 export {
   clearFormats,
