@@ -198,6 +198,66 @@ export interface Order { id: string; total: number; }`,
     });
   });
 
+  describe("Java format", () => {
+    it("should import Java project directory", async () => {
+      const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+      const { join } = await import("node:path");
+      const { tmpdir } = await import("node:os");
+
+      const dir = join(tmpdir(), `mcp-java-test-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      try {
+        writeFileSync(
+          join(dir, "Customer.java"),
+          `@Entity
+public class Customer {
+    @Id
+    private Long id;
+    private String name;
+}`,
+        );
+        writeFileSync(
+          join(dir, "Status.java"),
+          `public enum Status { Active, Inactive }`,
+        );
+
+        const result = await executeImportModel(dir, "java", "Java Model");
+        const yaml = result.content[0]!.text;
+
+        expect(yaml).toContain("name: Java Model");
+        expect(yaml).toContain("Customer");
+        expect(yaml).toContain("Status");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("Kotlin format", () => {
+    it("should import Kotlin project directory", async () => {
+      const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+      const { join } = await import("node:path");
+      const { tmpdir } = await import("node:os");
+
+      const dir = join(tmpdir(), `mcp-kotlin-test-${Date.now()}`);
+      mkdirSync(dir, { recursive: true });
+      try {
+        writeFileSync(
+          join(dir, "Color.kt"),
+          `enum class Color { Red, Green, Blue }`,
+        );
+
+        const result = await executeImportModel(dir, "kotlin", "Kotlin Model");
+        const yaml = result.content[0]!.text;
+
+        expect(yaml).toContain("name: Kotlin Model");
+        expect(yaml).toContain("Color");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("unknown format", () => {
     it("should return error for unknown format", async () => {
       const result = await executeImportModel(

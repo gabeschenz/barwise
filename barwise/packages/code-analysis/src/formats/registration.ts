@@ -7,6 +7,8 @@
 
 import { type FormatDescriptor, formatRegistry, registerFormat } from "@barwise/core";
 import type { LspSessionProvider } from "../types.js";
+import { JavaImportFormat } from "./JavaImportFormat.js";
+import { KotlinImportFormat } from "./KotlinImportFormat.js";
 import { TypeScriptImportFormat } from "./TypeScriptImportFormat.js";
 
 /**
@@ -21,6 +23,28 @@ export function createTypeScriptFormat(sessionProvider?: LspSessionProvider): Fo
 }
 
 /**
+ * Java format descriptor.
+ */
+export function createJavaFormat(sessionProvider?: LspSessionProvider): FormatDescriptor {
+  return {
+    name: "java",
+    description: "Java project (annotations, types, validations)",
+    importer: new JavaImportFormat(sessionProvider),
+  };
+}
+
+/**
+ * Kotlin format descriptor.
+ */
+export function createKotlinFormat(sessionProvider?: LspSessionProvider): FormatDescriptor {
+  return {
+    name: "kotlin",
+    description: "Kotlin project (annotations, sealed classes, validations)",
+    importer: new KotlinImportFormat(sessionProvider),
+  };
+}
+
+/**
  * Register all code-analysis format importers with the unified registry.
  *
  * Call this at tool startup (CLI main, MCP server init, etc.) after
@@ -30,7 +54,8 @@ export function createTypeScriptFormat(sessionProvider?: LspSessionProvider): Fo
 export function registerCodeFormats(sessionProvider?: LspSessionProvider): void {
   const formats: readonly FormatDescriptor[] = [
     createTypeScriptFormat(sessionProvider),
-    // Phase 4 will add: createJavaFormat(), createKotlinFormat()
+    createJavaFormat(sessionProvider),
+    createKotlinFormat(sessionProvider),
   ];
 
   for (const descriptor of formats) {

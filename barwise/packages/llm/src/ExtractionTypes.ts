@@ -20,6 +20,8 @@ export interface SourceReference {
   readonly lines: readonly [number, number];
   /** Verbatim excerpt from the transcript. */
   readonly excerpt: string;
+  /** File path, when source is code rather than a transcript. */
+  readonly filePath?: string;
 }
 
 // ---------------------------------------------------------------------------
