@@ -81,9 +81,18 @@ describe("Built-in format descriptors", () => {
       expect(dbtFormat.description).toBeTruthy();
     });
 
-    it("has exporter only (no importer)", () => {
-      expect(dbtFormat.importer).toBeUndefined();
+    it("has both importer and exporter", () => {
+      expect(dbtFormat.importer).toBeDefined();
       expect(dbtFormat.exporter).toBeDefined();
+    });
+
+    it("importer has inputKind 'directory'", () => {
+      expect(dbtFormat.importer!.inputKind).toBe("directory");
+    });
+
+    it("importer has parseAsync but not parse", () => {
+      expect(dbtFormat.importer!.parseAsync).toBeDefined();
+      expect(dbtFormat.importer!.parse).toBeUndefined();
     });
 
     it("exporter has the export method", () => {
@@ -146,11 +155,11 @@ describe("registerBuiltinFormats", () => {
     const importers = listImporters();
     const exporters = listExporters();
 
-    // 2 bidirectional formats (ddl, openapi) have importers.
-    expect(importers).toHaveLength(2);
+    // 3 formats (ddl, openapi, dbt) have importers.
+    expect(importers).toHaveLength(3);
     // 4 formats (ddl, openapi, dbt, avro) have exporters.
     expect(exporters).toHaveLength(4);
-    expect(importers.map((f) => f.name).sort()).toEqual(["ddl", "openapi"]);
+    expect(importers.map((f) => f.name).sort()).toEqual(["dbt", "ddl", "openapi"]);
     expect(exporters.map((f) => f.name).sort()).toEqual(["avro", "dbt", "ddl", "openapi"]);
   });
 
