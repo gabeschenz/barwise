@@ -19,13 +19,35 @@ describe("registerCodeFormats", () => {
     expect(importer!.inputKind).toBe("directory");
   });
 
+  it("registers Java format", () => {
+    registerCodeFormats();
+
+    const importer = getImporter("java");
+    expect(importer).toBeDefined();
+    expect(importer!.name).toBe("java");
+    expect(importer!.inputKind).toBe("directory");
+  });
+
+  it("registers Kotlin format", () => {
+    registerCodeFormats();
+
+    const importer = getImporter("kotlin");
+    expect(importer).toBeDefined();
+    expect(importer!.name).toBe("kotlin");
+    expect(importer!.inputKind).toBe("directory");
+  });
+
   it("is idempotent", () => {
     registerCodeFormats();
     registerCodeFormats();
     registerCodeFormats();
 
-    const importers = listImporters().filter((f) => f.name === "typescript");
-    expect(importers).toHaveLength(1);
+    const tsImporters = listImporters().filter((f) => f.name === "typescript");
+    const javaImporters = listImporters().filter((f) => f.name === "java");
+    const kotlinImporters = listImporters().filter((f) => f.name === "kotlin");
+    expect(tsImporters).toHaveLength(1);
+    expect(javaImporters).toHaveLength(1);
+    expect(kotlinImporters).toHaveLength(1);
   });
 
   it("works alongside registerBuiltinFormats", () => {
@@ -39,5 +61,7 @@ describe("registerCodeFormats", () => {
     expect(names).toContain("dbt");
     expect(names).toContain("sql");
     expect(names).toContain("typescript");
+    expect(names).toContain("java");
+    expect(names).toContain("kotlin");
   });
 });
