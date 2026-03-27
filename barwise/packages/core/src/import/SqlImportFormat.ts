@@ -104,7 +104,7 @@ function _mapSqlType(sqlType: string): ConceptualDataTypeName {
   if (/^TIME$/.test(normalized)) return "time";
   if (/^(DATETIME|TIMESTAMP)/.test(normalized)) return "datetime";
   if (/^(BLOB|BINARY|BYTEA)/.test(normalized)) return "binary";
-  if (/^UUID/.test(normalized)) return "uuid";
+  if (normalized.startsWith("UUID")) return "uuid";
   return "other";
 }
 
