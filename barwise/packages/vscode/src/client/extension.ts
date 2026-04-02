@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   client = new LanguageClient(
     "barwiseOrmLanguageServer",
-    "Barwise ORM Language Server",
+    "Barwise Language Server",
     serverOptions,
     clientOptions,
   );
@@ -51,27 +51,27 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register commands.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "orm.newProject",
+      "barwise.newProject",
       () => new NewProjectCommand().execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.validateModel",
+      "barwise.validateModel",
       () => new ValidateModelCommand().execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.verbalize",
+      "barwise.verbalize",
       () => new VerbalizeCommand().execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.showDiagram",
+      "barwise.showDiagram",
       () => new ShowDiagramCommand(context.extensionUri).execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.import",
+      "barwise.import",
       () => new ImportCommand().execute(),
     ),
     vscode.commands.registerCommand(
-      "orm.export",
+      "barwise.export",
       () => new ExportCommand().execute(),
     ),
     registerMcpServerProvider(context),

@@ -161,24 +161,8 @@ export {
 export { Verbalizer } from "./verbalization/Verbalizer.js";
 
 // Import (NORMA .orm XML)
-export { mapNormaToOrm, NormaMappingError } from "./import/NormaToOrmMapper.js";
-export { importNormaXml, NormaImportError } from "./import/NormaXmlImporter.js";
-export { NormaParseError, parseNormaXml } from "./import/NormaXmlParser.js";
-export type {
-  NormaConstraint,
-  NormaDataType,
-  NormaDocument,
-  NormaEntityType,
-  NormaFactType,
-  NormaMultiplicity,
-  NormaObjectifiedType,
-  NormaReading,
-  NormaReadingOrder,
-  NormaRingType,
-  NormaRole,
-  NormaSubtypeFact,
-  NormaValueType,
-} from "./import/NormaXmlTypes.js";
+export { NormaImportFormat } from "./import/NormaImportFormat.js";
+export { NormaImportError } from "./import/NormaXmlImporter.js";
 
 // Import (dbt project)
 export type {
@@ -207,15 +191,10 @@ export type {
 export { DbtMappingError, type DbtMapResult, mapDbtToOrm } from "./import/DbtToOrmMapper.js";
 export { annotateDbtYaml, type AnnotationOptions } from "./import/DbtYamlAnnotator.js";
 
-// Import format types and implementations
+// Import format types
 export { detectDbtDialect } from "./import/DbtDialectDetector.js";
-export { DbtImportFormat } from "./import/DbtImportFormat.js";
 export { compileDbtSql, stubRenderJinja } from "./import/DbtSqlCompiler.js";
 export type { CompiledSqlFile } from "./import/DbtSqlCompiler.js";
-export { DdlImportFormat } from "./import/DdlImportFormat.js";
-export { OpenApiImportFormat } from "./import/OpenApiImportFormat.js";
-export { ImportFormatError } from "./import/registry.js";
-export { SqlImportFormat } from "./import/SqlImportFormat.js";
 export type { ImportFormat, ImportOptions, ImportResult } from "./import/types.js";
 
 // SQL analysis infrastructure
@@ -232,11 +211,7 @@ export type {
   SqlPatternContext,
 } from "./sql/types.js";
 
-// Export format types and implementations
-export { AvroExportFormat } from "./export/AvroExportFormat.js";
-export { DbtExportFormat } from "./export/DbtExportFormat.js";
-export { DdlExportFormat } from "./export/DdlExportFormat.js";
-export { OpenApiExportFormat } from "./export/OpenApiExportFormat.js";
+// Export format types
 export type {
   ConstraintSpec,
   ExportFormatAdapter,
@@ -249,6 +224,7 @@ export {
   avroFormat,
   dbtFormat,
   ddlFormat,
+  normaFormat,
   openApiFormat,
   registerBuiltinFormats,
   sqlFormat,
@@ -266,20 +242,6 @@ export {
   registerFormat,
 } from "./format/registry.js";
 export type { FormatDescriptor } from "./format/types.js";
-
-// Deprecated: old separate registries (use unified format system above)
-export {
-  formatRegistry as exportFormatRegistry,
-  getFormat as getExportFormat,
-  listFormats as listExportFormats,
-  registerFormat as registerExportFormat,
-} from "./export/registry.js";
-export {
-  clearImportFormats,
-  getImportFormat,
-  listImportFormats,
-  registerImportFormat,
-} from "./import/registry.js";
 
 // Annotation (shared helpers, ORM YAML annotator, export annotation collector)
 export {

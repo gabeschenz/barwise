@@ -20,25 +20,26 @@ export function registerImportModelTool(server: McpServer): void {
     "import_model",
     {
       title: "Import Model",
-      description:
-        "Import an ORM model from a structured format (DDL, OpenAPI, dbt, sql, typescript, java, kotlin, etc.). "
+      description: "Import an ORM model from a structured format. "
         + "Performs deterministic parsing to produce a draft ORM model. "
-        + "For text formats (ddl, openapi, sql), source is file content or a file path. "
+        + "For text formats (ddl, openapi, norma, sql), prefer passing a file path over inline content "
+        + "(especially for large files like NORMA .orm XML). "
         + "For directory formats (dbt, typescript, java, kotlin), source is a directory path. "
         + "The sql format also supports directory paths for analyzing multiple SQL files.",
       inputSchema: {
         source: z
           .string()
           .describe(
-            "Source content (inline) or file/directory path. "
-              + "For text formats: file content or path to file. "
+            "File path (preferred) or inline content. "
+              + "For text formats: absolute file path or raw content. Prefer file paths for large files. "
               + "For directory formats (dbt, typescript, java, kotlin): path to project directory. "
-              + "For sql: file content, file path, or directory path.",
+              + "For sql: file path, directory path, or inline content.",
           ),
         format: z
-          .enum(["ddl", "openapi", "dbt", "sql", "typescript", "java", "kotlin"])
+          .enum(["ddl", "openapi", "norma", "dbt", "sql", "typescript", "java", "kotlin"])
           .describe(
             "Format of the source: 'ddl' for SQL DDL, 'openapi' for OpenAPI 3.x specs, "
+              + "'norma' for NORMA .orm XML files, "
               + "'dbt' for dbt project directory, 'sql' for raw SQL files/directories, "
               + "'typescript' for TypeScript project directory, 'java' for Java project directory, "
               + "'kotlin' for Kotlin project directory",
@@ -61,7 +62,7 @@ export function registerImportModelTool(server: McpServer): void {
 
 export async function executeImportModel(
   source: string,
-  format: "ddl" | "openapi" | "dbt" | "sql" | "typescript" | "java" | "kotlin",
+  format: "ddl" | "openapi" | "norma" | "dbt" | "sql" | "typescript" | "java" | "kotlin",
   modelName?: string,
   dialect?: string,
 ): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
@@ -73,7 +74,7 @@ export async function executeImportModel(
         {
           type: "text" as const,
           text:
-            `Error: Unknown import format "${format}". Supported formats: ddl, openapi, dbt, sql, typescript, java, kotlin`,
+            `Error: Unknown import format "${format}". Supported formats: ddl, openapi, norma, dbt, sql, typescript, java, kotlin`,
         },
       ],
     };

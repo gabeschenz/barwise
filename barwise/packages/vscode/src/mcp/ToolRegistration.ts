@@ -134,7 +134,7 @@ class ValidateModelTool implements vscode.LanguageModelTool<ValidateInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Validating ORM model...",
+      invocationMessage: "Validating Barwise model...",
     };
   }
 }
@@ -160,7 +160,7 @@ class VerbalizeModelTool implements vscode.LanguageModelTool<VerbalizeInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Verbalizing ORM model...",
+      invocationMessage: "Verbalizing Barwise model...",
     };
   }
 }
@@ -210,7 +210,7 @@ class DiffModelsTool implements vscode.LanguageModelTool<DiffInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Comparing ORM models...",
+      invocationMessage: "Comparing Barwise models...",
     };
   }
 }
@@ -233,7 +233,7 @@ class GenerateDiagramTool implements vscode.LanguageModelTool<DiagramInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Generating ORM diagram...",
+      invocationMessage: "Generating Barwise diagram...",
     };
   }
 }
@@ -273,7 +273,7 @@ class ImportTranscriptTool implements vscode.LanguageModelTool<ImportTranscriptI
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Extracting ORM model from transcript...",
+      invocationMessage: "Extracting Barwise model from transcript...",
     };
   }
 
@@ -311,7 +311,7 @@ class MergeModelsTool implements vscode.LanguageModelTool<MergeInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Merging ORM models...",
+      invocationMessage: "Merging Barwise models...",
     };
   }
 }
@@ -343,7 +343,7 @@ class ExportModelTool implements vscode.LanguageModelTool<ExportModelInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: `Exporting ORM model as ${options.input.format}...`,
+      invocationMessage: `Exporting Barwise model as ${options.input.format}...`,
     };
   }
 }
@@ -396,7 +396,7 @@ class ImportModelTool implements vscode.LanguageModelTool<ImportModelInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: `Importing ORM model from ${options.input.format.toUpperCase()}...`,
+      invocationMessage: `Importing Barwise model from ${options.input.format.toUpperCase()}...`,
     };
   }
 }
@@ -461,7 +461,7 @@ class ReviewModelTool implements vscode.LanguageModelTool<ReviewModelInput> {
     _token: vscode.CancellationToken,
   ): Promise<vscode.PreparedToolInvocation> {
     return {
-      invocationMessage: "Reviewing ORM model...",
+      invocationMessage: "Reviewing Barwise model...",
     };
   }
 

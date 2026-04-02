@@ -467,6 +467,16 @@
           "type": "boolean",
           "default": true,
           "description": "Whether the subtype uses the supertype's reference scheme for identification."
+        },
+        "is_exclusive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the subtypes of this supertype are mutually exclusive. When true, no supertype instance can be an instance of more than one subtype in the partition group."
+        },
+        "is_exhaustive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the subtypes of this supertype are exhaustive (cover all instances). When true, every supertype instance must be an instance of at least one subtype in the partition group."
         }
       }
     },

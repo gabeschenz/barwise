@@ -12,6 +12,7 @@ import { DdlExportFormat } from "../export/DdlExportFormat.js";
 import { OpenApiExportFormat } from "../export/OpenApiExportFormat.js";
 import { DbtImportFormat } from "../import/DbtImportFormat.js";
 import { DdlImportFormat } from "../import/DdlImportFormat.js";
+import { NormaImportFormat } from "../import/NormaImportFormat.js";
 import { OpenApiImportFormat } from "../import/OpenApiImportFormat.js";
 import { SqlImportFormat } from "../import/SqlImportFormat.js";
 import { formatRegistry, registerFormat } from "./registry.js";
@@ -59,6 +60,15 @@ export const sqlFormat: FormatDescriptor = {
 };
 
 /**
+ * NORMA format: import only (NORMA .orm XML files).
+ */
+export const normaFormat: FormatDescriptor = {
+  name: "norma",
+  description: "NORMA .orm XML files",
+  importer: new NormaImportFormat(),
+};
+
+/**
  * Avro format: export only (Avro schema definitions .avsc).
  */
 export const avroFormat: FormatDescriptor = {
@@ -81,6 +91,7 @@ export function registerBuiltinFormats(): void {
     openApiFormat,
     dbtFormat,
     sqlFormat,
+    normaFormat,
     avroFormat,
   ];
 

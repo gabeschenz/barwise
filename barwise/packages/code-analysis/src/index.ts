@@ -51,3 +51,26 @@ export type {
   ValidationContext,
 } from "./types.js";
 export { SymbolKind } from "./types.js";
+
+// Repository analysis
+export { buildFileContains, detectBuildSystem } from "./repo/BuildSystemDetector.js";
+export { getDetectors } from "./repo/detectors/index.js";
+export { countLanguages, detectLanguage } from "./repo/LanguageDetector.js";
+export { RepoManager } from "./repo/RepoManager.js";
+export { detectFramework, profileRepository } from "./repo/RepoProfiler.js";
+export { formatRepoRef, parseRepoRef } from "./repo/types.js";
+export type {
+  AnalysisMetadata,
+  BuildSystemDetection,
+  CloneOptions,
+  DetectedLanguage,
+  FrameworkDetection,
+  FrameworkDetectorConfig,
+  FrameworkSignal,
+  ProfileCacheEntry,
+  ProfileCacheKey,
+  RepoProfile,
+  RepoRef,
+  SignalConfig,
+  SignalWeight,
+} from "./repo/types.js";

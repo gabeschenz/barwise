@@ -1,5 +1,5 @@
 /**
- * ORM: Export... -- quick pick router for export workflows.
+ * Barwise: Export... -- quick pick router for export workflows.
  *
  * Presents a picker with export format options:
  *   - As dbt Project
@@ -36,7 +36,7 @@ const EXPORT_OPTIONS: ExportOption[] = [
 export class ExportCommand {
   async execute(): Promise<void> {
     const picked = await vscode.window.showQuickPick(EXPORT_OPTIONS, {
-      title: "Export ORM Model",
+      title: "Export Barwise Model",
       placeHolder: "Choose an export format",
     });
 

@@ -86,7 +86,7 @@ export class ImportCodeCommand {
     // Step 4: Ask for model name.
     const dirName = path.basename(projectRoot.fsPath);
     const modelName = await vscode.window.showInputBox({
-      prompt: "Name for the imported ORM model",
+      prompt: "Name for the imported Barwise model",
       value: dirName,
       validateInput: (v) => v.trim().length === 0 ? "Model name is required" : null,
     });
@@ -117,7 +117,7 @@ export class ImportCodeCommand {
 
     // Show warnings in output channel if any.
     if (result.warnings.length > 0) {
-      const channel = vscode.window.createOutputChannel(`ORM ${displayName} Import`);
+      const channel = vscode.window.createOutputChannel(`Barwise ${displayName} Import`);
       channel.appendLine(`=== ${displayName} Import Report ===`);
       channel.appendLine(`Latency: ${latencyMs}ms`);
       channel.appendLine(`Confidence: ${result.confidence}`);
@@ -141,7 +141,7 @@ export class ImportCodeCommand {
         { label: "Yes", description: "Focus analysis on entities from an existing model" },
       ],
       {
-        title: "Use a guiding ORM model?",
+        title: "Use a guiding Barwise model?",
         placeHolder: "A guiding model focuses analysis on known entities",
       },
     );
@@ -152,8 +152,8 @@ export class ImportCodeCommand {
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: false,
-      title: "Select guiding ORM model (.orm.yaml)",
-      filters: { "ORM Models": ["orm.yaml"] },
+      title: "Select guiding Barwise model (.orm.yaml)",
+      filters: { "Barwise Models": ["orm.yaml"] },
     });
 
     if (!files || files.length === 0) return undefined;

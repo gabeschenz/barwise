@@ -2,7 +2,7 @@
   "name": "barwise-vscode",
   "displayName": "Barwise ORM Modeler",
   "description": "ORM 2 modeling tool for data engineers and architects",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "publisher": "barwise",
   "author": "Gabe Schenz",
@@ -38,34 +38,34 @@
   "contributes": {
     "commands": [
       {
-        "command": "orm.newProject",
+        "command": "barwise.newProject",
         "title": "New Project",
-        "category": "ORM"
+        "category": "Barwise"
       },
       {
-        "command": "orm.validateModel",
+        "command": "barwise.validateModel",
         "title": "Validate Model",
-        "category": "ORM"
+        "category": "Barwise"
       },
       {
-        "command": "orm.verbalize",
+        "command": "barwise.verbalize",
         "title": "Verbalize Model",
-        "category": "ORM"
+        "category": "Barwise"
       },
       {
-        "command": "orm.showDiagram",
+        "command": "barwise.showDiagram",
         "title": "Show Diagram",
-        "category": "ORM"
+        "category": "Barwise"
       },
       {
-        "command": "orm.import",
+        "command": "barwise.import",
         "title": "Import...",
-        "category": "ORM"
+        "category": "Barwise"
       },
       {
-        "command": "orm.export",
+        "command": "barwise.export",
         "title": "Export...",
-        "category": "ORM"
+        "category": "Barwise"
       }
     ],
     "configuration": {
@@ -179,7 +179,7 @@
     "languageModelTools": [
       {
         "name": "barwise_validate_model",
-        "displayName": "Validate ORM Model",
+        "displayName": "Validate Barwise Model",
         "toolReferenceName": "barwiseValidate",
         "canBeReferencedInPrompt": true,
         "icon": "$(check-all)",
@@ -203,7 +203,7 @@
       },
       {
         "name": "barwise_verbalize_model",
-        "displayName": "Verbalize ORM Model",
+        "displayName": "Verbalize Barwise Model",
         "toolReferenceName": "barwiseVerbalize",
         "canBeReferencedInPrompt": true,
         "icon": "$(comment-discussion)",
@@ -264,7 +264,7 @@
       },
       {
         "name": "barwise_diff_models",
-        "displayName": "Diff ORM Models",
+        "displayName": "Diff Barwise Models",
         "toolReferenceName": "barwiseDiff",
         "canBeReferencedInPrompt": true,
         "icon": "$(diff)",
@@ -293,7 +293,7 @@
       },
       {
         "name": "barwise_generate_diagram",
-        "displayName": "Generate ORM Diagram",
+        "displayName": "Generate Barwise Diagram",
         "toolReferenceName": "barwiseDiagram",
         "canBeReferencedInPrompt": true,
         "icon": "$(type-hierarchy)",
@@ -347,7 +347,7 @@
       },
       {
         "name": "barwise_merge_models",
-        "displayName": "Merge ORM Models",
+        "displayName": "Merge Barwise Models",
         "toolReferenceName": "barwiseMerge",
         "canBeReferencedInPrompt": true,
         "icon": "$(git-merge)",
@@ -376,7 +376,7 @@
       },
       {
         "name": "barwise_export_model",
-        "displayName": "Export ORM Model",
+        "displayName": "Export Barwise Model",
         "toolReferenceName": "barwiseExport",
         "canBeReferencedInPrompt": true,
         "icon": "$(export)",
@@ -496,7 +496,7 @@
       },
       {
         "name": "barwise_review_model",
-        "displayName": "Review ORM Model",
+        "displayName": "Review Barwise Model",
         "toolReferenceName": "barwiseReview",
         "canBeReferencedInPrompt": true,
         "icon": "$(feedback)",
@@ -600,11 +600,11 @@
     "test:integration": "vscode-test"
   },
   "dependencies": {
-    "@barwise/code-analysis": "1.4.0",
-    "@barwise/core": "1.4.0",
-    "@barwise/diagram": "1.4.0",
-    "@barwise/llm": "1.4.0",
-    "@barwise/mcp": "1.4.0",
+    "@barwise/code-analysis": "1.5.0",
+    "@barwise/core": "1.5.0",
+    "@barwise/diagram": "1.5.0",
+    "@barwise/llm": "1.5.0",
+    "@barwise/mcp": "1.5.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "vscode-languageclient": "^9.0.1",

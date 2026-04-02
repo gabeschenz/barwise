@@ -7,7 +7,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import { openApiExportFormat } from "../../src/export/OpenApiExportFormat.js";
-import { formatRegistry } from "../../src/export/registry.js";
+import { clearFormats, formatRegistry, registerFormat } from "../../src/format/registry.js";
 import { ModelBuilder } from "../helpers/ModelBuilder.js";
 
 describe("OpenApiExportFormat", () => {
@@ -240,21 +240,29 @@ describe("OpenApiExportFormat", () => {
 
   describe("registry integration", () => {
     beforeEach(() => {
-      formatRegistry.clear();
+      clearFormats();
     });
 
     it("registers successfully", () => {
-      formatRegistry.registerFormat(openApiExportFormat);
+      registerFormat({
+        name: "openapi",
+        description: "OpenAPI 3.0 specification",
+        exporter: openApiExportFormat,
+      });
 
-      const retrieved = formatRegistry.getFormat("openapi");
+      const retrieved = formatRegistry.getExporter("openapi");
       expect(retrieved).toBe(openApiExportFormat);
     });
 
     it("is listed in available formats", () => {
-      formatRegistry.registerFormat(openApiExportFormat);
+      registerFormat({
+        name: "openapi",
+        description: "OpenAPI 3.0 specification",
+        exporter: openApiExportFormat,
+      });
 
-      const formats = formatRegistry.listFormats();
-      expect(formats).toContain(openApiExportFormat);
+      const descriptors = formatRegistry.listExporters();
+      expect(descriptors.some((d) => d.name === "openapi")).toBe(true);
     });
   });
 });

@@ -1,5 +1,5 @@
 /**
- * ORM: Import... -- quick pick router for import workflows.
+ * Barwise: Import... -- quick pick router for import workflows.
  *
  * Presents a picker with import source options:
  *   - From Transcript  (LLM extraction)
@@ -23,7 +23,7 @@ const IMPORT_OPTIONS: ImportOption[] = [
   {
     id: "transcript",
     label: "From Transcript",
-    description: "Extract ORM model from a conversation transcript using an LLM",
+    description: "Extract a Barwise model from a conversation transcript using an LLM",
   },
   {
     id: "dbt",
@@ -50,7 +50,7 @@ const IMPORT_OPTIONS: ImportOption[] = [
 export class ImportCommand {
   async execute(): Promise<void> {
     const picked = await vscode.window.showQuickPick(IMPORT_OPTIONS, {
-      title: "Import ORM Model",
+      title: "Import Barwise Model",
       placeHolder: "Choose an import source",
     });
 

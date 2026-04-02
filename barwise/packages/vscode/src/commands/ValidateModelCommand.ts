@@ -24,7 +24,7 @@ export class ValidateModelCommand {
     }
 
     const text = editor.document.getText();
-    const channel = vscode.window.createOutputChannel("ORM Validation");
+    const channel = vscode.window.createOutputChannel("Barwise Validation");
     channel.clear();
     channel.show();
 
@@ -35,7 +35,7 @@ export class ValidateModelCommand {
       if (diagnostics.length === 0) {
         channel.appendLine("Model is valid. No issues found.");
         vscode.window.showInformationMessage(
-          "ORM model is valid.",
+          "Barwise model is valid.",
         );
         return;
       }
@@ -64,17 +64,17 @@ export class ValidateModelCommand {
 
       if (errors.length > 0) {
         vscode.window.showErrorMessage(
-          `ORM validation: ${errors.length} error(s) found.`,
+          `Barwise validation: ${errors.length} error(s) found.`,
         );
       } else {
         vscode.window.showWarningMessage(
-          `ORM validation: ${warnings.length} warning(s) found.`,
+          `Barwise validation: ${warnings.length} warning(s) found.`,
         );
       }
     } catch (err) {
       channel.appendLine(`Parse error: ${(err as Error).message}`);
       vscode.window.showErrorMessage(
-        `ORM parse error: ${(err as Error).message}`,
+        `Barwise parse error: ${(err as Error).message}`,
       );
     }
   }

@@ -5,6 +5,7 @@
  */
 
 import { Command } from "commander";
+import { registerAnalyzeCommand } from "./commands/analyze.js";
 import { registerDescribeCommand } from "./commands/describe.js";
 import { registerDiagramCommand } from "./commands/diagram.js";
 import { registerDiffCommand } from "./commands/diff.js";
@@ -22,6 +23,7 @@ export function createProgram(): Command {
     .description("ORM 2 modeling tool for data engineers and architects")
     .version("0.1.0");
 
+  registerAnalyzeCommand(program);
   registerValidateCommand(program);
   registerVerbalizeCommand(program);
   registerDescribeCommand(program);

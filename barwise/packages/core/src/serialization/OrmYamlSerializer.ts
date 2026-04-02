@@ -74,6 +74,8 @@ interface OrmYamlSubtypeFact {
   subtype: string;
   supertype: string;
   provides_identification?: boolean;
+  is_exclusive?: boolean;
+  is_exhaustive?: boolean;
 }
 
 interface OrmYamlObjectifiedFactType {
@@ -342,6 +344,12 @@ export class OrmYamlSerializer {
     if (!sf.providesIdentification) {
       result.provides_identification = false;
     }
+    if (sf.isExclusive) {
+      result.is_exclusive = true;
+    }
+    if (sf.isExhaustive) {
+      result.is_exhaustive = true;
+    }
     return result;
   }
 
@@ -441,6 +449,8 @@ export class OrmYamlSerializer {
         subtypeId: sfDoc.subtype,
         supertypeId: sfDoc.supertype,
         providesIdentification: sfDoc.provides_identification ?? true,
+        isExclusive: sfDoc.is_exclusive ?? false,
+        isExhaustive: sfDoc.is_exhaustive ?? false,
       });
     }
 

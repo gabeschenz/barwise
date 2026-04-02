@@ -65,7 +65,7 @@ export class ImportTranscriptCommand {
       result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: `Extracting ORM model from ${transcriptFileName} [${modelLabel}]...`,
+          title: `Extracting Barwise model from ${transcriptFileName} [${modelLabel}]...`,
           cancellable: false,
         },
         async () => {
@@ -112,7 +112,7 @@ export class ImportTranscriptCommand {
     const shouldLog = verbose || hasWarnings || result.modelUsed;
 
     if (shouldLog) {
-      const channel = vscode.window.createOutputChannel("ORM Transcript Import");
+      const channel = vscode.window.createOutputChannel("Barwise Transcript Import");
       channel.appendLine(`=== Import: ${modelName} ===`);
       channel.appendLine(`Transcript: ${transcriptFileName}`);
       if (result.modelUsed) {
