@@ -17,6 +17,25 @@ export interface SubtypeFactConfig {
    * supertype's PK in relational mapping.
    */
   readonly providesIdentification?: boolean;
+  /**
+   * Whether the subtypes of this supertype are mutually exclusive.
+   * When true, no supertype instance can simultaneously be an instance
+   * of more than one subtype in the same partition group (all
+   * SubtypeFacts sharing the same supertype with isExclusive=true).
+   *
+   * In ORM 2 notation this corresponds to an exclusion constraint
+   * across the supertype meta-roles of the subtype partition.
+   */
+  readonly isExclusive?: boolean;
+  /**
+   * Whether the subtypes of this supertype are exhaustive (cover
+   * all instances). When true, every supertype instance must be an
+   * instance of at least one subtype in the same partition group.
+   *
+   * In ORM 2 notation this corresponds to a disjunctive mandatory
+   * constraint across the supertype meta-roles of the subtype partition.
+   */
+  readonly isExhaustive?: boolean;
 }
 
 /**
@@ -38,6 +57,8 @@ export class SubtypeFact extends ModelElement {
   readonly subtypeId: string;
   readonly supertypeId: string;
   readonly providesIdentification: boolean;
+  readonly isExclusive: boolean;
+  readonly isExhaustive: boolean;
 
   constructor(config: SubtypeFactConfig) {
     // Name is derived from the relationship for display purposes.
@@ -49,6 +70,8 @@ export class SubtypeFact extends ModelElement {
     this.subtypeId = config.subtypeId;
     this.supertypeId = config.supertypeId;
     this.providesIdentification = config.providesIdentification ?? true;
+    this.isExclusive = config.isExclusive ?? false;
+    this.isExhaustive = config.isExhaustive ?? false;
 
     if (config.subtypeId === config.supertypeId) {
       throw new Error(

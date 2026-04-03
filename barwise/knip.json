@@ -2,7 +2,9 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "ignoreExportsUsedInFile": true,
   "workspaces": {
-    "packages/core": {},
+    "packages/core": {
+      "ignore": ["scripts/**"]
+    },
     "packages/diagram": {},
     "packages/llm": {},
     "packages/cli": {},

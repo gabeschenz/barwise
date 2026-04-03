@@ -21,7 +21,7 @@ async function waitForActivation(timeout = 10000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const commands = await vscode.commands.getCommands(true);
-    if (commands.includes("orm.validateModel")) return;
+    if (commands.includes("barwise.validateModel")) return;
     await new Promise((r) => setTimeout(r, 200));
   }
   throw new Error("Extension did not activate within timeout");
@@ -107,12 +107,12 @@ suite("Extension activation", () => {
 
     const commands = await vscode.commands.getCommands(true);
     const expectedCommands = [
-      "orm.newProject",
-      "orm.validateModel",
-      "orm.verbalize",
-      "orm.showDiagram",
-      "orm.import",
-      "orm.export",
+      "barwise.newProject",
+      "barwise.validateModel",
+      "barwise.verbalize",
+      "barwise.showDiagram",
+      "barwise.import",
+      "barwise.export",
     ];
 
     for (const cmd of expectedCommands) {
@@ -288,28 +288,28 @@ suite("Command execution", () => {
     await closeAllEditors();
   });
 
-  test("orm.validateModel runs without error on a valid file", async () => {
+  test("barwise.validateModel runs without error on a valid file", async () => {
     await waitForActivation();
     await openFixture("simple.orm.yaml");
 
     // Execute the validate command -- it should not throw.
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(true, "validateModel command executed successfully");
   });
 
-  test("orm.verbalize runs without error on a valid file", async () => {
+  test("barwise.verbalize runs without error on a valid file", async () => {
     await waitForActivation();
     await openFixture("simple.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(true, "verbalize command executed successfully");
   });
 
-  test("orm.showDiagram runs without error on a valid file", async () => {
+  test("barwise.showDiagram runs without error on a valid file", async () => {
     await waitForActivation();
     await openFixture("simple.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(true, "showDiagram command executed successfully");
 
     // Close the webview panel and editor.
@@ -318,33 +318,33 @@ suite("Command execution", () => {
     );
   });
 
-  test("orm.validateModel runs on multi-fact model", async () => {
+  test("barwise.validateModel runs on multi-fact model", async () => {
     await waitForActivation();
     await openFixture("multi-fact.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(
       true,
       "validateModel ran successfully on multi-fact model",
     );
   });
 
-  test("orm.verbalize runs on multi-fact model", async () => {
+  test("barwise.verbalize runs on multi-fact model", async () => {
     await waitForActivation();
     await openFixture("multi-fact.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(
       true,
       "verbalize ran successfully on multi-fact model",
     );
   });
 
-  test("orm.showDiagram runs on multi-fact model", async () => {
+  test("barwise.showDiagram runs on multi-fact model", async () => {
     await waitForActivation();
     await openFixture("multi-fact.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(
       true,
       "showDiagram ran successfully on multi-fact model",
@@ -355,59 +355,59 @@ suite("Command execution", () => {
     );
   });
 
-  test("orm.validateModel handles invalid model gracefully", async () => {
+  test("barwise.validateModel handles invalid model gracefully", async () => {
     await waitForActivation();
     await openFixture("invalid.orm.yaml");
 
     // Should not throw -- errors are reported via UI, not exceptions.
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(
       true,
       "validateModel handled invalid model without throwing",
     );
   });
 
-  test("orm.verbalize handles invalid model gracefully", async () => {
+  test("barwise.verbalize handles invalid model gracefully", async () => {
     await waitForActivation();
     await openFixture("invalid.orm.yaml");
 
     // The verbalize command should still run (it may produce partial
     // output or show a parse error message, but should not throw).
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(
       true,
       "verbalize handled invalid model without throwing",
     );
   });
 
-  test("orm.showDiagram handles invalid model gracefully", async () => {
+  test("barwise.showDiagram handles invalid model gracefully", async () => {
     await waitForActivation();
     await openFixture("invalid.orm.yaml");
 
     // Should show an error message instead of crashing.
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(
       true,
       "showDiagram handled invalid model without throwing",
     );
   });
 
-  test("orm.validateModel on empty model runs without error", async () => {
+  test("barwise.validateModel on empty model runs without error", async () => {
     await waitForActivation();
     await openFixture("empty-model.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(
       true,
       "validateModel ran on empty model without throwing",
     );
   });
 
-  test("orm.verbalize on empty model runs without error", async () => {
+  test("barwise.verbalize on empty model runs without error", async () => {
     await waitForActivation();
     await openFixture("empty-model.orm.yaml");
 
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(
       true,
       "verbalize ran on empty model without throwing",
@@ -425,10 +425,10 @@ suite("Diagram panel lifecycle", () => {
     await openFixture("simple.orm.yaml");
 
     // Open diagram first time.
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
 
     // Open diagram second time -- should reveal existing panel.
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(true, "Opening diagram twice did not throw");
 
     // Close webview panel.
@@ -442,11 +442,11 @@ suite("Diagram panel lifecycle", () => {
 
     // Open diagram for simple model.
     await openFixture("simple.orm.yaml");
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
 
     // Switch to multi-fact model and open diagram again.
     await openFixture("multi-fact.orm.yaml");
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(true, "Diagram updated for different model without error");
 
     await vscode.commands.executeCommand(
@@ -644,7 +644,7 @@ suite("Hover", () => {
     // Hover over "orm_version" (line 0) -- should not match anything.
     const position = new vscode.Position(0, 3);
 
-    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+    const _hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
       "vscode.executeHoverProvider",
       editor.document.uri,
       position,
@@ -662,33 +662,33 @@ suite("Import/Export command routers", () => {
     await closeAllEditors();
   });
 
-  test("orm.import command is registered and callable", async () => {
+  test("barwise.import command is registered and callable", async () => {
     await waitForActivation();
 
     // The import command shows a QuickPick. Since we cannot interact
     // with the QuickPick in integration tests, we just verify the
     // command does not throw. The QuickPick will be dismissed when
     // the test moves on (no selection = cancellation).
-    const result = vscode.commands.executeCommand("orm.import");
+    const result = vscode.commands.executeCommand("barwise.import");
     // Give the QuickPick a moment to appear, then dismiss it.
     await new Promise((r) => setTimeout(r, 500));
     await vscode.commands.executeCommand(
       "workbench.action.closeQuickOpen",
     );
     await result;
-    assert.ok(true, "orm.import executed without throwing");
+    assert.ok(true, "barwise.import executed without throwing");
   });
 
-  test("orm.export command is registered and callable", async () => {
+  test("barwise.export command is registered and callable", async () => {
     await waitForActivation();
 
-    const result = vscode.commands.executeCommand("orm.export");
+    const result = vscode.commands.executeCommand("barwise.export");
     await new Promise((r) => setTimeout(r, 500));
     await vscode.commands.executeCommand(
       "workbench.action.closeQuickOpen",
     );
     await result;
-    assert.ok(true, "orm.export executed without throwing");
+    assert.ok(true, "barwise.export executed without throwing");
   });
 });
 
@@ -697,7 +697,7 @@ suite("NewProject command", () => {
     await closeAllEditors();
   });
 
-  test("orm.newProject command is registered", async () => {
+  test("barwise.newProject command is registered", async () => {
     await waitForActivation();
 
     // NewProject shows a native OS save dialog that cannot be
@@ -705,8 +705,8 @@ suite("NewProject command", () => {
     // the command is registered rather than executing it.
     const commands = await vscode.commands.getCommands(true);
     assert.ok(
-      commands.includes("orm.newProject"),
-      "orm.newProject should be registered",
+      commands.includes("barwise.newProject"),
+      "barwise.newProject should be registered",
     );
   });
 });
@@ -721,7 +721,7 @@ suite("Edge cases", () => {
     await closeAllEditors();
 
     // With no editor open, the command should show a warning, not crash.
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(true, "validateModel with no editor did not throw");
   });
 
@@ -729,7 +729,7 @@ suite("Edge cases", () => {
     await waitForActivation();
     await closeAllEditors();
 
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(true, "verbalize with no editor did not throw");
   });
 
@@ -737,7 +737,7 @@ suite("Edge cases", () => {
     await waitForActivation();
     await closeAllEditors();
 
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(true, "showDiagram with no editor did not throw");
   });
 
@@ -754,13 +754,13 @@ suite("Edge cases", () => {
     await vscode.window.showTextDocument(doc);
 
     // These commands check for .orm.yaml and show a warning if wrong type.
-    await vscode.commands.executeCommand("orm.validateModel");
+    await vscode.commands.executeCommand("barwise.validateModel");
     assert.ok(true, "validateModel on non-orm.yaml did not throw");
 
-    await vscode.commands.executeCommand("orm.verbalize");
+    await vscode.commands.executeCommand("barwise.verbalize");
     assert.ok(true, "verbalize on non-orm.yaml did not throw");
 
-    await vscode.commands.executeCommand("orm.showDiagram");
+    await vscode.commands.executeCommand("barwise.showDiagram");
     assert.ok(true, "showDiagram on non-orm.yaml did not throw");
   });
 });

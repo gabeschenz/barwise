@@ -565,8 +565,14 @@ function parseConstraints(
 function parseMultipleRoleSequences(
   el: Record<string, unknown>,
 ): string[][] {
+  // NORMA wraps multi-role-sequence constraints in <RoleSequences>
+  // (e.g. SubsetConstraint, ExclusionConstraint, EqualityConstraint).
+  // Simpler constraints (Uniqueness, Mandatory) use <RoleSequence> directly.
+  const wrapper = child(el, "RoleSequences") as Record<string, unknown> | undefined;
+  const seqParent = wrapper ?? el;
+
   const sequences: string[][] = [];
-  for (const seq of asArray(el["RoleSequence"])) {
+  for (const seq of asArray(seqParent["RoleSequence"])) {
     sequences.push(asArray(seq["Role"]).map((r) => attr(r, "ref") ?? ""));
   }
   return sequences;

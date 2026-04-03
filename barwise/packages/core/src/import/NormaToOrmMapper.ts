@@ -187,7 +187,24 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
   // unprocessed value constraints.
   addRoleLevelValueConstraints(doc, model);
 
+  // Disjunctive mandatory constraints span multiple fact types and are
+  // never listed in any fact type's InternalConstraints section.
+  addDisjunctiveMandatoryConstraints(doc, model);
+
+  // Subset, exclusion, and equality constraints span fact types and are
+  // typically not listed in InternalConstraints.
+  addMultiFactTypeConstraints(doc, model);
+
+  // Ring constraints not captured via internalConstraintRefs.
+  addRingConstraints(doc, model);
+
   // ---- Phase 4: Subtype Facts ----
+
+  // Determine subtype partition properties (exclusive/exhaustive) by
+  // scanning for exclusion and disjunctive mandatory constraints on
+  // SupertypeMetaRoles. These must be resolved before creating SubtypeFacts
+  // because the properties are immutable.
+  const subtypePartition = resolveSubtypePartitions(doc);
 
   for (const sf of doc.subtypeFacts) {
     const subtypeId = objectTypeIdMap.get(sf.subtypePlayerRef);
@@ -204,10 +221,13 @@ export function mapNormaToOrm(doc: NormaDocument): OrmModel {
       );
     }
 
+    const partition = subtypePartition.get(sf.supertypeRoleId);
     model.addSubtypeFact({
       subtypeId,
       supertypeId,
       providesIdentification: sf.providesIdentification,
+      isExclusive: partition?.isExclusive,
+      isExhaustive: partition?.isExhaustive,
     });
   }
 
@@ -600,6 +620,238 @@ function addRoleLevelValueConstraints(
       }
     }
   }
+}
+
+/**
+ * Add disjunctive mandatory constraints that span multiple fact types.
+ *
+ * NORMA disjunctive mandatory constraints (InclusiveOrConstraint) are never
+ * listed in a fact type's InternalConstraints section because they span
+ * multiple fact types. They're defined as top-level MandatoryConstraint
+ * elements with IsSimple=false and IsImplied=false.
+ */
+function addDisjunctiveMandatoryConstraints(
+  doc: NormaDocument,
+  model: OrmModel,
+): void {
+  const processedRefs = collectProcessedRefs(doc);
+
+  for (const nc of doc.constraints) {
+    if (nc.type !== "mandatory" || nc.isSimple || nc.isImplied) continue;
+    if (processedRefs.has(nc.id)) continue;
+    if (nc.roleRefs.length < 2) continue;
+
+    // Check that at least one role belongs to a known fact type.
+    const ft = model.factTypes.find((f) => nc.roleRefs.some((roleRef) => f.hasRole(roleRef)));
+    if (!ft) continue;
+
+    // Check if already exists on this fact type.
+    const alreadyExists = ft.constraints.some(
+      (c) =>
+        c.type === "disjunctive_mandatory"
+        && c.roleIds.length === nc.roleRefs.length
+        && nc.roleRefs.every((id) => c.roleIds.includes(id)),
+    );
+    if (!alreadyExists) {
+      ft.addConstraint({
+        type: "disjunctive_mandatory",
+        roleIds: [...nc.roleRefs],
+      });
+    }
+  }
+}
+
+/**
+ * Add subset, exclusion, and equality constraints that span multiple fact types.
+ *
+ * These constraints are typically defined at the top level and reference
+ * roles across multiple fact types. They may or may not appear in any
+ * fact type's InternalConstraints section.
+ */
+function addMultiFactTypeConstraints(
+  doc: NormaDocument,
+  model: OrmModel,
+): void {
+  const processedRefs = collectProcessedRefs(doc);
+
+  for (const nc of doc.constraints) {
+    if (processedRefs.has(nc.id)) continue;
+
+    switch (nc.type) {
+      case "subset": {
+        if (nc.subsetRoleRefs.length === 0 && nc.supersetRoleRefs.length === 0) continue;
+        const allRoles = [...nc.subsetRoleRefs, ...nc.supersetRoleRefs];
+        const ft = model.factTypes.find((f) => allRoles.some((r) => f.hasRole(r)));
+        if (!ft) continue;
+
+        const alreadyExists = ft.constraints.some(
+          (c) =>
+            c.type === "subset"
+            && c.subsetRoleIds.length === nc.subsetRoleRefs.length
+            && nc.subsetRoleRefs.every((id) => c.subsetRoleIds.includes(id)),
+        );
+        if (!alreadyExists) {
+          ft.addConstraint({
+            type: "subset",
+            subsetRoleIds: [...nc.subsetRoleRefs],
+            supersetRoleIds: [...nc.supersetRoleRefs],
+          });
+        }
+        break;
+      }
+
+      case "exclusion": {
+        const allRoles = nc.roleSequences.flat();
+        if (allRoles.length === 0) continue;
+        const ft = model.factTypes.find((f) => allRoles.some((r) => f.hasRole(r)));
+        if (!ft) continue;
+
+        const alreadyExists = ft.constraints.some(
+          (c) =>
+            c.type === "exclusion"
+            && c.roleIds.length === allRoles.length
+            && allRoles.every((id) => c.roleIds.includes(id)),
+        );
+        if (!alreadyExists) {
+          ft.addConstraint({
+            type: "exclusion",
+            roleIds: [...allRoles],
+          });
+        }
+        break;
+      }
+
+      case "equality": {
+        if (nc.roleSequences.length < 2) continue;
+        const allRoles = nc.roleSequences.flat();
+        const ft = model.factTypes.find((f) => allRoles.some((r) => f.hasRole(r)));
+        if (!ft) continue;
+
+        const alreadyExists = ft.constraints.some(
+          (c) =>
+            c.type === "equality"
+            && c.roleIds1.length === nc.roleSequences[0]!.length
+            && nc.roleSequences[0]!.every((id) => c.roleIds1.includes(id)),
+        );
+        if (!alreadyExists) {
+          ft.addConstraint({
+            type: "equality",
+            roleIds1: [...nc.roleSequences[0]!],
+            roleIds2: [...nc.roleSequences[1]!],
+          });
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+}
+
+/**
+ * Add ring constraints not already captured via internalConstraintRefs.
+ */
+function addRingConstraints(
+  doc: NormaDocument,
+  model: OrmModel,
+): void {
+  const processedRefs = collectProcessedRefs(doc);
+
+  for (const nc of doc.constraints) {
+    if (nc.type !== "ring") continue;
+    if (processedRefs.has(nc.id)) continue;
+    if (nc.roleRefs.length < 2) continue;
+
+    const ft = model.factTypes.find((f) => nc.roleRefs.every((roleRef) => f.hasRole(roleRef)));
+    if (!ft) continue;
+
+    const alreadyExists = ft.constraints.some(
+      (c) =>
+        c.type === "ring"
+        && c.roleId1 === nc.roleRefs[0]
+        && c.roleId2 === nc.roleRefs[1],
+    );
+    if (!alreadyExists) {
+      ft.addConstraint({
+        type: "ring",
+        roleId1: nc.roleRefs[0]!,
+        roleId2: nc.roleRefs[1]!,
+        ringType: nc.ringType,
+      });
+    }
+  }
+}
+
+/**
+ * Collect all constraint IDs that were already processed via
+ * fact type internalConstraintRefs.
+ */
+function collectProcessedRefs(doc: NormaDocument): Set<string> {
+  const refs = new Set<string>();
+  for (const nft of doc.factTypes) {
+    for (const ref of nft.internalConstraintRefs) {
+      refs.add(ref);
+    }
+  }
+  return refs;
+}
+
+// ---- Subtype Partition Resolution ----
+
+/**
+ * Resolve subtype partition constraints (exclusive/exhaustive) from NORMA's
+ * top-level constraint definitions.
+ *
+ * In NORMA, exclusive subtypes are represented by ExclusionConstraint
+ * elements whose role sequences reference SupertypeMetaRoles. Exhaustive
+ * subtypes are represented by non-simple, non-implied MandatoryConstraint
+ * (disjunctive mandatory) elements referencing the same SupertypeMetaRoles.
+ *
+ * Returns a map from SupertypeMetaRole id -> { isExclusive, isExhaustive }.
+ * Each SubtypeFact's supertypeRoleId can be looked up in this map.
+ */
+function resolveSubtypePartitions(
+  doc: NormaDocument,
+): Map<string, { isExclusive: boolean; isExhaustive: boolean; }> {
+  // Build a set of all SupertypeMetaRole ids for fast lookup.
+  const supertypeRoleIds = new Set<string>();
+  for (const sf of doc.subtypeFacts) {
+    supertypeRoleIds.add(sf.supertypeRoleId);
+  }
+
+  // Track which SupertypeMetaRoles participate in exclusion constraints.
+  const exclusiveRoles = new Set<string>();
+  for (const nc of doc.constraints) {
+    if (nc.type !== "exclusion") continue;
+    const allRoles = nc.roleSequences.flat();
+    const onSupertype = allRoles.every((r) => supertypeRoleIds.has(r));
+    if (onSupertype && allRoles.length >= 2) {
+      for (const r of allRoles) exclusiveRoles.add(r);
+    }
+  }
+
+  // Track which SupertypeMetaRoles participate in disjunctive mandatory constraints.
+  const exhaustiveRoles = new Set<string>();
+  for (const nc of doc.constraints) {
+    if (nc.type !== "mandatory" || nc.isSimple || nc.isImplied) continue;
+    const onSupertype = nc.roleRefs.every((r) => supertypeRoleIds.has(r));
+    if (onSupertype && nc.roleRefs.length >= 2) {
+      for (const r of nc.roleRefs) exhaustiveRoles.add(r);
+    }
+  }
+
+  // Build the result map.
+  const result = new Map<string, { isExclusive: boolean; isExhaustive: boolean; }>();
+  for (const roleId of supertypeRoleIds) {
+    const isExclusive = exclusiveRoles.has(roleId);
+    const isExhaustive = exhaustiveRoles.has(roleId);
+    if (isExclusive || isExhaustive) {
+      result.set(roleId, { isExclusive, isExhaustive });
+    }
+  }
+
+  return result;
 }
 
 // ---- Data Type Resolution ----

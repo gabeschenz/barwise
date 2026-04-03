@@ -25,7 +25,7 @@ export class VerbalizeCommand {
 
     const text = editor.document.getText();
     const channel = vscode.window.createOutputChannel(
-      "ORM Verbalization",
+      "Barwise Verbalization",
     );
     channel.clear();
     channel.show();
@@ -63,7 +63,7 @@ export class VerbalizeCommand {
     } catch (err) {
       channel.appendLine(`Parse error: ${(err as Error).message}`);
       vscode.window.showErrorMessage(
-        `ORM parse error: ${(err as Error).message}`,
+        `Barwise parse error: ${(err as Error).message}`,
       );
     }
   }

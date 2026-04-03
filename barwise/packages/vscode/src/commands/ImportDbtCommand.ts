@@ -94,7 +94,7 @@ export class ImportDbtCommand {
     // Step 6: Ask for model name and output location.
     const dbtDirName = path.basename(dbtRoot.fsPath);
     const modelName = await vscode.window.showInputBox({
-      prompt: "Name for the imported ORM model",
+      prompt: "Name for the imported Barwise model",
       value: dbtDirName,
       validateInput: (v) => v.trim().length === 0 ? "Model name is required" : null,
     });
@@ -182,7 +182,7 @@ export class ImportDbtCommand {
 
     if (gaps.length === 0 && !verbose) return;
 
-    const channel = vscode.window.createOutputChannel("ORM dbt Import");
+    const channel = vscode.window.createOutputChannel("Barwise dbt Import");
     channel.appendLine("=== dbt Import Report ===");
     if (verbose) {
       channel.appendLine(`Latency: ${latencyMs}ms`);

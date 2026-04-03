@@ -104,6 +104,131 @@ describe("SubtypeFact serialization", () => {
     expect(yaml).not.toContain("subtype_facts");
   });
 
+  it("round-trips isExclusive = true", () => {
+    const model = new OrmModel({ name: "Test" });
+    const animal = model.addObjectType({
+      name: "Animal",
+      kind: "entity",
+      referenceMode: "animal_id",
+    });
+    const cat = model.addObjectType({
+      name: "Cat",
+      kind: "entity",
+      referenceMode: "cat_id",
+    });
+    const dog = model.addObjectType({
+      name: "Dog",
+      kind: "entity",
+      referenceMode: "dog_id",
+    });
+    model.addSubtypeFact({
+      subtypeId: cat.id,
+      supertypeId: animal.id,
+      isExclusive: true,
+    });
+    model.addSubtypeFact({
+      subtypeId: dog.id,
+      supertypeId: animal.id,
+      isExclusive: true,
+    });
+
+    const yaml = serializer.serialize(model);
+    const restored = serializer.deserialize(yaml);
+
+    expect(restored.subtypeFacts).toHaveLength(2);
+    for (const sf of restored.subtypeFacts) {
+      expect(sf.isExclusive).toBe(true);
+      expect(sf.isExhaustive).toBe(false);
+    }
+  });
+
+  it("round-trips isExhaustive = true", () => {
+    const model = new OrmModel({ name: "Test" });
+    const animal = model.addObjectType({
+      name: "Animal",
+      kind: "entity",
+      referenceMode: "animal_id",
+    });
+    const cat = model.addObjectType({
+      name: "Cat",
+      kind: "entity",
+      referenceMode: "cat_id",
+    });
+    model.addSubtypeFact({
+      subtypeId: cat.id,
+      supertypeId: animal.id,
+      isExhaustive: true,
+    });
+
+    const yaml = serializer.serialize(model);
+    const restored = serializer.deserialize(yaml);
+
+    expect(restored.subtypeFacts[0]!.isExhaustive).toBe(true);
+    expect(restored.subtypeFacts[0]!.isExclusive).toBe(false);
+  });
+
+  it("round-trips exclusive-exhaustive partition", () => {
+    const model = new OrmModel({ name: "Test" });
+    const animal = model.addObjectType({
+      name: "Animal",
+      kind: "entity",
+      referenceMode: "animal_id",
+    });
+    const cat = model.addObjectType({
+      name: "Cat",
+      kind: "entity",
+      referenceMode: "cat_id",
+    });
+    const dog = model.addObjectType({
+      name: "Dog",
+      kind: "entity",
+      referenceMode: "dog_id",
+    });
+    model.addSubtypeFact({
+      subtypeId: cat.id,
+      supertypeId: animal.id,
+      isExclusive: true,
+      isExhaustive: true,
+    });
+    model.addSubtypeFact({
+      subtypeId: dog.id,
+      supertypeId: animal.id,
+      isExclusive: true,
+      isExhaustive: true,
+    });
+
+    const yaml = serializer.serialize(model);
+    const restored = serializer.deserialize(yaml);
+
+    expect(restored.subtypeFacts).toHaveLength(2);
+    for (const sf of restored.subtypeFacts) {
+      expect(sf.isExclusive).toBe(true);
+      expect(sf.isExhaustive).toBe(true);
+    }
+  });
+
+  it("omits is_exclusive and is_exhaustive when false", () => {
+    const model = new OrmModel({ name: "Test" });
+    const person = model.addObjectType({
+      name: "Person",
+      kind: "entity",
+      referenceMode: "person_id",
+    });
+    const employee = model.addObjectType({
+      name: "Employee",
+      kind: "entity",
+      referenceMode: "employee_id",
+    });
+    model.addSubtypeFact({
+      subtypeId: employee.id,
+      supertypeId: person.id,
+    });
+
+    const yaml = serializer.serialize(model);
+    expect(yaml).not.toContain("is_exclusive");
+    expect(yaml).not.toContain("is_exhaustive");
+  });
+
   it("preserves subtype fact ids through round-trip", () => {
     const model = new OrmModel({ name: "Test" });
     const person = model.addObjectType({

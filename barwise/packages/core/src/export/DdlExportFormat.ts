@@ -136,11 +136,6 @@ export class DdlExportFormat implements ExportFormatAdapter {
   }
 }
 
-/**
- * Singleton instance of the DDL export format.
- */
-export const ddlExportFormat = new DdlExportFormat();
-
 // ---------------------------------------------------------------------------
 // Annotation injection
 // ---------------------------------------------------------------------------

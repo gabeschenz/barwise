@@ -29,7 +29,7 @@ export class ExportDbtCommand {
       model = serializer.deserialize(modelText);
     } catch (err) {
       vscode.window.showErrorMessage(
-        `Failed to parse ORM model: ${(err as Error).message}`,
+        `Failed to parse Barwise model: ${(err as Error).message}`,
       );
       return;
     }
