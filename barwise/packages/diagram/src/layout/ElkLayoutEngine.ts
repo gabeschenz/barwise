@@ -60,11 +60,8 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
   // Pass 1: entity placement with cluster-aware two-level layout.
   const entityPositions = await layoutEntitiesWithClusters(graph);
 
-  // Post-adjust: enforce supertype above subtype.
-  enforceSubtypeOrdering(entityPositions, graph.subtypeEdges);
-
-  // Post-adjust: arrange subtype fans in arcs.
-  arrangeSubtypeFans(entityPositions, graph.subtypeEdges);
+  // Post-adjust: radially place subtypes outward from diagram center.
+  placeSubtypesRadially(entityPositions, graph.subtypeEdges);
 
   // Post-adjust: align leaf value types with their connected entity.
   alignLeafValueTypes(graph, entityPositions);
@@ -76,17 +73,14 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
 
   // Collision resolution.
-  const allPositioned: PositionedNode[] = [
+  const allForOverlap: PositionedNode[] = [
     ...entityPositions.values(),
     ...factTypePositions.values(),
     ...constraintPositions.values(),
   ];
-  resolveOverlaps(allPositioned);
+  resolveOverlaps(allForOverlap);
 
-  // Re-enforce subtype ordering after collision resolution.
-  enforceSubtypeOrdering(entityPositions, graph.subtypeEdges);
-
-  // Build positioned nodes array.
+  // Build positioned nodes array from the canonical maps.
   const positionedNodes: PositionedNode[] = [];
   for (const node of graph.nodes) {
     if (node.kind === "object_type") {
@@ -102,7 +96,7 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
   }
 
   // Normalize coordinates: shift everything so all positions are >= 0.
-  normalizeCoordinates(allPositioned);
+  normalizeCoordinates(positionedNodes);
 
   // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);
@@ -711,31 +705,37 @@ interface MutablePosition {
   height: number;
 }
 
-function enforceSubtypeOrdering(
+/**
+ * Place subtypes radially outward from the diagram centroid.
+ *
+ * The fan direction for each supertype is determined by the vector from
+ * the diagram center through the supertype's position. Subtypes on the
+ * left side of the diagram fan further left; those near the top fan
+ * upward; those in a corner fan diagonally outward.
+ *
+ * For a single subtype, it is placed directly along the outward vector.
+ * For multiple subtypes, they are arranged in an arc perpendicular to
+ * the outward vector.
+ */
+function placeSubtypesRadially(
   entityPositions: Map<string, PositionedObjectTypeNode>,
   subtypeEdges: readonly { subtypeNodeId: string; supertypeNodeId: string }[],
 ): void {
-  const MIN_VERTICAL_GAP = 80;
+  if (subtypeEdges.length === 0) return;
 
-  for (const se of subtypeEdges) {
-    const superPos = entityPositions.get(se.supertypeNodeId);
-    const subPos = entityPositions.get(se.subtypeNodeId);
-    if (!superPos || !subPos) continue;
-
-    // Supertype should be above subtype (lower y value).
-    const superBottom = superPos.y + superPos.height;
-    if (superBottom + MIN_VERTICAL_GAP > subPos.y) {
-      // Push subtype down.
-      const newY = superBottom + MIN_VERTICAL_GAP;
-      entityPositions.set(se.subtypeNodeId, { ...subPos, y: newY });
-    }
+  // Compute diagram centroid from all entity positions.
+  let sumX = 0;
+  let sumY = 0;
+  let count = 0;
+  for (const pos of entityPositions.values()) {
+    sumX += pos.x + pos.width / 2;
+    sumY += pos.y + pos.height / 2;
+    count++;
   }
-}
+  if (count === 0) return;
+  const centerX = sumX / count;
+  const centerY = sumY / count;
 
-function arrangeSubtypeFans(
-  entityPositions: Map<string, PositionedObjectTypeNode>,
-  subtypeEdges: readonly { subtypeNodeId: string; supertypeNodeId: string }[],
-): void {
   // Group subtypes by supertype.
   const fanMap = new Map<string, string[]>();
   for (const se of subtypeEdges) {
@@ -751,33 +751,60 @@ function arrangeSubtypeFans(
   const ARC_ANGLE_RANGE = Math.PI * 0.75; // 135 degrees
 
   for (const [supertypeId, subtypeIds] of fanMap) {
-    if (subtypeIds.length < 2) continue;
-
     const superPos = entityPositions.get(supertypeId);
     if (!superPos) continue;
 
-    const superCenterX = superPos.x + superPos.width / 2;
-    const superBottom = superPos.y + superPos.height;
+    const superCx = superPos.x + superPos.width / 2;
+    const superCy = superPos.y + superPos.height / 2;
 
-    // Arrange subtypes in an arc below the supertype.
-    // Arc goes from -arcAngle/2 to +arcAngle/2 relative to straight down.
+    // Outward direction: from diagram center through supertype.
+    let outDx = superCx - centerX;
+    let outDy = superCy - centerY;
+    const outDist = Math.sqrt(outDx * outDx + outDy * outDy);
+
+    if (outDist < 1) {
+      // Supertype is at the center; default to downward.
+      outDx = 0;
+      outDy = 1;
+    } else {
+      outDx /= outDist;
+      outDy /= outDist;
+    }
+
+    // The outward angle (0 = right, PI/2 = down).
+    const outwardAngle = Math.atan2(outDy, outDx);
+
     const n = subtypeIds.length;
-    const startAngle = Math.PI / 2 - ARC_ANGLE_RANGE / 2; // measured from right (0 = right, PI/2 = down)
-    const angleStep = n > 1 ? ARC_ANGLE_RANGE / (n - 1) : 0;
 
-    for (let i = 0; i < n; i++) {
-      const subPos = entityPositions.get(subtypeIds[i]!);
+    if (n === 1) {
+      // Single subtype: place directly along the outward vector.
+      const subPos = entityPositions.get(subtypeIds[0]!);
       if (!subPos) continue;
 
-      const angle = startAngle + i * angleStep;
-      const cx = superCenterX + ARC_RADIUS * Math.cos(angle);
-      const cy = superBottom + ARC_RADIUS * Math.sin(angle);
-
-      entityPositions.set(subtypeIds[i]!, {
+      entityPositions.set(subtypeIds[0]!, {
         ...subPos,
-        x: cx - subPos.width / 2,
-        y: cy - subPos.height / 2,
+        x: superCx + outDx * ARC_RADIUS - subPos.width / 2,
+        y: superCy + outDy * ARC_RADIUS - subPos.height / 2,
       });
+    } else {
+      // Multiple subtypes: fan in an arc centered on the outward vector.
+      const startAngle = outwardAngle - ARC_ANGLE_RANGE / 2;
+      const angleStep = ARC_ANGLE_RANGE / (n - 1);
+
+      for (let i = 0; i < n; i++) {
+        const subPos = entityPositions.get(subtypeIds[i]!);
+        if (!subPos) continue;
+
+        const angle = startAngle + i * angleStep;
+        const cx = superCx + ARC_RADIUS * Math.cos(angle);
+        const cy = superCy + ARC_RADIUS * Math.sin(angle);
+
+        entityPositions.set(subtypeIds[i]!, {
+          ...subPos,
+          x: cx - subPos.width / 2,
+          y: cy - subPos.height / 2,
+        });
+      }
     }
   }
 }

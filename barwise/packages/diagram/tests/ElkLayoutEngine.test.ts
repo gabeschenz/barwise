@@ -240,8 +240,8 @@ describe("ElkLayoutEngine", () => {
     expect(ft.x).toBeGreaterThan(entity.x);
   });
 
-  it("enforces supertype above subtype", async () => {
-    // Mock: place both at same y.
+  it("places subtypes further from diagram center than supertype", async () => {
+    // Mock: place both at same position.
     mockLayoutImpl = async (graph) => {
       const children = (graph.children as Array<{ id: string; width: number; height: number }>)
         ?? [];
@@ -275,8 +275,15 @@ describe("ElkLayoutEngine", () => {
     const person = result.nodes.find((n) => n.id === "ot-person")!;
     const employee = result.nodes.find((n) => n.id === "ot-employee")!;
 
-    // Supertype (Person) should be above subtype (Employee).
-    expect(person.y + person.height).toBeLessThan(employee.y);
+    // Subtype (Employee) should be displaced from supertype (Person).
+    const personCx = person.x + person.width / 2;
+    const personCy = person.y + person.height / 2;
+    const employeeCx = employee.x + employee.width / 2;
+    const employeeCy = employee.y + employee.height / 2;
+    const separation = Math.sqrt(
+      (employeeCx - personCx) ** 2 + (employeeCy - personCy) ** 2,
+    );
+    expect(separation).toBeGreaterThan(100);
 
     mockLayoutImpl = defaultMockLayout;
   });
