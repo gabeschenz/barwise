@@ -337,18 +337,10 @@ function renderRoleBox(
       );
     }
 
-    if (role.isMandatory) {
-      const dotX = x + role.width + theme.MANDATORY_DOT_RADIUS + 2;
-      const dotY = y + role.height / 2;
-      parts.push(
-        `<circle cx="${dotX}" cy="${dotY}" `
-          + `r="${theme.MANDATORY_DOT_RADIUS}" `
-          + `fill="${theme.COLOR_MANDATORY}"/>`,
-      );
-    }
+    // Mandatory dots are rendered on the edge at the entity border.
 
     if (role.frequencyMin !== undefined) {
-      const freqX = x + role.width + (role.isMandatory ? 18 : 12);
+      const freqX = x + role.width + 12;
       const freqY = y + role.height / 2;
       const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
       const label = role.frequencyMin === role.frequencyMax
@@ -374,19 +366,12 @@ function renderRoleBox(
       );
     }
 
-    if (role.isMandatory) {
-      const dotX = x + role.width / 2;
-      const dotY = y + role.height + theme.MANDATORY_DOT_RADIUS + 2;
-      parts.push(
-        `<circle cx="${dotX}" cy="${dotY}" `
-          + `r="${theme.MANDATORY_DOT_RADIUS}" `
-          + `fill="${theme.COLOR_MANDATORY}"/>`,
-      );
-    }
+    // Mandatory dots are rendered on the edge at the entity border,
+    // not on the role box. See renderEdge().
 
     if (role.frequencyMin !== undefined) {
       const freqX = x + role.width / 2;
-      const freqY = y + role.height + (role.isMandatory ? 18 : 12);
+      const freqY = y + role.height + 12;
       const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
       const label = role.frequencyMin === role.frequencyMax
         ? String(role.frequencyMin)
@@ -406,10 +391,33 @@ function renderEdge(edge: PositionedEdge): string {
   if (edge.points.length < 2) return "";
 
   const d = buildPathData(edge.points);
-  return (
+  const parts: string[] = [];
+  parts.push(
     `<path d="${d}" fill="none" `
-    + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`
+    + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
   );
+
+  // Mandatory dot on the line, just outside the role box (fact side).
+  if (edge.isMandatory) {
+    const rc = edge.points[edge.points.length - 1]!; // role box center
+    const ep = edge.points[0]!; // entity border
+    const dx = ep.x - rc.x;
+    const dy = ep.y - rc.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 1) {
+      // Place dot ~20px from role center along line toward entity
+      // (just past the role box edge).
+      const offset = 20;
+      parts.push(
+        `<circle cx="${rc.x + (dx / dist) * offset}" `
+          + `cy="${rc.y + (dy / dist) * offset}" `
+          + `r="${theme.MANDATORY_DOT_RADIUS}" `
+          + `fill="${theme.COLOR_MANDATORY}"/>`,
+      );
+    }
+  }
+
+  return parts.join("\n");
 }
 
 function buildPathData(points: readonly Position[]): string {

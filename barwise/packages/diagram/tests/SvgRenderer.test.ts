@@ -86,6 +86,7 @@ function makeMinimalGraph(): PositionedGraph {
         sourceNodeId: "ot-1",
         targetNodeId: "ft-1",
         roleId: "r-1",
+        isMandatory: true,
         points: [
           { x: 110, y: 90 },
           { x: 118, y: 164 },
@@ -95,6 +96,7 @@ function makeMinimalGraph(): PositionedGraph {
         sourceNodeId: "ot-2",
         targetNodeId: "ft-1",
         roleId: "r-2",
+        isMandatory: false,
         points: [
           { x: 295, y: 90 },
           { x: 154, y: 164 },

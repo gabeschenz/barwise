@@ -3,15 +3,18 @@ import type { ELK, ElkExtendedEdge, ElkNode } from "elkjs";
 import type { ConstraintNode, FactTypeNode, OrmGraph } from "../graph/GraphTypes.js";
 import {
   CONSTRAINT_RADIUS,
-  FACT_TYPE_COLLISION_PADDING,
   FACT_TYPE_STACK_GAP,
   FONT_SIZE_ALIAS,
+  MANDATORY_DOT_RADIUS,
+  OBJECTIFICATION_PADDING,
   OT_ALIAS_LINE_HEIGHT,
   OT_HEIGHT,
   OT_MIN_WIDTH,
   ROLE_BOX_HEIGHT,
   ROLE_BOX_WIDTH,
   UNARY_STUB_LENGTH,
+  UNIQUENESS_BAR_HEIGHT,
+  UNIQUENESS_BAR_OFFSET,
 } from "../render/theme.js";
 import type {
   FactTypeOrientation,
@@ -54,16 +57,17 @@ function getElk(): ELK {
  * Pass 2: Place fact types geometrically between their connected entities.
  */
 export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
-  // Pass 1: entity-only layout via ELK stress.
-  const elkGraph = buildEntityElkGraph(graph);
-  const laid = await getElk().layout(elkGraph);
-  const entityPositions = extractEntityPositions(graph, laid);
+  // Pass 1: entity placement with cluster-aware two-level layout.
+  const entityPositions = await layoutEntitiesWithClusters(graph);
 
   // Post-adjust: enforce supertype above subtype.
   enforceSubtypeOrdering(entityPositions, graph.subtypeEdges);
 
   // Post-adjust: arrange subtype fans in arcs.
   arrangeSubtypeFans(entityPositions, graph.subtypeEdges);
+
+  // Post-adjust: align leaf value types with their connected entity.
+  alignLeafValueTypes(graph, entityPositions);
 
   // Pass 2: place fact types between their connected entities.
   const factTypePositions = placeFactTypes(graph, entityPositions);
@@ -72,12 +76,15 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
 
   // Collision resolution.
-  const allPositioned = [
+  const allPositioned: PositionedNode[] = [
     ...entityPositions.values(),
     ...factTypePositions.values(),
     ...constraintPositions.values(),
   ];
   resolveOverlaps(allPositioned);
+
+  // Re-enforce subtype ordering after collision resolution.
+  enforceSubtypeOrdering(entityPositions, graph.subtypeEdges);
 
   // Build positioned nodes array.
   const positionedNodes: PositionedNode[] = [];
@@ -94,7 +101,10 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
     }
   }
 
-  // Route edges.
+  // Normalize coordinates: shift everything so all positions are >= 0.
+  normalizeCoordinates(allPositioned);
+
+  // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);
   const positionedConstraintEdges = routeConstraintEdges(graph, constraintPositions, factTypePositions);
   const positionedSubtypeEdges = routeSubtypeEdges(graph, entityPositions);
@@ -119,58 +129,26 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
 /** @internal Exported for testing. */
 export function buildEntityElkGraph(graph: OrmGraph): ElkNode {
   const children: ElkNode[] = [];
-  const edges: ElkExtendedEdge[] = [];
 
   // Collect entity type node IDs.
   const entityIds = new Set<string>();
   for (const node of graph.nodes) {
     if (node.kind === "object_type") {
       entityIds.add(node.id);
-      let labelWidth = Math.max(OT_MIN_WIDTH, node.name.length * 9 + 40);
-      const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
-      if (hasAliases) {
-        const aliasText = `(a.k.a. ${node.aliases!.map((a) => `'${a}'`).join(", ")})`;
-        const aliasWidth = aliasText.length * FONT_SIZE_ALIAS * 0.6 + 40;
-        labelWidth = Math.max(labelWidth, aliasWidth);
-      }
-      const height = hasAliases ? OT_HEIGHT + OT_ALIAS_LINE_HEIGHT : OT_HEIGHT;
-      children.push({ id: node.id, width: labelWidth, height });
+      children.push({ id: node.id, ...entityNodeDimensions(node) });
     }
   }
 
-  // Derive synthetic edges from fact types: if two entities share a
-  // fact type, create an edge between them. Weight reflects the number
-  // of shared fact types.
-  const edgeWeights = new Map<string, number>();
-  for (const node of graph.nodes) {
-    if (node.kind !== "fact_type") continue;
-    const ft = node as FactTypeNode;
-    const playerIds = [...new Set(ft.roles.map((r) => r.playerId))].filter((id) => entityIds.has(id));
+  const edgeWeights = buildEntityEdgeWeights(graph, entityIds);
 
-    const arity = playerIds.length;
-    const weight = arity <= 2 ? 1 : 0.5;
-
-    for (let i = 0; i < playerIds.length; i++) {
-      for (let j = i + 1; j < playerIds.length; j++) {
-        const key = [playerIds[i], playerIds[j]].sort().join("--");
-        edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + weight);
-      }
-    }
-  }
-
-  // Subtype edges also create entity-entity connections.
-  for (const se of graph.subtypeEdges) {
-    const key = [se.subtypeNodeId, se.supertypeNodeId].sort().join("--");
-    edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
-  }
-
+  const edges: ElkExtendedEdge[] = [];
   let edgeId = 0;
-  for (const [key, _weight] of edgeWeights) {
-    const [sourceId, targetId] = key.split("--");
+  for (const [key] of edgeWeights) {
+    const parts = key.split("--");
     edges.push({
       id: `synth-${edgeId++}`,
-      sources: [sourceId!],
-      targets: [targetId!],
+      sources: [parts[0]!],
+      targets: [parts[1]!],
     });
   }
 
@@ -178,8 +156,8 @@ export function buildEntityElkGraph(graph: OrmGraph): ElkNode {
     id: "root",
     layoutOptions: {
       "org.eclipse.elk.algorithm": "stress",
-      "org.eclipse.elk.stress.desiredEdgeLength": "200",
-      "org.eclipse.elk.spacing.nodeNode": "120",
+      "org.eclipse.elk.stress.desiredEdgeLength": "300",
+      "org.eclipse.elk.spacing.nodeNode": "200",
       "org.eclipse.elk.padding": "[top=60,left=60,bottom=60,right=60]",
       "org.eclipse.elk.stress.epsilon": "0.001",
       "org.eclipse.elk.stress.iterationLimit": "300",
@@ -217,6 +195,509 @@ function extractEntityPositions(
     });
   }
   return positions;
+}
+
+// ---------------------------------------------------------------------------
+// Entity edge weights (shared by single-level and cluster layouts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a map of edge weights between entity pairs, derived from
+ * shared fact types and subtype relationships.
+ */
+function buildEntityEdgeWeights(
+  graph: OrmGraph,
+  entityIds: Set<string>,
+): Map<string, number> {
+  const edgeWeights = new Map<string, number>();
+
+  for (const node of graph.nodes) {
+    if (node.kind !== "fact_type") continue;
+    const ft = node as FactTypeNode;
+    const playerIds = [...new Set(ft.roles.map((r) => r.playerId))].filter(
+      (id) => entityIds.has(id),
+    );
+    const weight = playerIds.length <= 2 ? 1 : 0.5;
+    for (let i = 0; i < playerIds.length; i++) {
+      for (let j = i + 1; j < playerIds.length; j++) {
+        const key = [playerIds[i], playerIds[j]].sort().join("--");
+        edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + weight);
+      }
+    }
+  }
+
+  for (const se of graph.subtypeEdges) {
+    if (!entityIds.has(se.subtypeNodeId) || !entityIds.has(se.supertypeNodeId)) continue;
+    const key = [se.subtypeNodeId, se.supertypeNodeId].sort().join("--");
+    edgeWeights.set(key, (edgeWeights.get(key) ?? 0) + 1);
+  }
+
+  return edgeWeights;
+}
+
+/**
+ * Compute the ELK node dimensions for an object type based on its
+ * name, aliases, and reference mode text width.
+ */
+function entityNodeDimensions(
+  node: { name: string; aliases?: readonly string[] },
+): { width: number; height: number } {
+  let labelWidth = Math.max(OT_MIN_WIDTH, node.name.length * 9 + 40);
+  const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
+  if (hasAliases) {
+    const aliasText = `(a.k.a. ${node.aliases!.map((a) => `'${a}'`).join(", ")})`;
+    const aliasWidth = aliasText.length * FONT_SIZE_ALIAS * 0.6 + 40;
+    labelWidth = Math.max(labelWidth, aliasWidth);
+  }
+  const height = hasAliases ? OT_HEIGHT + OT_ALIAS_LINE_HEIGHT : OT_HEIGHT;
+  return { width: labelWidth, height };
+}
+
+// ---------------------------------------------------------------------------
+// Cluster detection (Louvain-based community detection)
+// ---------------------------------------------------------------------------
+
+/** @internal Exported for testing. */
+export function detectClusters(
+  entityIds: string[],
+  edgeWeights: Map<string, number>,
+): Map<string, number> {
+  // Too few entities for meaningful clustering.
+  if (entityIds.length <= 4) {
+    const result = new Map<string, number>();
+    for (const id of entityIds) result.set(id, 0);
+    return result;
+  }
+
+  // Build adjacency list.
+  const adj = new Map<string, Map<string, number>>();
+  for (const id of entityIds) adj.set(id, new Map());
+
+  for (const [key, weight] of edgeWeights) {
+    const parts = key.split("--");
+    const a = parts[0]!;
+    const b = parts[1]!;
+    if (!adj.has(a) || !adj.has(b)) continue;
+    adj.get(a)!.set(b, weight);
+    adj.get(b)!.set(a, weight);
+  }
+
+  // Total weight.
+  let m = 0;
+  for (const w of edgeWeights.values()) m += w;
+  if (m === 0) {
+    const result = new Map<string, number>();
+    for (const id of entityIds) result.set(id, 0);
+    return result;
+  }
+
+  // Degree of each node.
+  const degree = new Map<string, number>();
+  for (const id of entityIds) {
+    let d = 0;
+    for (const w of adj.get(id)!.values()) d += w;
+    degree.set(id, d);
+  }
+
+  // Initialize: each entity in its own community.
+  const community = new Map<string, number>();
+  for (let i = 0; i < entityIds.length; i++) {
+    community.set(entityIds[i]!, i);
+  }
+
+  // Louvain phase 1: iteratively move nodes to improve modularity.
+  for (let iter = 0; iter < 20; iter++) {
+    let improved = false;
+
+    for (const nodeId of entityIds) {
+      const currentComm = community.get(nodeId)!;
+      const ki = degree.get(nodeId)!;
+      const nodeAdj = adj.get(nodeId)!;
+
+      // Edges from this node to each community.
+      const commEdges = new Map<number, number>();
+      for (const [neighborId, weight] of nodeAdj) {
+        const nc = community.get(neighborId)!;
+        commEdges.set(nc, (commEdges.get(nc) ?? 0) + weight);
+      }
+
+      // Sum of degrees for relevant communities.
+      const commDegrees = new Map<number, number>();
+      for (const [id, comm] of community) {
+        if (commEdges.has(comm) || comm === currentComm) {
+          commDegrees.set(comm, (commDegrees.get(comm) ?? 0) + degree.get(id)!);
+        }
+      }
+
+      const ki_in = commEdges.get(currentComm) ?? 0;
+      const sigmaOwn = commDegrees.get(currentComm) ?? ki;
+
+      let bestGain = 0;
+      let bestComm = currentComm;
+
+      for (const [candidateComm, ki_c] of commEdges) {
+        if (candidateComm === currentComm) continue;
+        const sigmaC = commDegrees.get(candidateComm) ?? 0;
+        const gain =
+          (ki_c - ki_in) / m - (ki * (sigmaC - (sigmaOwn - ki))) / (2 * m * m);
+        if (gain > bestGain) {
+          bestGain = gain;
+          bestComm = candidateComm;
+        }
+      }
+
+      if (bestComm !== currentComm) {
+        community.set(nodeId, bestComm);
+        improved = true;
+      }
+    }
+
+    if (!improved) break;
+  }
+
+  // Find the largest cluster (for fallback merging).
+  const clusterSizes = new Map<number, number>();
+  for (const comm of community.values()) {
+    clusterSizes.set(comm, (clusterSizes.get(comm) ?? 0) + 1);
+  }
+  let largestClusterId = 0;
+  let largestSize = 0;
+  for (const [cid, size] of clusterSizes) {
+    if (size > largestSize) {
+      largestSize = size;
+      largestClusterId = cid;
+    }
+  }
+
+  // Merge small clusters (< 3 members) into most-connected neighbor.
+  const clusterMembers = new Map<number, string[]>();
+  for (const [id, comm] of community) {
+    let arr = clusterMembers.get(comm);
+    if (!arr) {
+      arr = [];
+      clusterMembers.set(comm, arr);
+    }
+    arr.push(id);
+  }
+
+  for (const [clusterId, members] of clusterMembers) {
+    if (members.length >= 3 || clusterId === largestClusterId) continue;
+
+    const neighborWeights = new Map<number, number>();
+    for (const memberId of members) {
+      for (const [neighborId, weight] of adj.get(memberId)!) {
+        const nc = community.get(neighborId)!;
+        if (nc !== clusterId) {
+          neighborWeights.set(nc, (neighborWeights.get(nc) ?? 0) + weight);
+        }
+      }
+    }
+
+    let targetCluster = largestClusterId;
+    if (neighborWeights.size > 0) {
+      let bestWeight = 0;
+      for (const [nc, w] of neighborWeights) {
+        if (w > bestWeight) {
+          bestWeight = w;
+          targetCluster = nc;
+        }
+      }
+    }
+
+    for (const memberId of members) {
+      community.set(memberId, targetCluster);
+    }
+  }
+
+  // Renumber to contiguous 0-based.
+  const finalComms = [...new Set(community.values())];
+  const renumber = new Map<number, number>();
+  finalComms.forEach((c, i) => renumber.set(c, i));
+  for (const [id, comm] of community) {
+    community.set(id, renumber.get(comm)!);
+  }
+
+  return community;
+}
+
+// ---------------------------------------------------------------------------
+// Two-level cluster-aware entity layout
+// ---------------------------------------------------------------------------
+
+interface ClusterLayout {
+  clusterId: number;
+  positions: Map<string, PositionedObjectTypeNode>;
+  width: number;
+  height: number;
+}
+
+/**
+ * Layout entities using cluster detection and two-level ELK stress.
+ *
+ * If meaningful clusters are detected, each cluster is laid out
+ * independently and then clusters are positioned relative to each other.
+ * Boundary entities (those with inter-cluster connections) are nudged
+ * toward the neighboring cluster for cleaner bridging.
+ */
+async function layoutEntitiesWithClusters(
+  graph: OrmGraph,
+): Promise<Map<string, PositionedObjectTypeNode>> {
+  const entityIds: string[] = [];
+  for (const node of graph.nodes) {
+    if (node.kind === "object_type") entityIds.push(node.id);
+  }
+
+  if (entityIds.length === 0) return new Map();
+
+  const edgeWeights = buildEntityEdgeWeights(graph, new Set(entityIds));
+  const clusterMap = detectClusters(entityIds, edgeWeights);
+
+  // Group by cluster.
+  const clusterMemberMap = new Map<number, string[]>();
+  for (const [id, cluster] of clusterMap) {
+    let arr = clusterMemberMap.get(cluster);
+    if (!arr) {
+      arr = [];
+      clusterMemberMap.set(cluster, arr);
+    }
+    arr.push(id);
+  }
+
+  // If only one cluster, use single-level layout.
+  if (clusterMemberMap.size <= 1) {
+    const elkGraph = buildEntityElkGraph(graph);
+    const laid = await getElk().layout(elkGraph);
+    return extractEntityPositions(graph, laid);
+  }
+
+  // Level 1: layout each cluster independently.
+  const clusterLayouts: ClusterLayout[] = [];
+  for (const [clusterId, members] of clusterMemberMap) {
+    const subElk = buildClusterElkSubGraph(graph, members, edgeWeights);
+    const laid = await getElk().layout(subElk);
+    const positions = extractSubGraphPositions(graph, laid);
+
+    let maxX = 0;
+    let maxY = 0;
+    for (const pos of positions.values()) {
+      maxX = Math.max(maxX, pos.x + pos.width);
+      maxY = Math.max(maxY, pos.y + pos.height);
+    }
+
+    clusterLayouts.push({
+      clusterId,
+      positions,
+      width: maxX + 60,
+      height: maxY + 60,
+    });
+  }
+
+  // Level 2: layout clusters relative to each other.
+  const interClusterEdges: { source: number; target: number }[] = [];
+  const seenPairs = new Set<string>();
+  for (const [key] of edgeWeights) {
+    const parts = key.split("--");
+    const ca = clusterMap.get(parts[0]!);
+    const cb = clusterMap.get(parts[1]!);
+    if (ca !== undefined && cb !== undefined && ca !== cb) {
+      const ck = `${Math.min(ca, cb)}--${Math.max(ca, cb)}`;
+      if (!seenPairs.has(ck)) {
+        seenPairs.add(ck);
+        interClusterEdges.push({ source: ca, target: cb });
+      }
+    }
+  }
+
+  const clusterElk: ElkNode = {
+    id: "root",
+    layoutOptions: {
+      "org.eclipse.elk.algorithm": "stress",
+      "org.eclipse.elk.stress.desiredEdgeLength": "500",
+      "org.eclipse.elk.spacing.nodeNode": "150",
+      "org.eclipse.elk.padding": "[top=60,left=60,bottom=60,right=60]",
+      "org.eclipse.elk.stress.iterationLimit": "300",
+    },
+    children: clusterLayouts.map((cl) => ({
+      id: `cluster-${cl.clusterId}`,
+      width: cl.width,
+      height: cl.height,
+    })),
+    edges: interClusterEdges.map((e, i) => ({
+      id: `ice-${i}`,
+      sources: [`cluster-${e.source}`],
+      targets: [`cluster-${e.target}`],
+    })),
+  };
+
+  const clusterLaid = await getElk().layout(clusterElk);
+
+  // Compose: shift each cluster's internal positions by cluster-level offset.
+  const result = new Map<string, PositionedObjectTypeNode>();
+  for (const child of clusterLaid.children ?? []) {
+    const clusterId = parseInt(child.id.replace("cluster-", ""));
+    const cl = clusterLayouts.find((c) => c.clusterId === clusterId);
+    if (!cl) continue;
+
+    const offsetX = child.x ?? 0;
+    const offsetY = child.y ?? 0;
+
+    for (const [entityId, pos] of cl.positions) {
+      result.set(entityId, {
+        ...pos,
+        x: pos.x + offsetX,
+        y: pos.y + offsetY,
+      });
+    }
+  }
+
+  // Nudge boundary entities toward their inter-cluster neighbors.
+  adjustBoundaryEntities(result, clusterMap, edgeWeights, clusterMemberMap);
+
+  return result;
+}
+
+function buildClusterElkSubGraph(
+  graph: OrmGraph,
+  memberIds: string[],
+  edgeWeights: Map<string, number>,
+): ElkNode {
+  const memberSet = new Set(memberIds);
+  const children: ElkNode[] = [];
+
+  for (const node of graph.nodes) {
+    if (node.kind !== "object_type" || !memberSet.has(node.id)) continue;
+    children.push({ id: node.id, ...entityNodeDimensions(node) });
+  }
+
+  const edges: ElkExtendedEdge[] = [];
+  let edgeId = 0;
+  for (const [key] of edgeWeights) {
+    const parts = key.split("--");
+    if (memberSet.has(parts[0]!) && memberSet.has(parts[1]!)) {
+      edges.push({
+        id: `e-${edgeId++}`,
+        sources: [parts[0]!],
+        targets: [parts[1]!],
+      });
+    }
+  }
+
+  return {
+    id: "cluster",
+    layoutOptions: {
+      "org.eclipse.elk.algorithm": "stress",
+      "org.eclipse.elk.stress.desiredEdgeLength": "200",
+      "org.eclipse.elk.spacing.nodeNode": "120",
+      "org.eclipse.elk.padding": "[top=30,left=30,bottom=30,right=30]",
+      "org.eclipse.elk.stress.epsilon": "0.001",
+      "org.eclipse.elk.stress.iterationLimit": "300",
+    },
+    children,
+    edges,
+  };
+}
+
+/**
+ * Extract entity positions from a sub-graph ELK layout, only including
+ * entities that were actually placed by ELK (ignoring others).
+ */
+function extractSubGraphPositions(
+  graph: OrmGraph,
+  laid: ElkNode,
+): Map<string, PositionedObjectTypeNode> {
+  const nodeMap = new Map<string, ElkNode>();
+  for (const child of laid.children ?? []) {
+    nodeMap.set(child.id, child);
+  }
+
+  const positions = new Map<string, PositionedObjectTypeNode>();
+  for (const node of graph.nodes) {
+    if (node.kind !== "object_type") continue;
+    const elkNode = nodeMap.get(node.id);
+    if (!elkNode) continue;
+
+    positions.set(node.id, {
+      kind: "object_type",
+      id: node.id,
+      name: node.name,
+      objectTypeKind: node.objectTypeKind,
+      referenceMode: node.referenceMode,
+      aliases: node.aliases,
+      annotations: node.annotations,
+      x: elkNode.x ?? 0,
+      y: elkNode.y ?? 0,
+      width: elkNode.width ?? OT_MIN_WIDTH,
+      height: elkNode.height ?? OT_HEIGHT,
+    });
+  }
+  return positions;
+}
+
+/**
+ * Nudge boundary entities (those with inter-cluster connections)
+ * toward the neighboring cluster for cleaner bridging fact types.
+ */
+function adjustBoundaryEntities(
+  positions: Map<string, PositionedObjectTypeNode>,
+  clusterMap: Map<string, number>,
+  edgeWeights: Map<string, number>,
+  clusterMembers: Map<number, string[]>,
+): void {
+  // Compute cluster centroids.
+  const centroids = new Map<number, Position>();
+  for (const [clusterId, members] of clusterMembers) {
+    let sumX = 0;
+    let sumY = 0;
+    let count = 0;
+    for (const id of members) {
+      const pos = positions.get(id);
+      if (!pos) continue;
+      sumX += pos.x + pos.width / 2;
+      sumY += pos.y + pos.height / 2;
+      count++;
+    }
+    if (count > 0) {
+      centroids.set(clusterId, { x: sumX / count, y: sumY / count });
+    }
+  }
+
+  const nudged = new Set<string>();
+  const NUDGE_DISTANCE = 40;
+
+  for (const [key] of edgeWeights) {
+    const parts = key.split("--");
+    const a = parts[0]!;
+    const b = parts[1]!;
+    const ca = clusterMap.get(a);
+    const cb = clusterMap.get(b);
+    if (ca === undefined || cb === undefined || ca === cb) continue;
+
+    for (const [entityId, ownCluster, targetCluster] of [
+      [a, ca, cb],
+      [b, cb, ca],
+    ] as [string, number, number][]) {
+      if (nudged.has(entityId)) continue;
+      nudged.add(entityId);
+
+      const pos = positions.get(entityId);
+      if (!pos) continue;
+
+      const ownCentroid = centroids.get(ownCluster);
+      const targetCentroid = centroids.get(targetCluster);
+      if (!ownCentroid || !targetCentroid) continue;
+
+      const dx = targetCentroid.x - ownCentroid.x;
+      const dy = targetCentroid.y - ownCentroid.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 1) continue;
+
+      positions.set(entityId, {
+        ...pos,
+        x: pos.x + (dx / dist) * NUDGE_DISTANCE,
+        y: pos.y + (dy / dist) * NUDGE_DISTANCE,
+      });
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +778,128 @@ function arrangeSubtypeFans(
         x: cx - subPos.width / 2,
         y: cy - subPos.height / 2,
       });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Leaf value type alignment
+// ---------------------------------------------------------------------------
+
+/**
+ * Identify value types that participate in exactly one binary fact type
+ * ("leaf attributes") and align them horizontally or vertically with
+ * their connected entity, so the connection is a clean straight line.
+ */
+function alignLeafValueTypes(
+  graph: OrmGraph,
+  entityPositions: Map<string, PositionedObjectTypeNode>,
+): void {
+  // Count how many fact types each entity participates in.
+  const factTypeCount = new Map<string, number>();
+  for (const node of graph.nodes) {
+    if (node.kind !== "fact_type") continue;
+    const ft = node as FactTypeNode;
+    for (const role of ft.roles) {
+      factTypeCount.set(role.playerId, (factTypeCount.get(role.playerId) ?? 0) + 1);
+    }
+  }
+
+  // Group leaf value types by their connected (hub) entity.
+  const hubLeaves = new Map<string, { leafId: string; hubId: string }[]>();
+
+  for (const node of graph.nodes) {
+    if (node.kind !== "fact_type") continue;
+    const ft = node as FactTypeNode;
+    const playerIds = [...new Set(ft.roles.map((r) => r.playerId))];
+    if (playerIds.length !== 2) continue;
+
+    for (const playerId of playerIds) {
+      const entityPos = entityPositions.get(playerId);
+      if (!entityPos) continue;
+      if (entityPos.objectTypeKind !== "value") continue;
+      if ((factTypeCount.get(playerId) ?? 0) > 1) continue;
+
+      const otherId = playerIds.find((id) => id !== playerId);
+      if (!otherId) continue;
+      if (!entityPositions.has(otherId)) continue;
+
+      let leaves = hubLeaves.get(otherId);
+      if (!leaves) {
+        leaves = [];
+        hubLeaves.set(otherId, leaves);
+      }
+      leaves.push({ leafId: playerId, hubId: otherId });
+    }
+  }
+
+  // For each hub entity, distribute its leaf value types around it.
+  const SPOKE_DISTANCE = 200;
+
+  for (const [hubId, leaves] of hubLeaves) {
+    const hubPos = entityPositions.get(hubId);
+    if (!hubPos) continue;
+
+    const hubCx = hubPos.x + hubPos.width / 2;
+    const hubCy = hubPos.y + hubPos.height / 2;
+
+    if (leaves.length === 1) {
+      // Single leaf: keep it on whichever side it already is, just
+      // align the perpendicular axis.
+      const leaf = leaves[0]!;
+      const leafPos = entityPositions.get(leaf.leafId);
+      if (!leafPos) continue;
+
+      const leafCx = leafPos.x + leafPos.width / 2;
+      const leafCy = leafPos.y + leafPos.height / 2;
+      const dx = Math.abs(leafCx - hubCx);
+      const dy = Math.abs(leafCy - hubCy);
+
+      if (dx >= dy) {
+        // Primarily horizontal: snap y.
+        entityPositions.set(leaf.leafId, {
+          ...leafPos,
+          y: leafPos.y + (hubCy - leafCy),
+        });
+      } else {
+        // Primarily vertical: snap x.
+        entityPositions.set(leaf.leafId, {
+          ...leafPos,
+          x: leafPos.x + (hubCx - leafCx),
+        });
+      }
+    } else {
+      // Multiple leaves: distribute evenly around the hub entity.
+      // Sort by current angle from hub to preserve rough spatial order.
+      const withAngles = leaves.map((leaf) => {
+        const lp = entityPositions.get(leaf.leafId)!;
+        const angle = Math.atan2(
+          lp.y + lp.height / 2 - hubCy,
+          lp.x + lp.width / 2 - hubCx,
+        );
+        return { ...leaf, angle };
+      });
+      withAngles.sort((a, b) => a.angle - b.angle);
+
+      const angleStep = (2 * Math.PI) / withAngles.length;
+      // Start from the angle of the first leaf to preserve general direction.
+      const startAngle = withAngles[0]!.angle;
+
+      for (let i = 0; i < withAngles.length; i++) {
+        const leaf = withAngles[i]!;
+        const leafPos = entityPositions.get(leaf.leafId);
+        if (!leafPos) continue;
+
+        const angle = startAngle + i * angleStep;
+        const targetCx = hubCx + SPOKE_DISTANCE * Math.cos(angle);
+        const targetCy = hubCy + SPOKE_DISTANCE * Math.sin(angle);
+
+        entityPositions.set(leaf.leafId, {
+          ...leafPos,
+          x: targetCx - leafPos.width / 2,
+          y: targetCy - leafPos.height / 2,
+        });
+      }
     }
   }
 }
@@ -391,7 +994,12 @@ function placeFactTypes(
         if (group && group.length > 1) {
           const idx = group.indexOf(ft);
           const total = group.length;
-          const stackOffset = (idx - (total - 1) / 2) * (ROLE_BOX_HEIGHT + FACT_TYPE_STACK_GAP);
+          // Full visual height includes uniqueness bars, mandatory dots, and labels.
+          const visualHeight = ROLE_BOX_HEIGHT
+            + UNIQUENESS_BAR_OFFSET + UNIQUENESS_BAR_HEIGHT // above
+            + MANDATORY_DOT_RADIUS * 2 + 2 // below (dots)
+            + 18; // label text below
+          const stackOffset = (idx - (total - 1) / 2) * (visualHeight + FACT_TYPE_STACK_GAP);
 
           if (orientation === "horizontal") {
             // Stack perpendicular to horizontal axis = vertically.
@@ -594,6 +1202,39 @@ function placeConstraintNodes(
 }
 
 // ---------------------------------------------------------------------------
+// Coordinate normalization
+// ---------------------------------------------------------------------------
+
+/**
+ * Shift all node positions so that the minimum x and y are at a
+ * comfortable padding offset, preventing negative coordinates.
+ */
+function normalizeCoordinates(nodes: PositionedNode[]): void {
+  const PADDING = 40;
+  let minX = Infinity;
+  let minY = Infinity;
+
+  for (const n of nodes) {
+    const bb = effectiveBoundingBox(n);
+    minX = Math.min(minX, bb.x);
+    minY = Math.min(minY, bb.y);
+  }
+
+  if (!isFinite(minX)) return;
+
+  const shiftX = PADDING - minX;
+  const shiftY = PADDING - minY;
+
+  if (Math.abs(shiftX) < 1 && Math.abs(shiftY) < 1) return;
+
+  for (const n of nodes) {
+    const mutable = n as unknown as MutablePosition;
+    mutable.x += shiftX;
+    mutable.y += shiftY;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Collision resolution
 // ---------------------------------------------------------------------------
 
@@ -605,21 +1246,99 @@ interface BoundingBox {
   height: number;
 }
 
+/**
+ * Compute the effective visual bounding box for a node, including
+ * space for decorations like uniqueness bars, mandatory dots, labels,
+ * and objectification borders that extend beyond the node's base box.
+ */
+function effectiveBoundingBox(node: PositionedNode): BoundingBox {
+  const MIN_GAP = 16; // minimum gap between any two nodes
+
+  if (node.kind === "fact_type") {
+    const ft = node as PositionedFactTypeNode;
+
+    // Start with the base box.
+    let top = ft.y;
+    let bottom = ft.y + ft.height;
+    let left = ft.x;
+    let right = ft.x + ft.width;
+
+    // Uniqueness bars extend above (horizontal) or left (vertical).
+    const hasAnyUniqueness = ft.roles.some((r) => r.hasUniqueness) || ft.hasSpanningUniqueness;
+    if (hasAnyUniqueness) {
+      if (ft.orientation === "horizontal") {
+        top -= UNIQUENESS_BAR_OFFSET + UNIQUENESS_BAR_HEIGHT;
+      } else {
+        left -= UNIQUENESS_BAR_OFFSET + UNIQUENESS_BAR_HEIGHT;
+      }
+    }
+
+    // Mandatory dots extend below (horizontal) or right (vertical).
+    const hasAnyMandatory = ft.roles.some((r) => r.isMandatory);
+    if (hasAnyMandatory) {
+      if (ft.orientation === "horizontal") {
+        bottom += MANDATORY_DOT_RADIUS * 2 + 2;
+      } else {
+        right += MANDATORY_DOT_RADIUS * 2 + 2;
+      }
+    }
+
+    // Label text extends below (horizontal) or right (vertical).
+    // Approximate label width from fact type name.
+    const labelHeight = 18; // FONT_SIZE_ROLE(9) + gap
+    if (ft.orientation === "horizontal") {
+      bottom += labelHeight;
+      // Name label can be wider than role boxes.
+      const labelWidth = ft.name.length * 5.5; // approximate char width
+      const ftCenterX = ft.x + ft.width / 2;
+      left = Math.min(left, ftCenterX - labelWidth / 2);
+      right = Math.max(right, ftCenterX + labelWidth / 2);
+    } else {
+      const labelWidth = ft.name.length * 5.5;
+      right += 8 + labelWidth; // 8px gap + label text
+    }
+
+    // Objectification borders add padding on all sides.
+    if (ft.isObjectified) {
+      top -= OBJECTIFICATION_PADDING;
+      bottom += OBJECTIFICATION_PADDING;
+      left -= OBJECTIFICATION_PADDING;
+      right += OBJECTIFICATION_PADDING;
+    }
+
+    return {
+      nodeId: ft.id,
+      x: left - MIN_GAP,
+      y: top - MIN_GAP,
+      width: right - left + 2 * MIN_GAP,
+      height: bottom - top + 2 * MIN_GAP,
+    };
+  }
+
+  // Entity types and constraint nodes: use base box with gap padding.
+  return {
+    nodeId: node.id,
+    x: node.x - MIN_GAP,
+    y: node.y - MIN_GAP,
+    width: node.width + 2 * MIN_GAP,
+    height: node.height + 2 * MIN_GAP,
+  };
+}
+
 function resolveOverlaps(nodes: PositionedNode[]): void {
-  const MAX_ITERATIONS = 3;
-  const PAD = FACT_TYPE_COLLISION_PADDING;
+  const MAX_ITERATIONS = 8;
+
+  // Build a map from node ID to node index for O(1) lookup.
+  const idToIndex = new Map<string, number>();
+  for (let i = 0; i < nodes.length; i++) {
+    idToIndex.set(nodes[i]!.id, i);
+  }
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let moved = false;
 
-    // Build padded bounding boxes.
-    const boxes: BoundingBox[] = nodes.map((n) => ({
-      nodeId: n.id,
-      x: n.x - PAD,
-      y: n.y - PAD,
-      width: n.width + 2 * PAD,
-      height: n.height + 2 * PAD,
-    }));
+    // Build effective bounding boxes that include visual decorations.
+    const boxes: BoundingBox[] = nodes.map((n) => effectiveBoundingBox(n));
 
     // Sort by x for efficient sweep.
     boxes.sort((a, b) => a.x - b.x);
@@ -640,9 +1359,11 @@ function resolveOverlaps(nodes: PositionedNode[]): void {
         const overlapY = Math.min(a.y + a.height - b.y, b.y + b.height - a.y);
 
         // Find the actual nodes and nudge them.
-        const nodeA = nodes.find((n) => n.id === a.nodeId);
-        const nodeB = nodes.find((n) => n.id === b.nodeId);
-        if (!nodeA || !nodeB) continue;
+        const idxA = idToIndex.get(a.nodeId);
+        const idxB = idToIndex.get(b.nodeId);
+        if (idxA === undefined || idxB === undefined) continue;
+        const nodeA = nodes[idxA]!;
+        const nodeB = nodes[idxB]!;
 
         const mutableA = nodeA as unknown as MutablePosition;
         const mutableB = nodeB as unknown as MutablePosition;
@@ -770,6 +1491,7 @@ function routeRoleEdges(
       sourceNodeId: edge.sourceNodeId,
       targetNodeId: edge.targetNodeId,
       roleId: edge.roleId,
+      isMandatory: role.isMandatory,
       points: [ep, rc],
     });
   }

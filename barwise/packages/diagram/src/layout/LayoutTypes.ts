@@ -96,6 +96,8 @@ export interface PositionedEdge {
   readonly sourceNodeId: string;
   readonly targetNodeId: string;
   readonly roleId: string;
+  /** Whether the role played by this edge's entity is mandatory. */
+  readonly isMandatory: boolean;
   readonly points: readonly Position[];
 }
 

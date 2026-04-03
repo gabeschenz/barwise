@@ -1,0 +1,50 @@
+Diagram Layout Model
+
+Entity Types:
+- Each DiagramElement is identified by an element ID.
+- Each EntityNode is identified by a node ID.
+- Each FactTypeNode is identified by a node ID.
+- Each ConstraintNode is identified by a node ID.
+- Each Cluster is identified by a cluster ID.
+- Each Position has an x-coordinate and a y-coordinate.
+- Each Direction has an angle in radians.
+- Each Distance is a non-negative number.
+
+Subtype Facts:
+- EntityNode is a subtype of DiagramElement.
+- FactTypeNode is a subtype of DiagramElement.
+- ConstraintNode is a subtype of DiagramElement.
+
+Core Placement Facts:
+- Each DiagramElement has exactly one Position.
+- Each DiagramElement has exactly one Distance from center.
+- Each EntityNode belongs to exactly one Cluster.
+- Each Cluster has exactly one centroid Position.
+- The Diagram has exactly one center Position.
+
+Subtype Layout Facts:
+- Each EntityNode specializes at most one EntityNode as supertype.
+- Each supertype EntityNode has one or more subtype EntityNodes.
+- For each subtype relationship, the subtype has a greater distance from center than the supertype.
+- Each supertype EntityNode has exactly one fan Direction, determined by the direction from diagram center through the supertype Position.
+- The subtypes of a supertype are arranged in an arc perpendicular to the fan Direction.
+
+Fact Type Placement Facts:
+- Each FactTypeNode connects two or more EntityNodes.
+- Each binary FactTypeNode is positioned at the midpoint between its two connected EntityNodes.
+- Each FactTypeNode has an orientation of either horizontal or vertical.
+- The orientation is horizontal when the horizontal distance between connected entities is greater than or equal to the vertical distance.
+
+Leaf Value Type Facts:
+- A LeafValueType is an EntityNode that participates in exactly one FactTypeNode.
+- When multiple LeafValueTypes connect to the same hub EntityNode, they are distributed at distinct angles around the hub.
+- The angular spacing between adjacent LeafValueTypes of the same hub is equal.
+
+Cluster Facts:
+- Each Cluster contains three or more EntityNodes.
+- Entities within the same Cluster are more densely connected than entities across Clusters.
+- Each pair of connected Clusters has a separation distance.
+- Boundary EntityNodes (those with connections to another Cluster) are nudged toward the neighboring Cluster.
+
+Stacking Constraint:
+- When multiple FactTypeNodes connect the same pair of EntityNodes, they are stacked perpendicular to the connection axis with equal spacing.
