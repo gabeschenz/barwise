@@ -159,7 +159,9 @@ for (const nc of doc.constraints) {
   let bucket;
   if (hasFactRole) {
     bucket = "fact_type";
-  } else if (allOnSupertypeRoles && (typeKey === "exclusion" || typeKey === "disjunctive_mandatory")) {
+  } else if (
+    allOnSupertypeRoles && (typeKey === "exclusion" || typeKey === "disjunctive_mandatory")
+  ) {
     bucket = "subtype_partition";
   } else if (hasSubtypeRole) {
     bucket = "subtype_inherent";
@@ -268,39 +270,88 @@ function compare(label, xmlCount, importedCount) {
   const status = xmlCount === importedCount ? " OK " : " GAP";
   const delta = importedCount - xmlCount;
   const deltaStr = delta >= 0 ? "+" + delta : "" + delta;
-  console.log(status + "  " + label + ": XML=" + xmlCount + " Imported=" + importedCount + " (" + deltaStr + ")");
+  console.log(
+    status + "  " + label + ": XML=" + xmlCount + " Imported=" + importedCount + " (" + deltaStr
+      + ")",
+  );
   return { label, xmlCount, importedCount, delta };
 }
 
 const results = [];
 console.log("Structure:");
-results.push(compare("Entity types (pure)", entityTypes, importedEntities.length - importedObjectified));
+results.push(
+  compare("Entity types (pure)", entityTypes, importedEntities.length - importedObjectified),
+);
 results.push(compare("Value types", valueTypes, importedValues.length));
 results.push(compare("Objectified types", objectifiedTypes, importedObjectified));
-results.push(compare("Total object types", entityTypes + valueTypes + objectifiedTypes, model.objectTypes.length));
+results.push(
+  compare(
+    "Total object types",
+    entityTypes + valueTypes + objectifiedTypes,
+    model.objectTypes.length,
+  ),
+);
 results.push(compare("Fact types", facts, model.factTypes.length));
 results.push(compare("Subtype facts", subtypeFactsXml, model.subtypeFacts.length));
 results.push(compare("Reading orders", readingOrdersInFacts, totalReadings));
 
 const factTypeExpected = categories.fact_type;
 console.log("\nFact-type Constraints:");
-results.push(compare("Internal uniqueness", factTypeExpected.internal_uniqueness || 0, constraintCounts["internal_uniqueness"] || 0));
-results.push(compare("External uniqueness", factTypeExpected.external_uniqueness || 0, constraintCounts["external_uniqueness"] || 0));
-results.push(compare("Simple mandatory", factTypeExpected.simple_mandatory || 0, constraintCounts["mandatory"] || 0));
-results.push(compare("Disjunctive mandatory", factTypeExpected.disjunctive_mandatory || 0, constraintCounts["disjunctive_mandatory"] || 0));
+results.push(
+  compare(
+    "Internal uniqueness",
+    factTypeExpected.internal_uniqueness || 0,
+    constraintCounts["internal_uniqueness"] || 0,
+  ),
+);
+results.push(
+  compare(
+    "External uniqueness",
+    factTypeExpected.external_uniqueness || 0,
+    constraintCounts["external_uniqueness"] || 0,
+  ),
+);
+results.push(
+  compare(
+    "Simple mandatory",
+    factTypeExpected.simple_mandatory || 0,
+    constraintCounts["mandatory"] || 0,
+  ),
+);
+results.push(
+  compare(
+    "Disjunctive mandatory",
+    factTypeExpected.disjunctive_mandatory || 0,
+    constraintCounts["disjunctive_mandatory"] || 0,
+  ),
+);
 results.push(compare("Subset", factTypeExpected.subset || 0, constraintCounts["subset"] || 0));
-results.push(compare("Exclusion", factTypeExpected.exclusion || 0, constraintCounts["exclusion"] || 0));
+results.push(
+  compare("Exclusion", factTypeExpected.exclusion || 0, constraintCounts["exclusion"] || 0),
+);
 results.push(compare("Ring", factTypeExpected.ring || 0, constraintCounts["ring"] || 0));
-results.push(compare("Equality", factTypeExpected.equality || 0, constraintCounts["equality"] || 0));
-results.push(compare("Value constraint", factTypeExpected.value_constraint || 0, constraintCounts["value_constraint"] || 0));
-results.push(compare("Frequency", factTypeExpected.frequency || 0, constraintCounts["frequency"] || 0));
+results.push(
+  compare("Equality", factTypeExpected.equality || 0, constraintCounts["equality"] || 0),
+);
+results.push(
+  compare(
+    "Value constraint",
+    factTypeExpected.value_constraint || 0,
+    constraintCounts["value_constraint"] || 0,
+  ),
+);
+results.push(
+  compare("Frequency", factTypeExpected.frequency || 0, constraintCounts["frequency"] || 0),
+);
 const totalFactTypeExpected = Object.values(factTypeExpected).reduce((s, c) => s + c, 0);
-results.push(compare("Total fact-type constraints", totalFactTypeExpected, importedTotalConstraints));
+results.push(
+  compare("Total fact-type constraints", totalFactTypeExpected, importedTotalConstraints),
+);
 
 // Subtype partition: exclusion on supertype roles -> isExclusive, disj. mandatory -> isExhaustive
 const partitionCounts = categories.subtype_partition;
-const expectedExclusive = (partitionCounts.exclusion || 0);
-const expectedExhaustive = (partitionCounts.disjunctive_mandatory || 0);
+const expectedExclusive = partitionCounts.exclusion || 0;
+const expectedExhaustive = partitionCounts.disjunctive_mandatory || 0;
 
 // Each exclusion/disjunctive_mandatory constraint covers N subtypes, producing N SubtypeFacts
 // with the flag set. We need to count by roles, not by constraints.
@@ -342,8 +393,14 @@ for (const oft of model.objectifiedFactTypes) {
 const expectedImpliedInherentCount = impliedRoleCount * 2; // 1 uniqueness + 1 mandatory per implied role
 
 console.log("\nInherent Constraints (derivable from structure):");
-console.log("  Subtype inherent: " + inherentSubtype + " (expected ~" + expectedSubtypeInherent + " from " + model.subtypeFacts.length + " subtype facts)");
-console.log("  Objectification inherent: " + inherentImplied + " (expected " + expectedImpliedInherentCount + " from " + impliedRoleCount + " implied roles)");
+console.log(
+  "  Subtype inherent: " + inherentSubtype + " (expected ~" + expectedSubtypeInherent + " from "
+    + model.subtypeFacts.length + " subtype facts)",
+);
+console.log(
+  "  Objectification inherent: " + inherentImplied + " (expected " + expectedImpliedInherentCount
+    + " from " + impliedRoleCount + " implied roles)",
+);
 
 const gaps = results.filter(r => r.delta !== 0);
 console.log("\n========================================");
