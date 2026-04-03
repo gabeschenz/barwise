@@ -198,53 +198,108 @@ function renderFactType(node: PositionedFactTypeNode): string {
 
   // Render each role box.
   for (const role of node.roles) {
-    parts.push(renderRoleBox(node.x, node.y, role));
+    parts.push(renderRoleBox(node.x, node.y, role, node.orientation));
   }
 
   // Spanning uniqueness: a bar across all role boxes.
   if (node.hasSpanningUniqueness && node.roles.length > 0) {
     const first = node.roles[0]!;
     const last = node.roles[node.roles.length - 1]!;
-    const barX = node.x + first.x + 4;
-    const barWidth = last.x + last.width - first.x - 8;
-    const barY = node.y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+
+    if (node.orientation === "vertical") {
+      // Vertical: bar on the left side.
+      const barX = node.x - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      const barY = node.y + first.y + 4;
+      const barHeight = last.y + last.height - first.y - 8;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${theme.UNIQUENESS_BAR_HEIGHT}" height="${barHeight}" `
+          + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      );
+    } else {
+      // Horizontal: bar above.
+      const barX = node.x + first.x + 4;
+      const barWidth = last.x + last.width - first.x - 8;
+      const barY = node.y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+          + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      );
+    }
+  }
+
+  // Fact type name label.
+  if (node.orientation === "vertical") {
+    // Vertical: label to the right of the strip.
+    const labelX = node.x + node.width + 8;
+    const labelY = node.y + node.height / 2;
     parts.push(
-      `<rect x="${barX}" y="${barY}" `
-        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
-        + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      `<text x="${labelX}" y="${labelY}" `
+        + `text-anchor="start" dominant-baseline="central" `
+        + `fill="${theme.COLOR_TEXT}" `
+        + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+        + `${esc(node.name)}</text>`,
+    );
+  } else {
+    // Horizontal: label below the bar.
+    const cx = node.x + node.width / 2;
+    const labelY = node.y + node.height + 14;
+    parts.push(
+      `<text x="${cx}" y="${labelY}" `
+        + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
+        + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+        + `${esc(node.name)}</text>`,
     );
   }
 
-  // Fact type name label (below the bar).
-  const cx = node.x + node.width / 2;
-  const labelY = node.y + node.height + 14;
-  parts.push(
-    `<text x="${cx}" y="${labelY}" `
-      + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
-      + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
-      + `${esc(node.name)}</text>`,
-  );
-
-  // Ring constraint label (below the fact type name).
+  // Ring constraint label.
   if (node.ringConstraint) {
-    const ringY = labelY + 14;
-    parts.push(
-      `<text x="${cx}" y="${ringY}" `
-        + `text-anchor="middle" `
-        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
-        + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
-    );
+    if (node.orientation === "vertical") {
+      const ringX = node.x + node.width + 8;
+      const ringY = node.y + node.height / 2 + 14;
+      parts.push(
+        `<text x="${ringX}" y="${ringY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+      );
+    } else {
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      const ringY = labelY + 14;
+      parts.push(
+        `<text x="${cx}" y="${ringY}" `
+          + `text-anchor="middle" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+      );
+    }
   }
 
-  // Objectified entity name label (below all other labels).
+  // Objectified entity name label.
   if (node.isObjectified && node.objectifiedEntityName) {
-    const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
-    parts.push(
-      `<text x="${cx}" y="${objLabelY}" `
-        + `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
-        + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
-        + `${esc(node.objectifiedEntityName)}</text>`,
-    );
+    if (node.orientation === "vertical") {
+      const objX = node.x + node.width + 8;
+      const objY = node.y + node.height / 2 + (node.ringConstraint ? 28 : 14);
+      parts.push(
+        `<text x="${objX}" y="${objY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+          + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
+          + `${esc(node.objectifiedEntityName)}</text>`,
+      );
+    } else {
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
+      parts.push(
+        `<text x="${cx}" y="${objLabelY}" `
+          + `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+          + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
+          + `${esc(node.objectifiedEntityName)}</text>`,
+      );
+    }
   }
 
   parts.push("</g>");
@@ -255,6 +310,7 @@ function renderRoleBox(
   parentX: number,
   parentY: number,
   role: PositionedRoleBox,
+  orientation: "horizontal" | "vertical" = "horizontal",
 ): string {
   const x = parentX + role.x;
   const y = parentY + role.y;
@@ -268,42 +324,79 @@ function renderRoleBox(
       + `stroke="${theme.COLOR_ROLE_STROKE}" stroke-width="1"/>`,
   );
 
-  // Single-role uniqueness bar (above the role box).
-  if (role.hasUniqueness) {
-    const barX = x + 4;
-    const barWidth = role.width - 8;
-    const barY = y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
-    parts.push(
-      `<rect x="${barX}" y="${barY}" `
-        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
-        + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
-    );
-  }
+  if (orientation === "vertical") {
+    // Vertical orientation: uniqueness on left side, mandatory on right.
+    if (role.hasUniqueness) {
+      const barX = x - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      const barY = y + 4;
+      const barHeight = role.height - 8;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${theme.UNIQUENESS_BAR_HEIGHT}" height="${barHeight}" `
+          + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
+      );
+    }
 
-  // Mandatory dot (on the connection side of the role box).
-  if (role.isMandatory) {
-    const dotX = x + role.width / 2;
-    const dotY = y + role.height + theme.MANDATORY_DOT_RADIUS + 2;
-    parts.push(
-      `<circle cx="${dotX}" cy="${dotY}" `
-        + `r="${theme.MANDATORY_DOT_RADIUS}" `
-        + `fill="${theme.COLOR_MANDATORY}"/>`,
-    );
-  }
+    if (role.isMandatory) {
+      const dotX = x + role.width + theme.MANDATORY_DOT_RADIUS + 2;
+      const dotY = y + role.height / 2;
+      parts.push(
+        `<circle cx="${dotX}" cy="${dotY}" `
+          + `r="${theme.MANDATORY_DOT_RADIUS}" `
+          + `fill="${theme.COLOR_MANDATORY}"/>`,
+      );
+    }
 
-  // Frequency label (below the role box, after mandatory dot if present).
-  if (role.frequencyMin !== undefined) {
-    const freqX = x + role.width / 2;
-    const freqY = y + role.height + (role.isMandatory ? 18 : 12);
-    const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
-    const label = role.frequencyMin === role.frequencyMax
-      ? String(role.frequencyMin)
-      : `${role.frequencyMin}..${maxStr}`;
-    parts.push(
-      `<text x="${freqX}" y="${freqY}" text-anchor="middle" `
-        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
-        + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
-    );
+    if (role.frequencyMin !== undefined) {
+      const freqX = x + role.width + (role.isMandatory ? 18 : 12);
+      const freqY = y + role.height / 2;
+      const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
+      const label = role.frequencyMin === role.frequencyMax
+        ? String(role.frequencyMin)
+        : `${role.frequencyMin}..${maxStr}`;
+      parts.push(
+        `<text x="${freqX}" y="${freqY}" text-anchor="start" `
+          + `dominant-baseline="central" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
+      );
+    }
+  } else {
+    // Horizontal orientation: uniqueness above, mandatory below.
+    if (role.hasUniqueness) {
+      const barX = x + 4;
+      const barWidth = role.width - 8;
+      const barY = y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+          + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
+      );
+    }
+
+    if (role.isMandatory) {
+      const dotX = x + role.width / 2;
+      const dotY = y + role.height + theme.MANDATORY_DOT_RADIUS + 2;
+      parts.push(
+        `<circle cx="${dotX}" cy="${dotY}" `
+          + `r="${theme.MANDATORY_DOT_RADIUS}" `
+          + `fill="${theme.COLOR_MANDATORY}"/>`,
+      );
+    }
+
+    if (role.frequencyMin !== undefined) {
+      const freqX = x + role.width / 2;
+      const freqY = y + role.height + (role.isMandatory ? 18 : 12);
+      const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
+      const label = role.frequencyMin === role.frequencyMax
+        ? String(role.frequencyMin)
+        : `${role.frequencyMin}..${maxStr}`;
+      parts.push(
+        `<text x="${freqX}" y="${freqY}" text-anchor="middle" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
+      );
+    }
   }
 
   return parts.join("\n");

@@ -7,6 +7,8 @@
 
 import type { ConstraintKind, RingTypeLabel } from "../graph/GraphTypes.js";
 
+export type FactTypeOrientation = "horizontal" | "vertical";
+
 export interface Position {
   readonly x: number;
   readonly y: number;
@@ -65,6 +67,8 @@ export interface PositionedFactTypeNode {
   readonly objectifiedEntityName?: string;
   /** Annotation messages for visual markers. */
   readonly annotations?: readonly string[];
+  /** Layout orientation of the role box strip. */
+  readonly orientation: FactTypeOrientation;
   readonly x: number;
   readonly y: number;
   readonly width: number;

@@ -18,6 +18,7 @@ export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js"
 export { layoutGraph } from "./layout/ElkLayoutEngine.js";
 export type {
   Dimensions,
+  FactTypeOrientation,
   Position,
   PositionedConstraintEdge,
   PositionedConstraintNode,

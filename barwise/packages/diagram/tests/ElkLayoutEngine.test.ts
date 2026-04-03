@@ -1,37 +1,28 @@
 /**
- * Tests for the ELK layout engine's fallback routing paths.
+ * Tests for the two-pass entity-centric layout engine.
  *
- * In normal operation, ELK returns edge sections with bend points. But
- * if ELK omits sections (e.g. due to degenerate graph geometry), the
- * layout engine falls back to straight-line routing between node centers.
- * These tests mock ELK to return edges without sections, verifying that
- * the fallback produces valid point arrays rather than crashing.
+ * Pass 1 uses ELK stress to position entity types in 2D.
+ * Pass 2 places fact types geometrically between their connected entities.
  */
 import { describe, expect, it, vi } from "vitest";
 import type { OrmGraph } from "../src/graph/GraphTypes.js";
 
-// Controls what the mock ELK returns. Tests can override this per-test.
+// Mock ELK to return controlled entity positions.
 let mockLayoutImpl: (graph: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
-// Default implementation: returns positioned nodes but edges without sections.
 const defaultMockLayout = async (graph: Record<string, unknown>) => {
-  const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
+  const children = (graph.children as Array<{ id: string; width: number; height: number }>)
     ?? [];
-  const edges = (graph.edges as Array<{ id: string; sources: string[]; targets: string[]; }>)
-    ?? [];
-
   return {
+    // Spread entities in a grid-like pattern for predictable testing.
     children: children.map((c, i) => ({
       id: c.id,
-      x: i * 200,
-      y: i * 100,
+      x: (i % 3) * 250,
+      y: Math.floor(i / 3) * 200,
       width: c.width,
       height: c.height,
     })),
-    // Return edges WITHOUT sections to trigger the fallback routing.
-    edges: edges.map((e) => ({
-      id: e.id,
-    })),
+    edges: [],
     width: 800,
     height: 600,
   };
@@ -39,7 +30,6 @@ const defaultMockLayout = async (graph: Record<string, unknown>) => {
 
 mockLayoutImpl = defaultMockLayout;
 
-// Mock elkjs to control the layout output and trigger fallback paths.
 vi.mock("elkjs", () => {
   return {
     default: class MockELK {
@@ -50,30 +40,184 @@ vi.mock("elkjs", () => {
   };
 });
 
-// Import after mock is set up.
-const { layoutGraph } = await import("../src/layout/ElkLayoutEngine.js");
+const { layoutGraph, buildEntityElkGraph } = await import("../src/layout/ElkLayoutEngine.js");
+
+// Helper to make a minimal binary fact type graph.
+function makeBinaryGraph(): OrmGraph {
+  return {
+    nodes: [
+      {
+        kind: "object_type",
+        id: "ot-a",
+        name: "Customer",
+        objectTypeKind: "entity",
+        referenceMode: "cid",
+      },
+      {
+        kind: "object_type",
+        id: "ot-b",
+        name: "Order",
+        objectTypeKind: "entity",
+        referenceMode: "oid",
+      },
+      {
+        kind: "fact_type",
+        id: "ft-1",
+        name: "Customer places Order",
+        roles: [
+          {
+            roleId: "r-1",
+            roleName: "places",
+            playerId: "ot-a",
+            playerName: "Customer",
+            hasUniqueness: false,
+            isMandatory: false,
+          },
+          {
+            roleId: "r-2",
+            roleName: "placed-by",
+            playerId: "ot-b",
+            playerName: "Order",
+            hasUniqueness: true,
+            isMandatory: false,
+          },
+        ],
+        hasSpanningUniqueness: false,
+      },
+    ],
+    edges: [
+      { sourceNodeId: "ot-a", targetNodeId: "ft-1", roleId: "r-1" },
+      { sourceNodeId: "ot-b", targetNodeId: "ft-1", roleId: "r-2" },
+    ],
+    constraintEdges: [],
+    subtypeEdges: [],
+  };
+}
 
 describe("ElkLayoutEngine", () => {
-  it("uses fallback straight-line routing when ELK returns no sections", async () => {
+  it("builds entity-only ELK graph (no fact types as children)", () => {
+    const graph = makeBinaryGraph();
+    const elkGraph = buildEntityElkGraph(graph);
+
+    // Only entity type nodes should be ELK children.
+    expect(elkGraph.children).toHaveLength(2);
+    expect(elkGraph.children![0]!.id).toBe("ot-a");
+    expect(elkGraph.children![1]!.id).toBe("ot-b");
+
+    // Synthetic edge between the two entities.
+    expect(elkGraph.edges).toHaveLength(1);
+
+    // Algorithm should be stress.
+    expect(elkGraph.layoutOptions!["org.eclipse.elk.algorithm"]).toBe("stress");
+  });
+
+  it("positions binary fact type at midpoint between entities", async () => {
+    // Mock: place entities at (0, 100) and (500, 100) - horizontally separated.
+    mockLayoutImpl = async (graph) => {
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
+      return {
+        children: children.map((c, i) => ({
+          id: c.id,
+          x: i * 500,
+          y: 100,
+          width: c.width,
+          height: c.height,
+        })),
+        edges: [],
+        width: 800,
+        height: 400,
+      };
+    };
+
+    const result = await layoutGraph(makeBinaryGraph());
+    const ft = result.nodes.find((n) => n.kind === "fact_type")!;
+
+    // Fact type should be roughly between the two entities.
+    const entityA = result.nodes.find((n) => n.id === "ot-a")!;
+    const entityB = result.nodes.find((n) => n.id === "ot-b")!;
+    const midX = (entityA.x + entityA.width / 2 + entityB.x + entityB.width / 2) / 2;
+
+    expect(ft.x + ft.width / 2).toBeCloseTo(midX, -1);
+
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("chooses horizontal orientation when entities are horizontally separated", async () => {
+    mockLayoutImpl = async (graph) => {
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
+      return {
+        children: children.map((c, i) => ({
+          id: c.id,
+          x: i * 500,
+          y: 100,
+          width: c.width,
+          height: c.height,
+        })),
+        edges: [],
+        width: 800,
+        height: 400,
+      };
+    };
+
+    const result = await layoutGraph(makeBinaryGraph());
+    const ft = result.nodes.find((n) => n.kind === "fact_type");
+    expect(ft).toBeDefined();
+    if (ft && ft.kind === "fact_type") {
+      expect(ft.orientation).toBe("horizontal");
+    }
+
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("chooses vertical orientation when entities are vertically separated", async () => {
+    mockLayoutImpl = async (graph) => {
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
+      return {
+        children: children.map((c, i) => ({
+          id: c.id,
+          x: 100,
+          y: i * 500,
+          width: c.width,
+          height: c.height,
+        })),
+        edges: [],
+        width: 400,
+        height: 800,
+      };
+    };
+
+    const result = await layoutGraph(makeBinaryGraph());
+    const ft = result.nodes.find((n) => n.kind === "fact_type");
+    expect(ft).toBeDefined();
+    if (ft && ft.kind === "fact_type") {
+      expect(ft.orientation).toBe("vertical");
+    }
+
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("places unary fact type adjacent to its entity", async () => {
     const graph: OrmGraph = {
       nodes: [
         {
           kind: "object_type",
           id: "ot-1",
-          name: "Customer",
+          name: "Person",
           objectTypeKind: "entity",
-          referenceMode: "cid",
         },
         {
           kind: "fact_type",
           id: "ft-1",
-          name: "Customer exists",
+          name: "is married",
           roles: [
             {
               roleId: "r-1",
-              roleName: "exists",
+              roleName: "is married",
               playerId: "ot-1",
-              playerName: "Customer",
+              playerName: "Person",
               hasUniqueness: false,
               isMandatory: false,
             },
@@ -89,35 +233,107 @@ describe("ElkLayoutEngine", () => {
     };
 
     const result = await layoutGraph(graph);
+    const entity = result.nodes.find((n) => n.id === "ot-1")!;
+    const ft = result.nodes.find((n) => n.id === "ft-1")!;
 
-    // Should have positioned nodes.
-    expect(result.nodes).toHaveLength(2);
-    expect(result.edges).toHaveLength(1);
-
-    // The fallback routing should produce a straight line (2 points).
-    const edge = result.edges[0]!;
-    expect(edge.points).toHaveLength(2);
-    // Start point should be center of source node.
-    expect(edge.points[0]!.x).toBeGreaterThan(0);
-    expect(edge.points[0]!.y).toBeGreaterThan(0);
-    // End point should be center of target node.
-    expect(edge.points[1]!.x).toBeGreaterThan(0);
-    expect(edge.points[1]!.y).toBeGreaterThan(0);
+    // Unary should be positioned to the right of its entity.
+    expect(ft.x).toBeGreaterThan(entity.x);
   });
 
-  it("returns empty points when neither source nor target are found", async () => {
+  it("enforces supertype above subtype", async () => {
+    // Mock: place both at same y.
+    mockLayoutImpl = async (graph) => {
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
+      return {
+        children: children.map((c) => ({
+          id: c.id,
+          x: 100,
+          y: 100,
+          width: c.width,
+          height: c.height,
+        })),
+        edges: [],
+        width: 400,
+        height: 400,
+      };
+    };
+
     const graph: OrmGraph = {
       nodes: [
-        {
-          kind: "object_type",
-          id: "ot-1",
-          name: "Customer",
-          objectTypeKind: "entity",
-          referenceMode: "cid",
-        },
+        { kind: "object_type", id: "ot-person", name: "Person", objectTypeKind: "entity" },
+        { kind: "object_type", id: "ot-employee", name: "Employee", objectTypeKind: "entity" },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [
+        { subtypeNodeId: "ot-employee", supertypeNodeId: "ot-person", providesIdentification: true },
+      ],
+    };
+
+    const result = await layoutGraph(graph);
+    const person = result.nodes.find((n) => n.id === "ot-person")!;
+    const employee = result.nodes.find((n) => n.id === "ot-employee")!;
+
+    // Supertype (Person) should be above subtype (Employee).
+    expect(person.y + person.height).toBeLessThan(employee.y);
+
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("routes edges from entity border to role box center", async () => {
+    const result = await layoutGraph(makeBinaryGraph());
+
+    expect(result.edges).toHaveLength(2);
+    for (const edge of result.edges) {
+      expect(edge.points).toHaveLength(2);
+      // Start and end points should have valid coordinates.
+      expect(edge.points[0]!.x).toBeDefined();
+      expect(edge.points[0]!.y).toBeDefined();
+      expect(edge.points[1]!.x).toBeDefined();
+      expect(edge.points[1]!.y).toBeDefined();
+    }
+  });
+
+  it("routes subtype edges between entity borders", async () => {
+    const graph: OrmGraph = {
+      nodes: [
+        { kind: "object_type", id: "ot-super", name: "Person", objectTypeKind: "entity" },
+        { kind: "object_type", id: "ot-sub", name: "Employee", objectTypeKind: "entity" },
+      ],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [
+        { subtypeNodeId: "ot-sub", supertypeNodeId: "ot-super", providesIdentification: true },
+      ],
+    };
+
+    const result = await layoutGraph(graph);
+    expect(result.subtypeEdges).toHaveLength(1);
+    expect(result.subtypeEdges[0]!.points).toHaveLength(2);
+  });
+
+  it("handles empty graph gracefully", async () => {
+    const graph: OrmGraph = {
+      nodes: [],
+      edges: [],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+
+    const result = await layoutGraph(graph);
+    expect(result.nodes).toHaveLength(0);
+    expect(result.edges).toHaveLength(0);
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+  });
+
+  it("handles missing edge references gracefully", async () => {
+    const graph: OrmGraph = {
+      nodes: [
+        { kind: "object_type", id: "ot-1", name: "A", objectTypeKind: "entity" },
       ],
       edges: [
-        // Edge references a target node that does not exist in the layout.
         { sourceNodeId: "ot-missing", targetNodeId: "ft-missing", roleId: "r-1" },
       ],
       constraintEdges: [],
@@ -125,665 +341,195 @@ describe("ElkLayoutEngine", () => {
     };
 
     const result = await layoutGraph(graph);
-    const edge = result.edges[0]!;
-    // Neither source nor target found -> empty points array.
-    expect(edge.points).toHaveLength(0);
+    // Missing references should not produce edges.
+    expect(result.edges).toHaveLength(0);
   });
 
-  it("uses fallback straight-line routing for subtype edges when ELK returns no sections", async () => {
-    const graph: OrmGraph = {
-      nodes: [
-        {
-          kind: "object_type",
-          id: "ot-person",
-          name: "Person",
-          objectTypeKind: "entity",
-          referenceMode: "pid",
-        },
-        {
-          kind: "object_type",
-          id: "ot-employee",
-          name: "Employee",
-          objectTypeKind: "entity",
-          referenceMode: "eid",
-        },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [
-        {
-          subtypeNodeId: "ot-employee",
-          supertypeNodeId: "ot-person",
-          providesIdentification: true,
-        },
-      ],
-    };
-
-    const result = await layoutGraph(graph);
-
-    expect(result.subtypeEdges).toHaveLength(1);
-    const se = result.subtypeEdges[0]!;
-    expect(se.subtypeNodeId).toBe("ot-employee");
-    expect(se.supertypeNodeId).toBe("ot-person");
-    expect(se.providesIdentification).toBe(true);
-
-    // Fallback should produce a straight line (2 points).
-    expect(se.points).toHaveLength(2);
-    expect(se.points[0]!.x).toBeGreaterThanOrEqual(0);
-    expect(se.points[1]!.x).toBeGreaterThanOrEqual(0);
-  });
-
-  it("handles ELK returning minimal result with no children or edges", async () => {
-    // Override mock to return a bare-bones result missing children, edges, width, height.
-    mockLayoutImpl = async () => ({});
-
-    const graph: OrmGraph = {
-      nodes: [
-        {
-          kind: "object_type",
-          id: "ot-1",
-          name: "A",
-          objectTypeKind: "entity",
-        },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const result = await layoutGraph(graph);
-
-    // Node should get default 0 positions from ?? fallbacks.
-    expect(result.nodes).toHaveLength(1);
-    const node = result.nodes[0]!;
-    expect(node.x).toBe(0);
-    expect(node.y).toBe(0);
-
-    // Graph dimensions should use defaults.
-    expect(result.width).toBe(800);
-    expect(result.height).toBe(600);
-
-    // Restore default mock.
-    mockLayoutImpl = defaultMockLayout;
-  });
-
-  it("handles ELK returning nodes without position properties", async () => {
-    // Override mock to return children that lack x/y/width/height.
+  it("stacks multiple fact types between same entity pair", async () => {
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; }>) ?? [];
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
       return {
-        children: children.map((c) => ({ id: c.id })),
+        children: children.map((c, i) => ({
+          id: c.id,
+          x: i * 400,
+          y: 100,
+          width: c.width,
+          height: c.height,
+        })),
         edges: [],
-        width: 500,
+        width: 800,
         height: 400,
       };
     };
 
     const graph: OrmGraph = {
       nodes: [
-        {
-          kind: "object_type",
-          id: "ot-1",
-          name: "B",
-          objectTypeKind: "value",
-        },
-        {
-          kind: "fact_type",
-          id: "ft-1",
-          name: "B exists",
-          roles: [
-            {
-              roleId: "r-1",
-              roleName: "exists",
-              playerId: "ot-1",
-              playerName: "B",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-      ],
-      edges: [
-        { sourceNodeId: "ot-1", targetNodeId: "ft-1", roleId: "r-1" },
-      ],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const result = await layoutGraph(graph);
-
-    // Both nodes should fallback to 0 positions.
-    for (const node of result.nodes) {
-      expect(node.x).toBe(0);
-      expect(node.y).toBe(0);
-      expect(node.width).toBe(0);
-      expect(node.height).toBe(0);
-    }
-
-    // Restore default mock.
-    mockLayoutImpl = defaultMockLayout;
-  });
-
-  it("handles ELK returning edges with sections and bend points", async () => {
-    // Override mock to return edges WITH sections (the non-fallback path).
-    mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
-        ?? [];
-      const edges = (graph.edges as Array<{ id: string; }>) ?? [];
-      return {
-        children: children.map((c, i) => ({
-          id: c.id,
-          x: i * 200,
-          y: i * 100,
-          width: c.width,
-          height: c.height,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          sections: [
-            {
-              startPoint: { x: 10, y: 20 },
-              bendPoints: [{ x: 50, y: 60 }],
-              endPoint: { x: 90, y: 100 },
-            },
-          ],
-        })),
-        width: 800,
-        height: 600,
-      };
-    };
-
-    const graph: OrmGraph = {
-      nodes: [
-        {
-          kind: "object_type",
-          id: "ot-1",
-          name: "Customer",
-          objectTypeKind: "entity",
-          referenceMode: "cid",
-        },
-        {
-          kind: "fact_type",
-          id: "ft-1",
-          name: "Customer exists",
-          roles: [
-            {
-              roleId: "r-1",
-              roleName: "exists",
-              playerId: "ot-1",
-              playerName: "Customer",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-      ],
-      edges: [
-        { sourceNodeId: "ot-1", targetNodeId: "ft-1", roleId: "r-1" },
-      ],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const result = await layoutGraph(graph);
-
-    // Edge should have 3 points: start, bend, end.
-    const edge = result.edges[0]!;
-    expect(edge.points).toHaveLength(3);
-    expect(edge.points[0]).toEqual({ x: 10, y: 20 });
-    expect(edge.points[1]).toEqual({ x: 50, y: 60 });
-    expect(edge.points[2]).toEqual({ x: 90, y: 100 });
-
-    // Restore default mock.
-    mockLayoutImpl = defaultMockLayout;
-  });
-
-  it("handles ELK sections with no bend points", async () => {
-    // Override mock to return sections without bendPoints key.
-    mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
-        ?? [];
-      const edges = (graph.edges as Array<{ id: string; }>) ?? [];
-      return {
-        children: children.map((c, i) => ({
-          id: c.id,
-          x: i * 200,
-          y: i * 100,
-          width: c.width,
-          height: c.height,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          sections: [
-            {
-              startPoint: { x: 10, y: 20 },
-              endPoint: { x: 90, y: 100 },
-              // No bendPoints key at all.
-            },
-          ],
-        })),
-        width: 800,
-        height: 600,
-      };
-    };
-
-    const graph: OrmGraph = {
-      nodes: [
-        {
-          kind: "object_type",
-          id: "ot-1",
-          name: "X",
-          objectTypeKind: "entity",
-        },
-        {
-          kind: "object_type",
-          id: "ot-2",
-          name: "Y",
-          objectTypeKind: "entity",
-        },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [
-        {
-          subtypeNodeId: "ot-2",
-          supertypeNodeId: "ot-1",
-          providesIdentification: true,
-        },
-      ],
-    };
-
-    const result = await layoutGraph(graph);
-
-    // Subtype edge should have 2 points: start and end (no bends).
-    const se = result.subtypeEdges[0]!;
-    expect(se.points).toHaveLength(2);
-    expect(se.points[0]).toEqual({ x: 10, y: 20 });
-    expect(se.points[1]).toEqual({ x: 90, y: 100 });
-
-    // Restore default mock.
-    mockLayoutImpl = defaultMockLayout;
-  });
-
-  it("returns empty points for subtype edges when nodes are missing", async () => {
-    const graph: OrmGraph = {
-      nodes: [],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [
-        {
-          subtypeNodeId: "ot-missing-sub",
-          supertypeNodeId: "ot-missing-super",
-          providesIdentification: false,
-        },
-      ],
-    };
-
-    const result = await layoutGraph(graph);
-    expect(result.subtypeEdges).toHaveLength(1);
-    expect(result.subtypeEdges[0]!.points).toHaveLength(0);
-  });
-});
-
-// sortNodesByConnectivity is a pure function that does not depend on
-// elkjs, so we import it directly (outside the mock scope).
-const { sortNodesByConnectivity } = await import(
-  "../src/layout/ElkLayoutEngine.js"
-);
-
-describe("sortNodesByConnectivity", () => {
-  it("returns nodes unchanged when fewer than 3 object types", () => {
-    const graph: OrmGraph = {
-      nodes: [
-        { kind: "object_type", id: "ot-1", name: "A", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-2", name: "B", objectTypeKind: "entity" },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const result = sortNodesByConnectivity(graph);
-    expect(result).toBe(graph.nodes); // Same reference, not reordered.
-  });
-
-  it("places connected object types adjacent in order-management topology", () => {
-    // Replicate the order-management model topology:
-    //   Order -- OrderStatus  (binary)
-    //   Order -- Product -- Quantity  (ternary)
-    //   Customer -- Order  (binary)
-    //   Customer -- CustomerName  (binary)
-    //
-    // A bad initial order might be:
-    //   Product, OrderStatus, Order, Quantity, Customer, CustomerName
-    // which places Order in the middle, far from Product on the left
-    // and Customer on the right.
-    const graph: OrmGraph = {
-      nodes: [
-        // Deliberately poor initial order.
-        { kind: "object_type", id: "ot-product", name: "Product", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-status", name: "OrderStatus", objectTypeKind: "value" },
-        { kind: "object_type", id: "ot-order", name: "Order", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-qty", name: "Quantity", objectTypeKind: "value" },
-        { kind: "object_type", id: "ot-customer", name: "Customer", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-custname", name: "CustomerName", objectTypeKind: "value" },
-        // Fact types
-        {
-          kind: "fact_type",
-          id: "ft-order-status",
-          name: "Order has OrderStatus",
-          roles: [
-            {
-              roleId: "r1",
-              roleName: "has",
-              playerId: "ot-order",
-              playerName: "Order",
-              hasUniqueness: true,
-              isMandatory: false,
-            },
-            {
-              roleId: "r2",
-              roleName: "of",
-              playerId: "ot-status",
-              playerName: "OrderStatus",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-        {
-          kind: "fact_type",
-          id: "ft-order-product",
-          name: "Order contains Product in Quantity",
-          roles: [
-            {
-              roleId: "r3",
-              roleName: "contains",
-              playerId: "ot-order",
-              playerName: "Order",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r4",
-              roleName: "contained-in",
-              playerId: "ot-product",
-              playerName: "Product",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r5",
-              roleName: "in-quantity",
-              playerId: "ot-qty",
-              playerName: "Quantity",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-        {
-          kind: "fact_type",
-          id: "ft-cust-order",
-          name: "Customer places Order",
-          roles: [
-            {
-              roleId: "r6",
-              roleName: "places",
-              playerId: "ot-customer",
-              playerName: "Customer",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r7",
-              roleName: "placed-by",
-              playerId: "ot-order",
-              playerName: "Order",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-        {
-          kind: "fact_type",
-          id: "ft-cust-name",
-          name: "Customer has CustomerName",
-          roles: [
-            {
-              roleId: "r8",
-              roleName: "has",
-              playerId: "ot-customer",
-              playerName: "Customer",
-              hasUniqueness: true,
-              isMandatory: false,
-            },
-            {
-              roleId: "r9",
-              roleName: "of",
-              playerId: "ot-custname",
-              playerName: "CustomerName",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const sorted = sortNodesByConnectivity(graph);
-    const otNames = sorted
-      .filter((n) => n.kind === "object_type")
-      .map((n) => n.name);
-    const ftNames = sorted
-      .filter((n) => n.kind === "fact_type")
-      .map((n) => n.name);
-
-    // Order should be the seed (highest degree: 3 neighbors).
-    expect(otNames[0]).toBe("Order");
-
-    // Assert adjacency: connected OTs should be closer together than in
-    // the original (deliberately bad) input order. With 6 OTs and Order as
-    // a hub connecting 4 neighbors, not all pairs can be within distance 1,
-    // but total edge span should be much smaller than the worst case (5).
-    const otIndex = new Map<string, number>();
-    for (let i = 0; i < otNames.length; i++) {
-      otIndex.set(otNames[i]!, i);
-    }
-
-    const orderIdx = otIndex.get("Order")!;
-    const statusIdx = otIndex.get("OrderStatus")!;
-    const productIdx = otIndex.get("Product")!;
-    const qtyIdx = otIndex.get("Quantity")!;
-    const custIdx = otIndex.get("Customer")!;
-    const custNameIdx = otIndex.get("CustomerName")!;
-
-    // Compute total edge span: sum of distances for all fact type connections.
-    // Original bad order: Product(0), OrderStatus(1), Order(2), Quantity(3),
-    //   Customer(4), CustomerName(5)
-    //   -> spans: |2-1|=1, |2-0|+|0-3|=2+3=5(ternary spread), |4-2|=2, |4-5|=1
-    //   Total binary distances = 1+2+0+3+2+1 = 9
-    // The sorted order should produce a lower total.
-    const totalSpan = Math.abs(orderIdx - statusIdx) // Order-OrderStatus
-      + Math.abs(orderIdx - productIdx) // Order-Product
-      + Math.abs(productIdx - qtyIdx) // Product-Quantity
-      + Math.abs(orderIdx - qtyIdx) // Order-Quantity
-      + Math.abs(custIdx - orderIdx) // Customer-Order
-      + Math.abs(custIdx - custNameIdx); // Customer-CustomerName
-    // With 6 nodes, theoretical minimum total span is ~6. Assert it's
-    // well below the unsorted worst case (~15).
-    expect(totalSpan).toBeLessThanOrEqual(12);
-
-    // Customer and CustomerName should always be adjacent (only connected
-    // to each other and CustomerName has degree 1).
-    expect(Math.abs(custIdx - custNameIdx)).toBeLessThanOrEqual(2);
-
-    // Fact types should come after all object types.
-    expect(ftNames).toHaveLength(4);
-    // All 6 OTs then 4 FTs.
-    expect(sorted.slice(0, 6).every((n) => n.kind === "object_type")).toBe(true);
-    expect(sorted.slice(6).every((n) => n.kind === "fact_type")).toBe(true);
-  });
-
-  it("handles disconnected object types by appending them at the end", () => {
-    const graph: OrmGraph = {
-      nodes: [
         { kind: "object_type", id: "ot-a", name: "A", objectTypeKind: "entity" },
         { kind: "object_type", id: "ot-b", name: "B", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-c", name: "C", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-isolated", name: "Isolated", objectTypeKind: "entity" },
-        {
-          kind: "fact_type",
-          id: "ft-ab",
-          name: "A relates B",
-          roles: [
-            {
-              roleId: "r1",
-              roleName: "r1",
-              playerId: "ot-a",
-              playerName: "A",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r2",
-              roleName: "r2",
-              playerId: "ot-b",
-              playerName: "B",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-        {
-          kind: "fact_type",
-          id: "ft-bc",
-          name: "B relates C",
-          roles: [
-            {
-              roleId: "r3",
-              roleName: "r3",
-              playerId: "ot-b",
-              playerName: "B",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r4",
-              roleName: "r4",
-              playerId: "ot-c",
-              playerName: "C",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-          ],
-          hasSpanningUniqueness: false,
-        },
-      ],
-      edges: [],
-      constraintEdges: [],
-      subtypeEdges: [],
-    };
-
-    const sorted = sortNodesByConnectivity(graph);
-    const otNames = sorted
-      .filter((n) => n.kind === "object_type")
-      .map((n) => n.name);
-
-    // B has the most neighbors (A and C), so it should be the seed.
-    expect(otNames[0]).toBe("B");
-
-    // "Isolated" has no connections, should be last among OTs.
-    expect(otNames[otNames.length - 1]).toBe("Isolated");
-  });
-
-  it("preserves constraint nodes at the end of the sorted list", () => {
-    const graph: OrmGraph = {
-      nodes: [
-        { kind: "object_type", id: "ot-1", name: "A", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-2", name: "B", objectTypeKind: "entity" },
-        { kind: "object_type", id: "ot-3", name: "C", objectTypeKind: "entity" },
-        {
-          kind: "constraint",
-          id: "c-1",
-          constraintKind: "external_uniqueness",
-          roleIds: ["r1", "r3"],
-        },
         {
           kind: "fact_type",
           id: "ft-1",
-          name: "A relates B",
+          name: "A has B",
           roles: [
-            {
-              roleId: "r1",
-              roleName: "r1",
-              playerId: "ot-1",
-              playerName: "A",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r2",
-              roleName: "r2",
-              playerId: "ot-2",
-              playerName: "B",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
+            { roleId: "r1", roleName: "has", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
+            { roleId: "r2", roleName: "of", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
           ],
           hasSpanningUniqueness: false,
         },
         {
           kind: "fact_type",
           id: "ft-2",
-          name: "B relates C",
+          name: "A likes B",
           roles: [
-            {
-              roleId: "r3",
-              roleName: "r3",
-              playerId: "ot-2",
-              playerName: "B",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
-            {
-              roleId: "r4",
-              roleName: "r4",
-              playerId: "ot-3",
-              playerName: "C",
-              hasUniqueness: false,
-              isMandatory: false,
-            },
+            { roleId: "r3", roleName: "likes", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
+            { roleId: "r4", roleName: "liked-by", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
           ],
           hasSpanningUniqueness: false,
         },
       ],
-      edges: [],
+      edges: [
+        { sourceNodeId: "ot-a", targetNodeId: "ft-1", roleId: "r1" },
+        { sourceNodeId: "ot-b", targetNodeId: "ft-1", roleId: "r2" },
+        { sourceNodeId: "ot-a", targetNodeId: "ft-2", roleId: "r3" },
+        { sourceNodeId: "ot-b", targetNodeId: "ft-2", roleId: "r4" },
+      ],
       constraintEdges: [],
       subtypeEdges: [],
     };
 
-    const sorted = sortNodesByConnectivity(graph);
+    const result = await layoutGraph(graph);
+    const ft1 = result.nodes.find((n) => n.id === "ft-1")!;
+    const ft2 = result.nodes.find((n) => n.id === "ft-2")!;
 
-    // Order should be: OTs, FTs, constraint nodes.
-    const kinds = sorted.map((n) => n.kind);
-    const lastNode = sorted[sorted.length - 1]!;
-    expect(lastNode.kind).toBe("constraint");
-    expect(lastNode.id).toBe("c-1");
+    // The two fact types should be at different y positions (stacked).
+    expect(ft1.y).not.toBe(ft2.y);
 
-    // OTs should come first.
-    expect(kinds.slice(0, 3)).toEqual(["object_type", "object_type", "object_type"]);
-    // FTs next.
-    expect(kinds.slice(3, 5)).toEqual(["fact_type", "fact_type"]);
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("positions ternary fact type at centroid of three entities", async () => {
+    mockLayoutImpl = async (graph) => {
+      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+        ?? [];
+      // Place entities in a triangle.
+      const positions = [
+        { x: 200, y: 0 },
+        { x: 0, y: 300 },
+        { x: 400, y: 300 },
+      ];
+      return {
+        children: children.map((c, i) => ({
+          id: c.id,
+          x: positions[i]?.x ?? 0,
+          y: positions[i]?.y ?? 0,
+          width: c.width,
+          height: c.height,
+        })),
+        edges: [],
+        width: 600,
+        height: 500,
+      };
+    };
+
+    const graph: OrmGraph = {
+      nodes: [
+        { kind: "object_type", id: "ot-a", name: "A", objectTypeKind: "entity" },
+        { kind: "object_type", id: "ot-b", name: "B", objectTypeKind: "entity" },
+        { kind: "object_type", id: "ot-c", name: "C", objectTypeKind: "entity" },
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "A B C",
+          roles: [
+            { roleId: "r1", roleName: "r1", playerId: "ot-a", playerName: "A", hasUniqueness: false, isMandatory: false },
+            { roleId: "r2", roleName: "r2", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+            { roleId: "r3", roleName: "r3", playerId: "ot-c", playerName: "C", hasUniqueness: false, isMandatory: false },
+          ],
+          hasSpanningUniqueness: false,
+        },
+      ],
+      edges: [
+        { sourceNodeId: "ot-a", targetNodeId: "ft-1", roleId: "r1" },
+        { sourceNodeId: "ot-b", targetNodeId: "ft-1", roleId: "r2" },
+        { sourceNodeId: "ot-c", targetNodeId: "ft-1", roleId: "r3" },
+      ],
+      constraintEdges: [],
+      subtypeEdges: [],
+    };
+
+    const result = await layoutGraph(graph);
+    const ft = result.nodes.find((n) => n.id === "ft-1")!;
+    const a = result.nodes.find((n) => n.id === "ot-a")!;
+    const b = result.nodes.find((n) => n.id === "ot-b")!;
+    const c = result.nodes.find((n) => n.id === "ot-c")!;
+
+    // Fact type should be near the centroid of the three entities.
+    const centroidX = (a.x + a.width / 2 + b.x + b.width / 2 + c.x + c.width / 2) / 3;
+    const centroidY = (a.y + a.height / 2 + b.y + b.height / 2 + c.y + c.height / 2) / 3;
+    const ftCenterX = ft.x + ft.width / 2;
+    const ftCenterY = ft.y + ft.height / 2;
+
+    expect(ftCenterX).toBeCloseTo(centroidX, -1);
+    expect(ftCenterY).toBeCloseTo(centroidY, -1);
+
+    mockLayoutImpl = defaultMockLayout;
+  });
+
+  it("positions constraint node near connected roles", async () => {
+    const graph: OrmGraph = {
+      nodes: [
+        { kind: "object_type", id: "ot-a", name: "A", objectTypeKind: "entity" },
+        { kind: "object_type", id: "ot-b", name: "B", objectTypeKind: "entity" },
+        {
+          kind: "fact_type",
+          id: "ft-1",
+          name: "A has B",
+          roles: [
+            { roleId: "r1", roleName: "has", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
+            { roleId: "r2", roleName: "of", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+          ],
+          hasSpanningUniqueness: false,
+        },
+        {
+          kind: "constraint",
+          id: "c-1",
+          constraintKind: "external_uniqueness",
+          roleIds: ["r1", "r2"],
+        },
+      ],
+      edges: [
+        { sourceNodeId: "ot-a", targetNodeId: "ft-1", roleId: "r1" },
+        { sourceNodeId: "ot-b", targetNodeId: "ft-1", roleId: "r2" },
+      ],
+      constraintEdges: [
+        { constraintNodeId: "c-1", factTypeNodeId: "ft-1", roleId: "r1" },
+        { constraintNodeId: "c-1", factTypeNodeId: "ft-1", roleId: "r2" },
+      ],
+      subtypeEdges: [],
+    };
+
+    const result = await layoutGraph(graph);
+    const constraint = result.nodes.find((n) => n.id === "c-1")!;
+    const ft = result.nodes.find((n) => n.id === "ft-1")!;
+
+    // Constraint should be positioned near the fact type.
+    const ftCenterX = ft.x + ft.width / 2;
+    const ftCenterY = ft.y + ft.height / 2;
+    const cCenterX = constraint.x + constraint.width / 2;
+    const cCenterY = constraint.y + constraint.height / 2;
+
+    // Within 100px of the fact type center.
+    expect(Math.abs(cCenterX - ftCenterX)).toBeLessThan(100);
+    expect(Math.abs(cCenterY - ftCenterY)).toBeLessThan(100);
+  });
+
+  it("all positioned fact types have orientation field", async () => {
+    const result = await layoutGraph(makeBinaryGraph());
+    for (const node of result.nodes) {
+      if (node.kind === "fact_type") {
+        expect(node.orientation).toMatch(/^(horizontal|vertical)$/);
+      }
+    }
   });
 });
