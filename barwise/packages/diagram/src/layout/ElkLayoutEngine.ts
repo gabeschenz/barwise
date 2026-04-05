@@ -62,6 +62,14 @@ export interface PositionOverrides {
 }
 
 /**
+ * Manual orientation overrides for fact type nodes.
+ * Keys are fact type node IDs, values are the desired orientation.
+ */
+export interface OrientationOverrides {
+  readonly [factTypeId: string]: "horizontal" | "vertical";
+}
+
+/**
  * Use a two-pass layout to produce an entity-centric ORM diagram.
  *
  * Pass 1: Position entity types using ELK stress algorithm.
@@ -73,6 +81,7 @@ export interface PositionOverrides {
 export async function layoutGraph(
   graph: OrmGraph,
   positionOverrides?: PositionOverrides,
+  orientationOverrides?: OrientationOverrides,
 ): Promise<PositionedGraph> {
   // Pass 1: entity placement with cluster-aware two-level layout.
   const entityPositions = await layoutEntitiesWithClusters(graph);
@@ -98,7 +107,7 @@ export async function layoutGraph(
   alignLeafValueTypes(graph, entityPositions);
 
   // Pass 2: place fact types between their connected entities.
-  const factTypePositions = placeFactTypes(graph, entityPositions);
+  const factTypePositions = placeFactTypes(graph, entityPositions, orientationOverrides);
 
   // Place constraint nodes near connected roles.
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
@@ -999,6 +1008,7 @@ function alignLeafValueTypes(
 function placeFactTypes(
   graph: OrmGraph,
   entityPositions: Map<string, PositionedObjectTypeNode>,
+  orientationOverrides?: OrientationOverrides,
 ): Map<string, PositionedFactTypeNode> {
   const positions = new Map<string, PositionedFactTypeNode>();
 
@@ -1131,6 +1141,12 @@ function placeFactTypes(
         cy = 0;
         orientation = "horizontal";
       }
+    }
+
+    // Apply manual orientation override if provided.
+    const orientOverride = orientationOverrides?.[ft.id];
+    if (orientOverride) {
+      orientation = orientOverride;
     }
 
     // Compute dimensions and role box positions based on orientation.

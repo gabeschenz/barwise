@@ -1,6 +1,11 @@
 import * as path from "node:path";
 import type { OrmModel } from "@barwise/core";
-import { generateDiagram, type PositionOverrides } from "@barwise/diagram";
+import {
+  generateDiagram,
+  type OrientationOverrides,
+  type PositionOverrides,
+  type PositionedGraph,
+} from "@barwise/diagram";
 import * as vscode from "vscode";
 
 /**
@@ -16,7 +21,9 @@ export class DiagramPanel {
   private readonly panel: vscode.WebviewPanel;
   private disposed = false;
   private model: OrmModel | undefined;
+  private currentLayout: PositionedGraph | undefined;
   private positionOverrides: Record<string, { x: number; y: number }> = {};
+  private orientationOverrides: Record<string, "horizontal" | "vertical"> = {};
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -36,10 +43,55 @@ export class DiagramPanel {
     this.panel.webview.onDidReceiveMessage(
       (message: { command: string; nodeId: string; x: number; y: number }) => {
         if (message.command === "nodeMoved" && this.model) {
+          // On first drag, pin all entities at their current positions
+          // so only the dragged entity moves.
+          if (
+            Object.keys(this.positionOverrides).length === 0 &&
+            this.currentLayout
+          ) {
+            for (const node of this.currentLayout.nodes) {
+              if (node.kind === "object_type") {
+                this.positionOverrides[node.id] = {
+                  x: node.x,
+                  y: node.y,
+                };
+              }
+            }
+          }
+
           this.positionOverrides[message.nodeId] = {
             x: message.x,
             y: message.y,
           };
+          void this.rerender();
+        } else if (message.command === "toggleOrientation" && this.model) {
+          // Pin all entities on first interaction (same as drag).
+          if (
+            Object.keys(this.positionOverrides).length === 0 &&
+            this.currentLayout
+          ) {
+            for (const node of this.currentLayout.nodes) {
+              if (node.kind === "object_type") {
+                this.positionOverrides[node.id] = {
+                  x: node.x,
+                  y: node.y,
+                };
+              }
+            }
+          }
+
+          // Toggle orientation for the clicked fact type.
+          const ftId = message.nodeId;
+          const current = this.orientationOverrides[ftId];
+          // Find the current orientation from the layout.
+          const ftNode = this.currentLayout?.nodes.find(
+            (n): n is import("@barwise/diagram").PositionedFactTypeNode =>
+              n.id === ftId && n.kind === "fact_type",
+          );
+          const layoutOrientation = ftNode?.orientation ?? "horizontal";
+          const effectiveCurrent = current ?? layoutOrientation;
+          this.orientationOverrides[ftId] =
+            effectiveCurrent === "horizontal" ? "vertical" : "horizontal";
           void this.rerender();
         }
       },
@@ -54,15 +106,18 @@ export class DiagramPanel {
     svg: string,
     fileName: string,
     model?: OrmModel,
+    layout?: PositionedGraph,
   ): void {
     const column = vscode.ViewColumn.Beside;
 
     if (DiagramPanel.currentPanel) {
       DiagramPanel.currentPanel.panel.reveal(column);
       DiagramPanel.currentPanel.model = model;
+      DiagramPanel.currentPanel.currentLayout = layout;
       // Reset overrides when a new model is loaded.
       if (model) {
         DiagramPanel.currentPanel.positionOverrides = {};
+        DiagramPanel.currentPanel.orientationOverrides = {};
       }
       DiagramPanel.currentPanel.update(svg, fileName);
       return;
@@ -80,6 +135,7 @@ export class DiagramPanel {
     );
 
     DiagramPanel.currentPanel = new DiagramPanel(panel, svg, fileName, model);
+    DiagramPanel.currentPanel.currentLayout = layout;
   }
 
   /**
@@ -98,10 +154,13 @@ export class DiagramPanel {
   private async rerender(): Promise<void> {
     if (!this.model || this.disposed) return;
     try {
-      const overrides: PositionOverrides = this.positionOverrides;
+      const posOverrides: PositionOverrides = this.positionOverrides;
+      const oriOverrides: OrientationOverrides = this.orientationOverrides;
       const result = await generateDiagram(this.model, {
-        positionOverrides: overrides,
+        positionOverrides: posOverrides,
+        orientationOverrides: oriOverrides,
       });
+      this.currentLayout = result.layout;
       this.panel.webview.html = buildHtml(result.svg);
     } catch {
       // Silently ignore re-render errors during drag.
@@ -156,6 +215,7 @@ function buildHtml(svg: string): string {
       background: var(--vscode-button-hoverBackground, #106ebe);
     }
     g[data-kind="object_type"] { cursor: move; }
+    g[data-kind="fact_type"] { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -203,6 +263,17 @@ function buildHtml(svg: string): string {
       function findNodeGroup(el) {
         while (el && el !== viewport) {
           if (el.tagName === 'g' && el.getAttribute('data-kind') === 'object_type') {
+            return el;
+          }
+          el = el.parentElement;
+        }
+        return null;
+      }
+
+      // Find the closest fact_type <g> ancestor of a target element.
+      function findFactTypeGroup(el) {
+        while (el && el !== viewport) {
+          if (el.tagName === 'g' && el.getAttribute('data-kind') === 'fact_type') {
             return el;
           }
           el = el.parentElement;
@@ -302,6 +373,24 @@ function buildHtml(svg: string): string {
         dragNodeId = null;
         panning = false;
         viewport.classList.remove('node-dragging');
+      });
+
+      // Double-click on a fact type to toggle its orientation.
+      viewport.addEventListener('dblclick', function(e) {
+        var ftGroup = findFactTypeGroup(e.target);
+        if (ftGroup && vscodeApi) {
+          e.preventDefault();
+          e.stopPropagation();
+          var ftId = ftGroup.getAttribute('data-id');
+          if (ftId) {
+            vscodeApi.postMessage({
+              command: 'toggleOrientation',
+              nodeId: ftId,
+              x: 0,
+              y: 0
+            });
+          }
+        }
       });
 
       // Zoom controls.

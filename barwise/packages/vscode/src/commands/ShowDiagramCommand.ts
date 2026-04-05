@@ -30,6 +30,7 @@ export class ShowDiagramCommand {
         result.svg,
         editor.document.fileName,
         model,
+        result.layout,
       );
     } catch (err) {
       vscode.window.showErrorMessage(
