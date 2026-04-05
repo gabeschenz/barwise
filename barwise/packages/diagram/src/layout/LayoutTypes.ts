@@ -126,6 +126,10 @@ export interface PositionedGraph {
   readonly edges: readonly PositionedEdge[];
   readonly constraintEdges: readonly PositionedConstraintEdge[];
   readonly subtypeEdges: readonly PositionedSubtypeEdge[];
+  /** Minimum x coordinate of all content (for viewBox origin). */
+  readonly originX: number;
+  /** Minimum y coordinate of all content (for viewBox origin). */
+  readonly originY: number;
   readonly width: number;
   readonly height: number;
 }

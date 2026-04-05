@@ -21,6 +21,8 @@ export function renderSvg(graph: PositionedGraph): string {
   const padding = 20;
   const svgWidth = graph.width + padding * 2;
   const svgHeight = graph.height + padding * 2;
+  const viewBoxX = graph.originX - padding;
+  const viewBoxY = graph.originY - padding;
 
   const parts: string[] = [];
 
@@ -29,7 +31,7 @@ export function renderSvg(graph: PositionedGraph): string {
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" `
       + `width="${svgWidth}" height="${svgHeight}" `
-      + `viewBox="${-padding} ${-padding} ${svgWidth} ${svgHeight}" `
+      + `viewBox="${viewBoxX} ${viewBoxY} ${svgWidth} ${svgHeight}" `
       + `style="font-family: ${theme.FONT_FAMILY}; background: #fafafa;">`,
   );
 

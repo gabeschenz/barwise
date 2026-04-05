@@ -143,26 +143,31 @@ export async function layoutGraph(
     }
   }
 
-  // Always normalize: shift all nodes so coordinates are >= 0.
-  // This is a uniform translation that preserves relative positions,
-  // so it's safe even in manual override mode.
-  normalizeCoordinates(positionedNodes);
+  // Normalize only in automatic mode. In override mode the user's
+  // positions are authoritative -- normalization would shift them and
+  // cause drift between renders. The viewBox origin handles any
+  // negative or far-off coordinates instead.
+  if (!hasOverrides) {
+    normalizeCoordinates(positionedNodes);
+  }
 
   // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);
   const positionedConstraintEdges = routeConstraintEdges(graph, constraintPositions, factTypePositions);
   const positionedSubtypeEdges = routeSubtypeEdges(graph, entityPositions);
 
-  // Compute bounding box.
-  const { width, height } = computeBounds(positionedNodes, positionedEdges, positionedSubtypeEdges);
+  // Compute bounding box (includes origin for viewBox positioning).
+  const bounds = computeBounds(positionedNodes, positionedEdges, positionedSubtypeEdges);
 
   return {
     nodes: positionedNodes,
     edges: positionedEdges,
     constraintEdges: positionedConstraintEdges,
     subtypeEdges: positionedSubtypeEdges,
-    width,
-    height,
+    originX: bounds.originX,
+    originY: bounds.originY,
+    width: bounds.width,
+    height: bounds.height,
   };
 }
 
@@ -1742,7 +1747,7 @@ function computeBounds(
   nodes: readonly PositionedNode[],
   edges: readonly PositionedEdge[],
   subtypeEdges: readonly PositionedSubtypeEdge[],
-): { width: number; height: number } {
+): { originX: number; originY: number; width: number; height: number } {
   const PADDING = 40;
   let minX = Infinity;
   let minY = Infinity;
@@ -1775,10 +1780,12 @@ function computeBounds(
   }
 
   if (!isFinite(minX)) {
-    return { width: 800, height: 600 };
+    return { originX: 0, originY: 0, width: 800, height: 600 };
   }
 
   return {
+    originX: minX - PADDING,
+    originY: minY - PADDING,
     width: maxX - minX + 2 * PADDING,
     height: maxY - minY + 2 * PADDING,
   };
