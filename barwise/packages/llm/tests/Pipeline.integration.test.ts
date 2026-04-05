@@ -167,8 +167,10 @@ describe("Full pipeline integration", () => {
         expect(diagram.svg).toContain("<svg");
         expect(diagram.svg).toContain("</svg>");
 
-        // Should have positioned all nodes.
-        expect(diagram.layout.nodes.length).toBe(
+        // Should have positioned nodes (absorbed reference mode nodes
+        // are excluded from the graph, so count may be less than total).
+        expect(diagram.layout.nodes.length).toBeGreaterThan(0);
+        expect(diagram.layout.nodes.length).toBeLessThanOrEqual(
           model.objectTypes.length + model.factTypes.length,
         );
 

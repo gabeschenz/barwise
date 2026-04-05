@@ -54,8 +54,48 @@ export function modelToGraph(
   const constraintEdges: ConstraintEdge[] = [];
   const subtypeEdges: SubtypeEdge[] = [];
 
-  // Create object type nodes.
+  // Identify absorbed reference mode patterns: when an entity type has a
+  // reference mode, its identifying value type and identifying fact type
+  // are shown as "EntityName (.ref_mode)" on the entity node, not as
+  // separate nodes and edges on the diagram.
+  const absorbedValueTypeIds = new Set<string>();
+  const absorbedFactTypeIds = new Set<string>();
+
   for (const ot of model.objectTypes) {
+    if (ot.kind !== "entity" || !ot.referenceMode) continue;
+
+    // Find fact types with is_preferred uniqueness connecting this entity
+    // to a value type.
+    for (const ft of model.factTypes) {
+      if (ft.arity !== 2) continue;
+
+      const hasPreferred = ft.constraints.some(
+        (c) => c.type === "internal_uniqueness" && c.isPreferred,
+      );
+      if (!hasPreferred) continue;
+
+      // Check if this fact type connects our entity to a value type.
+      const role0Player = model.getObjectType(ft.roles[0]!.playerId);
+      const role1Player = model.getObjectType(ft.roles[1]!.playerId);
+      if (!role0Player || !role1Player) continue;
+
+      let valueTypeId: string | undefined;
+      if (role0Player.id === ot.id && role1Player.kind === "value") {
+        valueTypeId = role1Player.id;
+      } else if (role1Player.id === ot.id && role0Player.kind === "value") {
+        valueTypeId = role0Player.id;
+      }
+
+      if (valueTypeId) {
+        absorbedValueTypeIds.add(valueTypeId);
+        absorbedFactTypeIds.add(ft.id);
+      }
+    }
+  }
+
+  // Create object type nodes (skip absorbed value types).
+  for (const ot of model.objectTypes) {
+    if (absorbedValueTypeIds.has(ot.id)) continue;
     const otAnnotations = annotationMap?.get(ot.id);
     nodes.push({
       kind: "object_type",
@@ -77,8 +117,9 @@ export function modelToGraph(
     }
   }
 
-  // Create fact type nodes and edges.
+  // Create fact type nodes and edges (skip absorbed identification facts).
   for (const ft of model.factTypes) {
+    if (absorbedFactTypeIds.has(ft.id)) continue;
     // Determine which roles have single-role internal uniqueness.
     const singleRoleUniqueIds = new Set<string>();
     let hasSpanning = false;
@@ -209,6 +250,7 @@ export function modelToGraph(
   }
 
   for (const ft of model.factTypes) {
+    if (absorbedFactTypeIds.has(ft.id)) continue;
     for (const c of ft.constraints) {
       switch (c.type) {
         case "external_uniqueness":
