@@ -403,10 +403,27 @@ function buildHtml(svg: string): string {
         applyTransform();
       });
       document.getElementById('resetView').addEventListener('click', function() {
-        scale = 1;
-        panX = 0;
-        panY = 0;
+        // Fit the diagram to the viewport.
+        var svg = diagram.querySelector('svg');
+        if (svg) {
+          var vw = viewport.clientWidth;
+          var vh = viewport.clientHeight;
+          var sw = parseFloat(svg.getAttribute('width')) || vw;
+          var sh = parseFloat(svg.getAttribute('height')) || vh;
+          scale = Math.min(vw / sw, vh / sh) * 0.95; // 5% margin
+          panX = (vw - sw * scale) / 2;
+          panY = (vh - sh * scale) / 2;
+        } else {
+          scale = 1;
+          panX = 0;
+          panY = 0;
+        }
         applyTransform();
+      });
+
+      // Auto-fit on initial load.
+      requestAnimationFrame(function() {
+        document.getElementById('resetView').click();
       });
     })();
   </script>
