@@ -143,11 +143,10 @@ export async function layoutGraph(
     }
   }
 
-  // Skip normalization in manual mode so nodes stay exactly where
-  // the user placed them.
-  if (!hasOverrides) {
-    normalizeCoordinates(positionedNodes);
-  }
+  // Always normalize: shift all nodes so coordinates are >= 0.
+  // This is a uniform translation that preserves relative positions,
+  // so it's safe even in manual override mode.
+  normalizeCoordinates(positionedNodes);
 
   // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);

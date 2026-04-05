@@ -403,16 +403,23 @@ function buildHtml(svg: string): string {
         applyTransform();
       });
       document.getElementById('resetView').addEventListener('click', function() {
-        // Fit the diagram to the viewport.
+        // Fit the diagram to the viewport by computing the actual
+        // bounding box of all SVG content, then scaling and positioning
+        // so the top-left corner aligns with the viewport's top-left.
         var svg = diagram.querySelector('svg');
         if (svg) {
           var vw = viewport.clientWidth;
           var vh = viewport.clientHeight;
-          var sw = parseFloat(svg.getAttribute('width')) || vw;
-          var sh = parseFloat(svg.getAttribute('height')) || vh;
-          scale = Math.min(vw / sw, vh / sh) * 0.95; // 5% margin
-          panX = (vw - sw * scale) / 2;
-          panY = (vh - sh * scale) / 2;
+          // Use getBBox to get the actual rendered content bounds,
+          // which accounts for all elements regardless of viewBox.
+          var bbox = svg.getBBox();
+          var sw = bbox.width || 1;
+          var sh = bbox.height || 1;
+          var margin = 20;
+          scale = Math.min((vw - 2 * margin) / sw, (vh - 2 * margin) / sh);
+          // Position so the content's top-left aligns with viewport top-left + margin.
+          panX = margin - bbox.x * scale;
+          panY = margin - bbox.y * scale;
         } else {
           scale = 1;
           panX = 0;
