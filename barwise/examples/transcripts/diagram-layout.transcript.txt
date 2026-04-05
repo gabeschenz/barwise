@@ -2,9 +2,6 @@ Diagram Layout Model
 
 Entity Types:
 - Each DiagramElement is identified by an element ID.
-- Each EntityNode is identified by a node ID.
-- Each FactTypeNode is identified by a node ID.
-- Each ConstraintNode is identified by a node ID.
 - Each Cluster is identified by a cluster ID.
 - Each Position has an x-coordinate and a y-coordinate.
 - Each Direction has an angle in radians.
