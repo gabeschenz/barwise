@@ -51,14 +51,41 @@ function getElk(): ELK {
 // ---------------------------------------------------------------------------
 
 /**
+ * Optional position overrides for entity nodes.
+ * Keys are entity node IDs, values are {x, y} positions.
+ * When provided, the layout engine uses these positions instead of
+ * computing them via ELK, then re-runs fact type placement and edge
+ * routing around the fixed positions.
+ */
+export interface PositionOverrides {
+  readonly [nodeId: string]: { readonly x: number; readonly y: number };
+}
+
+/**
  * Use a two-pass layout to produce an entity-centric ORM diagram.
  *
  * Pass 1: Position entity types using ELK stress algorithm.
  * Pass 2: Place fact types geometrically between their connected entities.
+ *
+ * If positionOverrides are provided, those entities are pinned at the
+ * given coordinates after Pass 1 (overriding ELK's placement).
  */
-export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
+export async function layoutGraph(
+  graph: OrmGraph,
+  positionOverrides?: PositionOverrides,
+): Promise<PositionedGraph> {
   // Pass 1: entity placement with cluster-aware two-level layout.
   const entityPositions = await layoutEntitiesWithClusters(graph);
+
+  // Apply any manual position overrides.
+  if (positionOverrides) {
+    for (const [nodeId, pos] of Object.entries(positionOverrides)) {
+      const existing = entityPositions.get(nodeId);
+      if (existing) {
+        entityPositions.set(nodeId, { ...existing, x: pos.x, y: pos.y });
+      }
+    }
+  }
 
   // Compute per-entity connection counts for subtype placement decisions.
   const connectionCounts = buildConnectionCounts(graph);

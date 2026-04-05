@@ -1,7 +1,7 @@
 import type { OrmModel } from "@barwise/core";
 import type { OrmGraph } from "./graph/GraphTypes.js";
 import { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
-import { layoutGraph } from "./layout/ElkLayoutEngine.js";
+import { layoutGraph, type PositionOverrides } from "./layout/ElkLayoutEngine.js";
 import type { PositionedGraph } from "./layout/LayoutTypes.js";
 import { renderSvg } from "./render/SvgRenderer.js";
 
@@ -21,7 +21,10 @@ export interface DiagramResult {
 /**
  * Options for diagram generation.
  */
-export type DiagramOptions = ModelToGraphOptions;
+export interface DiagramOptions extends ModelToGraphOptions {
+  /** Manual position overrides for entity nodes (from drag). */
+  readonly positionOverrides?: PositionOverrides;
+}
 
 /**
  * Generate a complete ORM diagram from a model.
@@ -34,7 +37,7 @@ export async function generateDiagram(
   options?: DiagramOptions,
 ): Promise<DiagramResult> {
   const graph = modelToGraph(model, options);
-  const layout = await layoutGraph(graph);
+  const layout = await layoutGraph(graph, options?.positionOverrides);
   const svg = renderSvg(layout);
   return { svg, layout, graph };
 }

@@ -1,29 +1,49 @@
 import * as path from "node:path";
+import type { OrmModel } from "@barwise/core";
+import { generateDiagram, type PositionOverrides } from "@barwise/diagram";
 import * as vscode from "vscode";
 
 /**
  * Manages the ORM diagram webview panel.
  *
  * The panel displays a generated SVG diagram of the active .orm.yaml
- * model. It supports pan and zoom via mouse wheel and drag.
+ * model. It supports pan, zoom, and drag-to-reposition entity nodes.
+ * When an entity is dragged, fact types and edges are re-routed around
+ * the new position.
  */
 export class DiagramPanel {
   private static currentPanel: DiagramPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private disposed = false;
+  private model: OrmModel | undefined;
+  private positionOverrides: Record<string, { x: number; y: number }> = {};
 
   private constructor(
     panel: vscode.WebviewPanel,
     svg: string,
     fileName: string,
+    model?: OrmModel,
   ) {
     this.panel = panel;
+    this.model = model;
     this.update(svg, fileName);
 
     this.panel.onDidDispose(() => {
       this.disposed = true;
       DiagramPanel.currentPanel = undefined;
     });
+
+    this.panel.webview.onDidReceiveMessage(
+      (message: { command: string; nodeId: string; x: number; y: number }) => {
+        if (message.command === "nodeMoved" && this.model) {
+          this.positionOverrides[message.nodeId] = {
+            x: message.x,
+            y: message.y,
+          };
+          void this.rerender();
+        }
+      },
+    );
   }
 
   /**
@@ -33,11 +53,17 @@ export class DiagramPanel {
     extensionUri: vscode.Uri,
     svg: string,
     fileName: string,
+    model?: OrmModel,
   ): void {
     const column = vscode.ViewColumn.Beside;
 
     if (DiagramPanel.currentPanel) {
       DiagramPanel.currentPanel.panel.reveal(column);
+      DiagramPanel.currentPanel.model = model;
+      // Reset overrides when a new model is loaded.
+      if (model) {
+        DiagramPanel.currentPanel.positionOverrides = {};
+      }
       DiagramPanel.currentPanel.update(svg, fileName);
       return;
     }
@@ -53,7 +79,7 @@ export class DiagramPanel {
       },
     );
 
-    DiagramPanel.currentPanel = new DiagramPanel(panel, svg, fileName);
+    DiagramPanel.currentPanel = new DiagramPanel(panel, svg, fileName, model);
   }
 
   /**
@@ -64,6 +90,22 @@ export class DiagramPanel {
     const baseName = path.basename(fileName, ".orm.yaml");
     this.panel.title = `Diagram: ${baseName}`;
     this.panel.webview.html = buildHtml(svg);
+  }
+
+  /**
+   * Re-generate the diagram with current position overrides.
+   */
+  private async rerender(): Promise<void> {
+    if (!this.model || this.disposed) return;
+    try {
+      const overrides: PositionOverrides = this.positionOverrides;
+      const result = await generateDiagram(this.model, {
+        positionOverrides: overrides,
+      });
+      this.panel.webview.html = buildHtml(result.svg);
+    } catch {
+      // Silently ignore re-render errors during drag.
+    }
   }
 }
 
@@ -89,6 +131,7 @@ function buildHtml(svg: string): string {
       overflow: hidden;
     }
     #viewport:active { cursor: grabbing; }
+    #viewport.node-dragging { cursor: move; }
     #diagram {
       transform-origin: 0 0;
     }
@@ -112,6 +155,7 @@ function buildHtml(svg: string): string {
     #controls button:hover {
       background: var(--vscode-button-hoverBackground, #106ebe);
     }
+    g[data-kind="object_type"] { cursor: move; }
   </style>
 </head>
 <body>
@@ -127,52 +171,137 @@ function buildHtml(svg: string): string {
   </div>
   <script>
     (function() {
-      const viewport = document.getElementById('viewport');
-      const diagram = document.getElementById('diagram');
-      let scale = 1;
-      let panX = 0;
-      let panY = 0;
-      let dragging = false;
-      let lastX = 0;
-      let lastY = 0;
+      var vscodeApi = (typeof acquireVsCodeApi === 'function')
+        ? acquireVsCodeApi() : null;
+
+      var viewport = document.getElementById('viewport');
+      var diagram = document.getElementById('diagram');
+      var scale = 1;
+      var panX = 0;
+      var panY = 0;
+
+      // Viewport panning state.
+      var panning = false;
+      var panLastX = 0;
+      var panLastY = 0;
+
+      // Node dragging state.
+      var dragNode = null;     // The <g> element being dragged
+      var dragNodeId = null;   // data-id of the dragged node
+      var dragStartX = 0;      // Mouse position at drag start (client coords)
+      var dragStartY = 0;
+      var dragOffsetX = 0;     // Accumulated drag offset in SVG coords
+      var dragOffsetY = 0;
+      var dragOrigTransform = '';  // Original transform of the node
 
       function applyTransform() {
         diagram.style.transform =
           'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
       }
 
+      // Find the closest object_type <g> ancestor of a target element.
+      function findNodeGroup(el) {
+        while (el && el !== viewport) {
+          if (el.tagName === 'g' && el.getAttribute('data-kind') === 'object_type') {
+            return el;
+          }
+          el = el.parentElement;
+        }
+        return null;
+      }
+
+      // Parse the original position of a node from its first child element.
+      function getNodePosition(g) {
+        var rect = g.querySelector('rect, ellipse');
+        if (!rect) return { x: 0, y: 0 };
+        if (rect.tagName === 'ellipse') {
+          return {
+            x: parseFloat(rect.getAttribute('cx')) - parseFloat(rect.getAttribute('rx')),
+            y: parseFloat(rect.getAttribute('cy')) - parseFloat(rect.getAttribute('ry'))
+          };
+        }
+        return {
+          x: parseFloat(rect.getAttribute('x')),
+          y: parseFloat(rect.getAttribute('y'))
+        };
+      }
+
       // Mouse wheel zoom.
       viewport.addEventListener('wheel', function(e) {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newScale = Math.min(5, Math.max(0.1, scale * delta));
+        var delta = e.deltaY > 0 ? 0.9 : 1.1;
+        var newScale = Math.min(5, Math.max(0.1, scale * delta));
 
-        // Zoom toward cursor position.
-        const rect = viewport.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+        var rect = viewport.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
         panX = mx - (mx - panX) * (newScale / scale);
         panY = my - (my - panY) * (newScale / scale);
         scale = newScale;
         applyTransform();
       }, { passive: false });
 
-      // Pan via drag.
+      // Mousedown: check if on a node or viewport.
       viewport.addEventListener('mousedown', function(e) {
-        dragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
+        var nodeGroup = findNodeGroup(e.target);
+
+        if (nodeGroup) {
+          // Start node drag.
+          e.stopPropagation();
+          dragNode = nodeGroup;
+          dragNodeId = nodeGroup.getAttribute('data-id');
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+          dragOffsetX = 0;
+          dragOffsetY = 0;
+          dragOrigTransform = nodeGroup.getAttribute('transform') || '';
+          viewport.classList.add('node-dragging');
+        } else {
+          // Start viewport pan.
+          panning = true;
+          panLastX = e.clientX;
+          panLastY = e.clientY;
+        }
       });
+
       window.addEventListener('mousemove', function(e) {
-        if (!dragging) return;
-        panX += e.clientX - lastX;
-        panY += e.clientY - lastY;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        applyTransform();
+        if (dragNode) {
+          // Node dragging: translate the node group in SVG coordinates.
+          var dx = (e.clientX - dragStartX) / scale;
+          var dy = (e.clientY - dragStartY) / scale;
+          dragOffsetX = dx;
+          dragOffsetY = dy;
+          dragNode.setAttribute('transform',
+            dragOrigTransform + ' translate(' + dx + ',' + dy + ')');
+        } else if (panning) {
+          // Viewport panning.
+          panX += e.clientX - panLastX;
+          panY += e.clientY - panLastY;
+          panLastX = e.clientX;
+          panLastY = e.clientY;
+          applyTransform();
+        }
       });
+
       window.addEventListener('mouseup', function() {
-        dragging = false;
+        if (dragNode && dragNodeId && vscodeApi) {
+          // Compute final position in SVG coordinates.
+          var origPos = getNodePosition(dragNode);
+          var finalX = origPos.x + dragOffsetX;
+          var finalY = origPos.y + dragOffsetY;
+
+          vscodeApi.postMessage({
+            command: 'nodeMoved',
+            nodeId: dragNodeId,
+            x: finalX,
+            y: finalY
+          });
+        }
+
+        dragNode = null;
+        dragNodeId = null;
+        panning = false;
+        viewport.classList.remove('node-dragging');
       });
 
       // Zoom controls.

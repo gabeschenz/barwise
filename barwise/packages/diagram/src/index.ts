@@ -15,7 +15,7 @@ export type {
 export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
 
 // Layout types and engine.
-export { layoutGraph } from "./layout/ElkLayoutEngine.js";
+export { layoutGraph, type PositionOverrides } from "./layout/ElkLayoutEngine.js";
 export type {
   Dimensions,
   FactTypeOrientation,

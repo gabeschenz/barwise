@@ -22,18 +22,19 @@ export class ShowDiagramCommand {
     }
 
     const text = editor.document.getText();
-    let svg: string;
     try {
       const model = serializer.deserialize(text);
       const result = await generateDiagram(model);
-      svg = result.svg;
+      DiagramPanel.createOrShow(
+        this.extensionUri,
+        result.svg,
+        editor.document.fileName,
+        model,
+      );
     } catch (err) {
       vscode.window.showErrorMessage(
         `Failed to generate diagram: ${(err as Error).message}`,
       );
-      return;
     }
-
-    DiagramPanel.createOrShow(this.extensionUri, svg, editor.document.fileName);
   }
 }

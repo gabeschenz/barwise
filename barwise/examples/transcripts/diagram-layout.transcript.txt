@@ -32,8 +32,10 @@ Subtype Layout Facts:
 Fact Type Placement Facts:
 - Each FactTypeNode connects two or more EntityNodes.
 - Each binary FactTypeNode is positioned at the midpoint between its two connected EntityNodes.
-- Each FactTypeNode has an orientation of either horizontal or vertical.
+- Each FactTypeNode has an orientation of either horizontal or vertical (exclusive).
 - The orientation is horizontal when the horizontal distance between connected entities is greater than or equal to the vertical distance.
+- For each horizontal FactTypeNode, at least one connected EntityNode has the same y-coordinate as the FactTypeNode.
+- For each vertical FactTypeNode, at least one connected EntityNode has the same x-coordinate as the FactTypeNode.
 
 Leaf Value Type Facts:
 - A LeafValueType is an EntityNode that participates in exactly one FactTypeNode.
