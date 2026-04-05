@@ -1160,8 +1160,29 @@ function placeFactTypes(
       orientation = orientOverride;
     }
 
+    // For binary fact types, sort roles so that the role whose player is
+    // spatially first (left for horizontal, top for vertical) gets slot 0.
+    // This prevents edges from crossing over the fact type strip.
+    let orderedRoles = ft.roles;
+    if (ft.roles.length === 2) {
+      const posA = entityPositions.get(ft.roles[0]!.playerId);
+      const posB = entityPositions.get(ft.roles[1]!.playerId);
+      if (posA && posB) {
+        const acx = posA.x + posA.width / 2;
+        const acy = posA.y + posA.height / 2;
+        const bcx = posB.x + posB.width / 2;
+        const bcy = posB.y + posB.height / 2;
+        const shouldSwap = orientation === "horizontal"
+          ? acx > bcx   // role 0's player should be further left
+          : acy > bcy;  // role 0's player should be further up
+        if (shouldSwap) {
+          orderedRoles = [ft.roles[1]!, ft.roles[0]!];
+        }
+      }
+    }
+
     // Compute dimensions and role box positions based on orientation.
-    const roleCount = ft.roles.length;
+    const roleCount = orderedRoles.length;
     let ftWidth: number;
     let ftHeight: number;
     const roles: PositionedRoleBox[] = [];
@@ -1170,7 +1191,7 @@ function placeFactTypes(
       ftWidth = roleCount * ROLE_BOX_WIDTH;
       ftHeight = ROLE_BOX_HEIGHT;
       for (let i = 0; i < roleCount; i++) {
-        const role = ft.roles[i]!;
+        const role = orderedRoles[i]!;
         roles.push({
           roleId: role.roleId,
           roleName: role.roleName,
@@ -1189,7 +1210,7 @@ function placeFactTypes(
       ftWidth = ROLE_BOX_HEIGHT; // swapped
       ftHeight = roleCount * ROLE_BOX_WIDTH; // swapped
       for (let i = 0; i < roleCount; i++) {
-        const role = ft.roles[i]!;
+        const role = orderedRoles[i]!;
         roles.push({
           roleId: role.roleId,
           roleName: role.roleName,
