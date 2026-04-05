@@ -17,24 +17,17 @@ model:
     - id: 77574463-7059-436b-afef-81d4e71fea85
       name: EntityNode
       kind: entity
-      reference_mode: node_id
+      reference_mode: element_id
       definition: A diagram element representing an entity type in the conceptual model.
-    - id: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
-      name: NodeId
-      kind: value
-      definition: The unique identifier for a node (EntityNode, FactTypeNode, or ConstraintNode).
-      data_type:
-        name: text
-        length: 50
     - id: e401b92d-36f0-4fe7-800a-cad2f046392f
       name: FactTypeNode
       kind: entity
-      reference_mode: node_id
+      reference_mode: element_id
       definition: A diagram element representing a fact type in the conceptual model.
     - id: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
       name: ConstraintNode
       kind: entity
-      reference_mode: node_id
+      reference_mode: element_id
       definition: A diagram element representing a constraint in the conceptual model.
     - id: dd031071-b7d2-4c02-922e-cc528771b4cd
       name: Cluster
@@ -150,72 +143,6 @@ model:
             - 9e8c7350-8d3d-4d81-b664-ec3c675c4760
         - type: mandatory
           role: ddaf8557-9118-4ff5-9607-9a51e70a408c
-    - id: eaa67cd8-7b66-4b70-8b5d-32bf2d35b7cb
-      name: EntityNode has NodeId
-      roles:
-        - id: 9cbb860d-0e24-4e21-bc37-fb60de109e53
-          player: 77574463-7059-436b-afef-81d4e71fea85
-          role_name: has
-        - id: eda7353c-1e98-4fff-a8bf-5dcd48ac92d0
-          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
-          role_name: identifies
-      readings:
-        - "{0} has {1}"
-        - "{1} identifies {0}"
-      constraints:
-        - type: internal_uniqueness
-          roles:
-            - 9cbb860d-0e24-4e21-bc37-fb60de109e53
-          is_preferred: true
-        - type: internal_uniqueness
-          roles:
-            - eda7353c-1e98-4fff-a8bf-5dcd48ac92d0
-        - type: mandatory
-          role: 9cbb860d-0e24-4e21-bc37-fb60de109e53
-    - id: cc940a25-7ac7-447c-a452-396b5a3d8f0d
-      name: FactTypeNode has NodeId
-      roles:
-        - id: 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
-          player: e401b92d-36f0-4fe7-800a-cad2f046392f
-          role_name: has
-        - id: b8be8808-e406-4f95-8b40-b16d66fa7c9d
-          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
-          role_name: identifies
-      readings:
-        - "{0} has {1}"
-        - "{1} identifies {0}"
-      constraints:
-        - type: internal_uniqueness
-          roles:
-            - 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
-          is_preferred: true
-        - type: internal_uniqueness
-          roles:
-            - b8be8808-e406-4f95-8b40-b16d66fa7c9d
-        - type: mandatory
-          role: 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
-    - id: debea991-3d4f-4663-9ab8-7f37bc7f150d
-      name: ConstraintNode has NodeId
-      roles:
-        - id: d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
-          player: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
-          role_name: has
-        - id: 126bdddf-99fc-473b-9fae-1fe849de5a4f
-          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
-          role_name: identifies
-      readings:
-        - "{0} has {1}"
-        - "{1} identifies {0}"
-      constraints:
-        - type: internal_uniqueness
-          roles:
-            - d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
-          is_preferred: true
-        - type: internal_uniqueness
-          roles:
-            - 126bdddf-99fc-473b-9fae-1fe849de5a4f
-        - type: mandatory
-          role: d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
     - id: f308fb7e-197b-4339-8c16-39bf083687bf
       name: Cluster has ClusterId
       roles:
@@ -550,12 +477,12 @@ model:
     - id: e9eaa6a7-51b7-4cd8-9640-4000c81cb41d
       subtype: 77574463-7059-436b-afef-81d4e71fea85
       supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
-      provides_identification: false
+      provides_identification: true
     - id: d5d8c7b1-07cb-4ad5-8e18-4fe1715c1b9a
       subtype: e401b92d-36f0-4fe7-800a-cad2f046392f
       supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
-      provides_identification: false
+      provides_identification: true
     - id: 42f6a223-3a64-402b-a9b8-c6d516855ca4
       subtype: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
       supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
-      provides_identification: false
+      provides_identification: true
