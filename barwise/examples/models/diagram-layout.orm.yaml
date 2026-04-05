@@ -1,0 +1,561 @@
+orm_version: "1.0"
+model:
+  name: Diagram Layout Rules
+  object_types:
+    - id: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+      name: DiagramElement
+      kind: entity
+      reference_mode: element_id
+      definition: A visual component in the diagram, such as an entity node, fact type node, or constraint node.
+    - id: c0964759-409f-4c79-9e29-8c4a409e191b
+      name: ElementId
+      kind: value
+      definition: The unique identifier for a diagram element.
+      data_type:
+        name: text
+        length: 50
+    - id: 77574463-7059-436b-afef-81d4e71fea85
+      name: EntityNode
+      kind: entity
+      reference_mode: node_id
+      definition: A diagram element representing an entity type in the conceptual model.
+    - id: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
+      name: NodeId
+      kind: value
+      definition: The unique identifier for a node (EntityNode, FactTypeNode, or ConstraintNode).
+      data_type:
+        name: text
+        length: 50
+    - id: e401b92d-36f0-4fe7-800a-cad2f046392f
+      name: FactTypeNode
+      kind: entity
+      reference_mode: node_id
+      definition: A diagram element representing a fact type in the conceptual model.
+    - id: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
+      name: ConstraintNode
+      kind: entity
+      reference_mode: node_id
+      definition: A diagram element representing a constraint in the conceptual model.
+    - id: dd031071-b7d2-4c02-922e-cc528771b4cd
+      name: Cluster
+      kind: entity
+      reference_mode: cluster_id
+      definition: A grouping of entity nodes that are more densely connected to each other than to nodes in other clusters.
+    - id: 1bc4787d-2db0-4aec-b03c-efc2ab57a6c5
+      name: ClusterId
+      kind: value
+      definition: The unique identifier for a cluster.
+      data_type:
+        name: text
+        length: 50
+    - id: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+      name: Position
+      kind: entity
+      reference_mode: position_id
+      definition: A two-dimensional coordinate location with x and y values.
+    - id: 038f71a0-d1a2-4e09-a42a-95fac722cce5
+      name: PositionId
+      kind: value
+      definition: The unique identifier for a position.
+      data_type:
+        name: text
+        length: 50
+    - id: cb4fa273-60f1-481d-b590-2b63feb06399
+      name: XCoordinate
+      kind: value
+      definition: The horizontal coordinate component of a position.
+      data_type:
+        name: decimal
+        length: 10
+        scale: 2
+    - id: cdf94831-53f1-4624-88e5-4cb0884a367d
+      name: YCoordinate
+      kind: value
+      definition: The vertical coordinate component of a position.
+      data_type:
+        name: decimal
+        length: 10
+        scale: 2
+    - id: f44ea357-5bfa-44b2-a566-877c4da709eb
+      name: Direction
+      kind: entity
+      reference_mode: direction_id
+      definition: An orientation in two-dimensional space, measured as an angle in radians.
+    - id: c6b6a6cb-af56-4569-9931-ef87d57a551a
+      name: DirectionId
+      kind: value
+      definition: The unique identifier for a direction.
+      data_type:
+        name: text
+        length: 50
+    - id: 2e662fb4-7b62-4af2-8037-7b132228d28e
+      name: Angle
+      kind: value
+      definition: The angle measurement of a direction in radians.
+      data_type:
+        name: decimal
+        length: 10
+        scale: 6
+    - id: 53cc515b-4a74-4c42-b04e-10f79c7e5aac
+      name: Distance
+      kind: value
+      definition: A non-negative numerical measurement of separation.
+      data_type:
+        name: decimal
+        length: 10
+        scale: 2
+    - id: cff78392-edd0-4092-b223-aa8b93317dd7
+      name: Diagram
+      kind: entity
+      reference_mode: diagram_id
+      definition: The overall diagram container representing the entire visual layout.
+    - id: 64fc82a0-fb8d-4104-b0bc-c5c829ba8fde
+      name: DiagramId
+      kind: value
+      definition: The unique identifier for a diagram.
+      data_type:
+        name: text
+        length: 50
+    - id: e020d106-43af-40e4-875e-fbfc1a2fecb2
+      name: Orientation
+      kind: value
+      definition: The layout direction of a fact type node, either horizontal or vertical.
+      value_constraint:
+        values:
+          - horizontal
+          - vertical
+      data_type:
+        name: text
+        length: 20
+  fact_types:
+    - id: 02936e76-9214-4297-a9cd-079b270f337a
+      name: DiagramElement has ElementId
+      roles:
+        - id: ddaf8557-9118-4ff5-9607-9a51e70a408c
+          player: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+          role_name: has
+        - id: 9e8c7350-8d3d-4d81-b664-ec3c675c4760
+          player: c0964759-409f-4c79-9e29-8c4a409e191b
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - ddaf8557-9118-4ff5-9607-9a51e70a408c
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 9e8c7350-8d3d-4d81-b664-ec3c675c4760
+        - type: mandatory
+          role: ddaf8557-9118-4ff5-9607-9a51e70a408c
+    - id: eaa67cd8-7b66-4b70-8b5d-32bf2d35b7cb
+      name: EntityNode has NodeId
+      roles:
+        - id: 9cbb860d-0e24-4e21-bc37-fb60de109e53
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: has
+        - id: eda7353c-1e98-4fff-a8bf-5dcd48ac92d0
+          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 9cbb860d-0e24-4e21-bc37-fb60de109e53
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - eda7353c-1e98-4fff-a8bf-5dcd48ac92d0
+        - type: mandatory
+          role: 9cbb860d-0e24-4e21-bc37-fb60de109e53
+    - id: cc940a25-7ac7-447c-a452-396b5a3d8f0d
+      name: FactTypeNode has NodeId
+      roles:
+        - id: 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
+          player: e401b92d-36f0-4fe7-800a-cad2f046392f
+          role_name: has
+        - id: b8be8808-e406-4f95-8b40-b16d66fa7c9d
+          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - b8be8808-e406-4f95-8b40-b16d66fa7c9d
+        - type: mandatory
+          role: 968ea2c4-57c6-44c5-9ec1-dc41c4e69c42
+    - id: debea991-3d4f-4663-9ab8-7f37bc7f150d
+      name: ConstraintNode has NodeId
+      roles:
+        - id: d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
+          player: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
+          role_name: has
+        - id: 126bdddf-99fc-473b-9fae-1fe849de5a4f
+          player: 9e4590a0-cb11-4e94-b5d2-da3b16f31270
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 126bdddf-99fc-473b-9fae-1fe849de5a4f
+        - type: mandatory
+          role: d0ddfeee-afa9-46b2-84ca-4745c1ca82fe
+    - id: f308fb7e-197b-4339-8c16-39bf083687bf
+      name: Cluster has ClusterId
+      roles:
+        - id: 2a9571f5-2535-4813-aa44-e4a29713ea75
+          player: dd031071-b7d2-4c02-922e-cc528771b4cd
+          role_name: has
+        - id: 41b45d60-cfae-461c-aa9a-716a611d85c5
+          player: 1bc4787d-2db0-4aec-b03c-efc2ab57a6c5
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 2a9571f5-2535-4813-aa44-e4a29713ea75
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 41b45d60-cfae-461c-aa9a-716a611d85c5
+        - type: mandatory
+          role: 2a9571f5-2535-4813-aa44-e4a29713ea75
+    - id: c811d531-8ab7-4c7a-a0ba-0debfc6106b3
+      name: Position has PositionId
+      roles:
+        - id: 817a88d5-0a3a-4400-a35e-eeb4c720a373
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: has
+        - id: b32785c9-0686-4099-b497-4780b3a3f496
+          player: 038f71a0-d1a2-4e09-a42a-95fac722cce5
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 817a88d5-0a3a-4400-a35e-eeb4c720a373
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - b32785c9-0686-4099-b497-4780b3a3f496
+        - type: mandatory
+          role: 817a88d5-0a3a-4400-a35e-eeb4c720a373
+    - id: bb5d78fc-8180-4426-8a6d-608c64ceeb88
+      name: Direction has DirectionId
+      roles:
+        - id: 805f03de-7a47-4d26-a4cc-5424efad6874
+          player: f44ea357-5bfa-44b2-a566-877c4da709eb
+          role_name: has
+        - id: ba92e7e8-b41d-483e-97c1-b65fec1ee3c1
+          player: c6b6a6cb-af56-4569-9931-ef87d57a551a
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 805f03de-7a47-4d26-a4cc-5424efad6874
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - ba92e7e8-b41d-483e-97c1-b65fec1ee3c1
+        - type: mandatory
+          role: 805f03de-7a47-4d26-a4cc-5424efad6874
+    - id: 3f5276a1-95b2-43a5-97fd-36472777b21e
+      name: Diagram has DiagramId
+      roles:
+        - id: 66443bdb-866f-4017-b0f0-9e65b17f3474
+          player: cff78392-edd0-4092-b223-aa8b93317dd7
+          role_name: has
+        - id: 0e9df412-79b9-467b-a9fe-9ec49c76540b
+          player: 64fc82a0-fb8d-4104-b0bc-c5c829ba8fde
+          role_name: identifies
+      readings:
+        - "{0} has {1}"
+        - "{1} identifies {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 66443bdb-866f-4017-b0f0-9e65b17f3474
+          is_preferred: true
+        - type: internal_uniqueness
+          roles:
+            - 0e9df412-79b9-467b-a9fe-9ec49c76540b
+        - type: mandatory
+          role: 66443bdb-866f-4017-b0f0-9e65b17f3474
+    - id: 2486b622-7090-4195-98e0-92041d32d541
+      name: Position has XCoordinate
+      roles:
+        - id: d3433650-99d4-43ef-a7ea-30ebd70954b8
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: has
+        - id: e34d9833-36be-4bd1-b207-5b68114ef9a9
+          player: cb4fa273-60f1-481d-b590-2b63feb06399
+          role_name: of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - d3433650-99d4-43ef-a7ea-30ebd70954b8
+        - type: mandatory
+          role: d3433650-99d4-43ef-a7ea-30ebd70954b8
+    - id: ba135042-11fc-4fe5-9360-8baf5b24ece2
+      name: Position has YCoordinate
+      roles:
+        - id: 05561cf8-659e-464e-b89f-daf72c797794
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: has
+        - id: 8090b7d3-6af4-482e-b746-b1d86352ce00
+          player: cdf94831-53f1-4624-88e5-4cb0884a367d
+          role_name: of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 05561cf8-659e-464e-b89f-daf72c797794
+        - type: mandatory
+          role: 05561cf8-659e-464e-b89f-daf72c797794
+    - id: 088a995f-1de1-4ddc-b7c4-4aa8f5517ff6
+      name: Direction has Angle
+      roles:
+        - id: 451256cb-dac9-45b2-9180-cddf94457bdb
+          player: f44ea357-5bfa-44b2-a566-877c4da709eb
+          role_name: has
+        - id: 2f036f9a-eed9-4e38-85f3-77861441544b
+          player: 2e662fb4-7b62-4af2-8037-7b132228d28e
+          role_name: of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 451256cb-dac9-45b2-9180-cddf94457bdb
+        - type: mandatory
+          role: 451256cb-dac9-45b2-9180-cddf94457bdb
+    - id: 9c58810b-a221-499e-9a79-9a6f4e9fa654
+      name: DiagramElement has Position
+      roles:
+        - id: 12f1ef7e-54e6-4dd1-b28b-b205e364026d
+          player: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+          role_name: has
+        - id: 00bb0663-a12a-4ca4-b70c-926a0bf76dcd
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 12f1ef7e-54e6-4dd1-b28b-b205e364026d
+        - type: mandatory
+          role: 12f1ef7e-54e6-4dd1-b28b-b205e364026d
+    - id: f6ee88e7-0192-4f10-a7fd-0c51d2d57a07
+      name: DiagramElement has Distance from center
+      roles:
+        - id: d371f48c-59df-4ae2-b7e2-85a3ffa44ba4
+          player: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+          role_name: has
+        - id: fa304f1a-abbd-4b57-bc33-3f6cdfb973e8
+          player: 53cc515b-4a74-4c42-b04e-10f79c7e5aac
+          role_name: from center of
+      readings:
+        - "{0} has {1} from center"
+        - "{1} is distance from center of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - d371f48c-59df-4ae2-b7e2-85a3ffa44ba4
+        - type: mandatory
+          role: d371f48c-59df-4ae2-b7e2-85a3ffa44ba4
+    - id: 53ab1855-81ff-40ed-a8b8-bad358df132c
+      name: EntityNode belongs to Cluster
+      roles:
+        - id: 967b8624-b68f-471b-97ce-22a62275fb9c
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: belongs to
+        - id: 1c8b20a7-1b19-4be2-9750-3d09f2b9b938
+          player: dd031071-b7d2-4c02-922e-cc528771b4cd
+          role_name: contains
+      readings:
+        - "{0} belongs to {1}"
+        - "{1} contains {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 967b8624-b68f-471b-97ce-22a62275fb9c
+        - type: mandatory
+          role: 967b8624-b68f-471b-97ce-22a62275fb9c
+    - id: fd787492-7946-42e8-9d79-931975901ab4
+      name: Cluster has centroid Position
+      roles:
+        - id: 767bee38-cec6-4886-9b6b-6d17c0cefa0f
+          player: dd031071-b7d2-4c02-922e-cc528771b4cd
+          role_name: has centroid
+        - id: f443442b-362a-48f7-b6db-307edfddec08
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: is centroid of
+      readings:
+        - "{0} has centroid {1}"
+        - "{1} is centroid of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 767bee38-cec6-4886-9b6b-6d17c0cefa0f
+        - type: internal_uniqueness
+          roles:
+            - f443442b-362a-48f7-b6db-307edfddec08
+        - type: mandatory
+          role: 767bee38-cec6-4886-9b6b-6d17c0cefa0f
+    - id: 5f8250e3-2d63-4375-bdcb-97a61b90103f
+      name: Diagram has center Position
+      roles:
+        - id: 0839ad09-033f-45e8-877a-7e22bcc97ed7
+          player: cff78392-edd0-4092-b223-aa8b93317dd7
+          role_name: has center
+        - id: ca90b04d-cf78-4e91-8175-0ad91715f2f3
+          player: 234c0d77-57df-4bdd-909e-4a3cbd514dbf
+          role_name: is center of
+      readings:
+        - "{0} has center {1}"
+        - "{1} is center of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 0839ad09-033f-45e8-877a-7e22bcc97ed7
+        - type: internal_uniqueness
+          roles:
+            - ca90b04d-cf78-4e91-8175-0ad91715f2f3
+        - type: mandatory
+          role: 0839ad09-033f-45e8-877a-7e22bcc97ed7
+    - id: f165a3cc-eb04-4317-baf6-46975b59b772
+      name: EntityNode specializes EntityNode as supertype
+      roles:
+        - id: 10606bc6-4c31-4b06-a5b8-484e47b570b4
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: specializes
+        - id: 44a241bf-d3d2-491e-b94c-830d89b091e9
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: is supertype of
+      readings:
+        - "{0} specializes {1} as supertype"
+        - "{1} is supertype of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 10606bc6-4c31-4b06-a5b8-484e47b570b4
+    - id: 9157ec39-7d57-42ae-be0c-901bc21d8957
+      name: EntityNode has fan Direction
+      roles:
+        - id: d6e880d2-58fe-4c03-bd52-2621cbafca4c
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: has fan
+        - id: aeb12e76-6ccd-4519-b746-87c8f73a8d85
+          player: f44ea357-5bfa-44b2-a566-877c4da709eb
+          role_name: is fan direction of
+      readings:
+        - "{0} has fan {1}"
+        - "{1} is fan direction of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - d6e880d2-58fe-4c03-bd52-2621cbafca4c
+        - type: internal_uniqueness
+          roles:
+            - aeb12e76-6ccd-4519-b746-87c8f73a8d85
+    - id: 77e4f378-54f8-4f05-8d10-6d56d9323a19
+      name: FactTypeNode connects EntityNode
+      roles:
+        - id: b4451af1-f005-4692-85cf-01e014ae8240
+          player: e401b92d-36f0-4fe7-800a-cad2f046392f
+          role_name: connects
+        - id: b35fb42c-8708-424b-acb5-060cf9c8e9e4
+          player: 77574463-7059-436b-afef-81d4e71fea85
+          role_name: is connected by
+      readings:
+        - "{0} connects {1}"
+        - "{1} is connected by {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - b4451af1-f005-4692-85cf-01e014ae8240
+            - b35fb42c-8708-424b-acb5-060cf9c8e9e4
+        - type: mandatory
+          role: b4451af1-f005-4692-85cf-01e014ae8240
+    - id: 60ff3d42-2373-403e-b318-992790f29356
+      name: FactTypeNode has Orientation
+      roles:
+        - id: 92bdfa9d-e637-4a3a-9b8b-f744da8d5aa1
+          player: e401b92d-36f0-4fe7-800a-cad2f046392f
+          role_name: has
+        - id: 594f600e-b7ac-4497-89e7-e5dd0891659c
+          player: e020d106-43af-40e4-875e-fbfc1a2fecb2
+          role_name: of
+      readings:
+        - "{0} has {1}"
+        - "{1} is of {0}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - 92bdfa9d-e637-4a3a-9b8b-f744da8d5aa1
+        - type: mandatory
+          role: 92bdfa9d-e637-4a3a-9b8b-f744da8d5aa1
+    - id: 921b456f-5562-4df2-85ef-b6d4e1c0cfca
+      name: Cluster pair has separation Distance
+      roles:
+        - id: a00f02e6-bf55-49ac-80c2-393bb6110243
+          player: dd031071-b7d2-4c02-922e-cc528771b4cd
+          role_name: is first cluster of pair with
+        - id: 4643695d-5303-46ba-8255-e37dabd0493c
+          player: dd031071-b7d2-4c02-922e-cc528771b4cd
+          role_name: is second cluster of pair with
+        - id: a8bfaea7-bc62-4102-abd9-109422c3c307
+          player: 53cc515b-4a74-4c42-b04e-10f79c7e5aac
+          role_name: is separation distance of
+      readings:
+        - "{0} and {1} have separation distance {2}"
+        - "{2} is separation distance between {0} and {1}"
+      constraints:
+        - type: internal_uniqueness
+          roles:
+            - a00f02e6-bf55-49ac-80c2-393bb6110243
+            - 4643695d-5303-46ba-8255-e37dabd0493c
+  subtype_facts:
+    - id: e9eaa6a7-51b7-4cd8-9640-4000c81cb41d
+      subtype: 77574463-7059-436b-afef-81d4e71fea85
+      supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+      provides_identification: false
+    - id: d5d8c7b1-07cb-4ad5-8e18-4fe1715c1b9a
+      subtype: e401b92d-36f0-4fe7-800a-cad2f046392f
+      supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+      provides_identification: false
+    - id: 42f6a223-3a64-402b-a9b8-c6d516855ca4
+      subtype: 4079a2b7-a021-4583-bd8d-47d4fae1ef22
+      supertype: 0afbbdc3-67a2-4030-b292-2ecb7543681b
+      provides_identification: false

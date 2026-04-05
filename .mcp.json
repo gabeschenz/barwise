@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "barwise": {
+      "command": "node",
+      "args": ["barwise/packages/mcp/dist/bundle/index.cjs"],
+      "cwd": "/Users/gschenz/repos/barwise"
+    }
+  }
+}

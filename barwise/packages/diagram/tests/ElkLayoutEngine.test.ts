@@ -526,9 +526,9 @@ describe("ElkLayoutEngine", () => {
     const cCenterX = constraint.x + constraint.width / 2;
     const cCenterY = constraint.y + constraint.height / 2;
 
-    // Within 100px of the fact type center.
-    expect(Math.abs(cCenterX - ftCenterX)).toBeLessThan(100);
-    expect(Math.abs(cCenterY - ftCenterY)).toBeLessThan(100);
+    // Within 150px of the fact type center.
+    expect(Math.abs(cCenterX - ftCenterX)).toBeLessThan(150);
+    expect(Math.abs(cCenterY - ftCenterY)).toBeLessThan(150);
   });
 
   it("all positioned fact types have orientation field", async () => {

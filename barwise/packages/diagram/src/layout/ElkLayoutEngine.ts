@@ -60,8 +60,12 @@ export async function layoutGraph(graph: OrmGraph): Promise<PositionedGraph> {
   // Pass 1: entity placement with cluster-aware two-level layout.
   const entityPositions = await layoutEntitiesWithClusters(graph);
 
+  // Compute per-entity connection counts for subtype placement decisions.
+  const connectionCounts = buildConnectionCounts(graph);
+
   // Post-adjust: radially place subtypes outward from diagram center.
-  placeSubtypesRadially(entityPositions, graph.subtypeEdges);
+  // Only applies to subtypes with fewer connections than their supertype.
+  placeSubtypesRadially(entityPositions, graph.subtypeEdges, connectionCounts);
 
   // Post-adjust: align leaf value types with their connected entity.
   alignLeafValueTypes(graph, entityPositions);
@@ -150,8 +154,8 @@ export function buildEntityElkGraph(graph: OrmGraph): ElkNode {
     id: "root",
     layoutOptions: {
       "org.eclipse.elk.algorithm": "stress",
-      "org.eclipse.elk.stress.desiredEdgeLength": "300",
-      "org.eclipse.elk.spacing.nodeNode": "200",
+      "org.eclipse.elk.stress.desiredEdgeLength": "450",
+      "org.eclipse.elk.spacing.nodeNode": "300",
       "org.eclipse.elk.padding": "[top=60,left=60,bottom=60,right=60]",
       "org.eclipse.elk.stress.epsilon": "0.001",
       "org.eclipse.elk.stress.iterationLimit": "300",
@@ -227,6 +231,28 @@ function buildEntityEdgeWeights(
   }
 
   return edgeWeights;
+}
+
+/**
+ * Count the number of fact-type connections each entity participates in.
+ * Used to decide whether a subtype is a "leaf" (few connections) or a
+ * hub (many connections) relative to its supertype.
+ */
+function buildConnectionCounts(graph: OrmGraph): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const node of graph.nodes) {
+    if (node.kind === "fact_type") {
+      const ft = node as FactTypeNode;
+      const seen = new Set<string>();
+      for (const role of ft.roles) {
+        if (!seen.has(role.playerId)) {
+          seen.add(role.playerId);
+          counts.set(role.playerId, (counts.get(role.playerId) ?? 0) + 1);
+        }
+      }
+    }
+  }
+  return counts;
 }
 
 /**
@@ -506,8 +532,8 @@ async function layoutEntitiesWithClusters(
     id: "root",
     layoutOptions: {
       "org.eclipse.elk.algorithm": "stress",
-      "org.eclipse.elk.stress.desiredEdgeLength": "500",
-      "org.eclipse.elk.spacing.nodeNode": "150",
+      "org.eclipse.elk.stress.desiredEdgeLength": "600",
+      "org.eclipse.elk.spacing.nodeNode": "250",
       "org.eclipse.elk.padding": "[top=60,left=60,bottom=60,right=60]",
       "org.eclipse.elk.stress.iterationLimit": "300",
     },
@@ -580,8 +606,8 @@ function buildClusterElkSubGraph(
     id: "cluster",
     layoutOptions: {
       "org.eclipse.elk.algorithm": "stress",
-      "org.eclipse.elk.stress.desiredEdgeLength": "200",
-      "org.eclipse.elk.spacing.nodeNode": "120",
+      "org.eclipse.elk.stress.desiredEdgeLength": "350",
+      "org.eclipse.elk.spacing.nodeNode": "200",
       "org.eclipse.elk.padding": "[top=30,left=30,bottom=30,right=30]",
       "org.eclipse.elk.stress.epsilon": "0.001",
       "org.eclipse.elk.stress.iterationLimit": "300",
@@ -708,18 +734,20 @@ interface MutablePosition {
 /**
  * Place subtypes radially outward from the diagram centroid.
  *
- * The fan direction for each supertype is determined by the vector from
- * the diagram center through the supertype's position. Subtypes on the
- * left side of the diagram fan further left; those near the top fan
- * upward; those in a corner fan diagonally outward.
+ * Only applies to "leaf-like" subtypes that have fewer or equal
+ * connections than their supertype. When a subtype is itself a hub
+ * (more connections than its supertype), ELK's stress-based placement
+ * is likely better and we leave it alone.
  *
- * For a single subtype, it is placed directly along the outward vector.
- * For multiple subtypes, they are arranged in an arc perpendicular to
- * the outward vector.
+ * For applicable subtypes, the fan direction is determined by the
+ * vector from the diagram center through the supertype's position.
+ * A single subtype is placed directly along the outward vector.
+ * Multiple subtypes are arranged in an arc perpendicular to it.
  */
 function placeSubtypesRadially(
   entityPositions: Map<string, PositionedObjectTypeNode>,
   subtypeEdges: readonly { subtypeNodeId: string; supertypeNodeId: string }[],
+  connectionCounts: Map<string, number>,
 ): void {
   if (subtypeEdges.length === 0) return;
 
@@ -736,9 +764,15 @@ function placeSubtypesRadially(
   const centerX = sumX / count;
   const centerY = sumY / count;
 
-  // Group subtypes by supertype.
+  // Group subtypes by supertype, filtering out well-connected subtypes.
   const fanMap = new Map<string, string[]>();
   for (const se of subtypeEdges) {
+    const superConns = connectionCounts.get(se.supertypeNodeId) ?? 0;
+    const subConns = connectionCounts.get(se.subtypeNodeId) ?? 0;
+
+    // Skip subtypes that are more connected than their supertype.
+    if (subConns > superConns) continue;
+
     let arr = fanMap.get(se.supertypeNodeId);
     if (!arr) {
       arr = [];
@@ -1279,7 +1313,7 @@ interface BoundingBox {
  * and objectification borders that extend beyond the node's base box.
  */
 function effectiveBoundingBox(node: PositionedNode): BoundingBox {
-  const MIN_GAP = 16; // minimum gap between any two nodes
+  const MIN_GAP = 30; // minimum gap between any two nodes
 
   if (node.kind === "fact_type") {
     const ft = node as PositionedFactTypeNode;
@@ -1300,15 +1334,8 @@ function effectiveBoundingBox(node: PositionedNode): BoundingBox {
       }
     }
 
-    // Mandatory dots extend below (horizontal) or right (vertical).
-    const hasAnyMandatory = ft.roles.some((r) => r.isMandatory);
-    if (hasAnyMandatory) {
-      if (ft.orientation === "horizontal") {
-        bottom += MANDATORY_DOT_RADIUS * 2 + 2;
-      } else {
-        right += MANDATORY_DOT_RADIUS * 2 + 2;
-      }
-    }
+    // Mandatory dots are rendered on the edge (not the fact box),
+    // so they do not expand the bounding box.
 
     // Label text extends below (horizontal) or right (vertical).
     // Approximate label width from fact type name.
@@ -1353,7 +1380,7 @@ function effectiveBoundingBox(node: PositionedNode): BoundingBox {
 }
 
 function resolveOverlaps(nodes: PositionedNode[]): void {
-  const MAX_ITERATIONS = 8;
+  const MAX_ITERATIONS = 20;
 
   // Build a map from node ID to node index for O(1) lookup.
   const idToIndex = new Map<string, number>();
@@ -1424,6 +1451,46 @@ function entityCenter(pos: PositionedObjectTypeNode): Position {
 
 function roleCenter(ft: PositionedFactTypeNode, role: PositionedRoleBox): Position {
   return { x: ft.x + role.x + role.width / 2, y: ft.y + role.y + role.height / 2 };
+}
+
+/**
+ * Compute the connection point on a role box for edge routing.
+ *
+ * For binary fact types, edges connect to the outer end of each role box
+ * (the side facing away from the partner role). For ternary+ fact types,
+ * end roles connect at their outer edge and middle roles connect at their
+ * center. This matches the NORMA ORM 2 convention.
+ */
+function roleConnectionPoint(
+  ft: PositionedFactTypeNode,
+  role: PositionedRoleBox,
+): Position {
+  const roleCount = ft.roles.length;
+  const roleIndex = ft.roles.indexOf(role);
+
+  // Middle roles in ternary+ facts connect at center.
+  if (roleIndex > 0 && roleIndex < roleCount - 1) {
+    return roleCenter(ft, role);
+  }
+
+  if (ft.orientation === "horizontal") {
+    const cy = ft.y + role.y + role.height / 2;
+    if (roleIndex === 0) {
+      // First role: connect at left edge.
+      return { x: ft.x + role.x, y: cy };
+    }
+    // Last role: connect at right edge.
+    return { x: ft.x + role.x + role.width, y: cy };
+  }
+
+  // Vertical orientation.
+  const cx = ft.x + role.x + role.width / 2;
+  if (roleIndex === 0) {
+    // First role: connect at top edge.
+    return { x: cx, y: ft.y + role.y };
+  }
+  // Last role: connect at bottom edge.
+  return { x: cx, y: ft.y + role.y + role.height };
 }
 
 /**
@@ -1511,7 +1578,7 @@ function routeRoleEdges(
     const role = ftPos.roles.find((r) => r.roleId === edge.roleId);
     if (!role) continue;
 
-    const rc = roleCenter(ftPos, role);
+    const rc = roleConnectionPoint(ftPos, role);
     const ep = entityBorderPoint(entityPos, rc);
 
     edges.push({
