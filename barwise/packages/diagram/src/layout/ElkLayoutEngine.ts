@@ -96,15 +96,20 @@ export async function layoutGraph(
     }
   }
 
-  // Compute per-entity connection counts for subtype placement decisions.
-  const connectionCounts = buildConnectionCounts(graph);
+  const hasOverrides = positionOverrides && Object.keys(positionOverrides).length > 0;
 
-  // Post-adjust: radially place subtypes outward from diagram center.
-  // Only applies to subtypes with fewer connections than their supertype.
-  placeSubtypesRadially(entityPositions, graph.subtypeEdges, connectionCounts);
+  // Skip automatic adjustments when the user is manually positioning.
+  if (!hasOverrides) {
+    // Compute per-entity connection counts for subtype placement decisions.
+    const connectionCounts = buildConnectionCounts(graph);
 
-  // Post-adjust: align leaf value types with their connected entity.
-  alignLeafValueTypes(graph, entityPositions);
+    // Post-adjust: radially place subtypes outward from diagram center.
+    // Only applies to subtypes with fewer connections than their supertype.
+    placeSubtypesRadially(entityPositions, graph.subtypeEdges, connectionCounts);
+
+    // Post-adjust: align leaf value types with their connected entity.
+    alignLeafValueTypes(graph, entityPositions);
+  }
 
   // Pass 2: place fact types between their connected entities.
   const factTypePositions = placeFactTypes(graph, entityPositions, orientationOverrides);
@@ -112,13 +117,16 @@ export async function layoutGraph(
   // Place constraint nodes near connected roles.
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
 
-  // Collision resolution.
-  const allForOverlap: PositionedNode[] = [
-    ...entityPositions.values(),
-    ...factTypePositions.values(),
-    ...constraintPositions.values(),
-  ];
-  resolveOverlaps(allForOverlap);
+  // Skip collision resolution and normalization in manual mode -- the
+  // user's positions are authoritative.
+  if (!hasOverrides) {
+    const allForOverlap: PositionedNode[] = [
+      ...entityPositions.values(),
+      ...factTypePositions.values(),
+      ...constraintPositions.values(),
+    ];
+    resolveOverlaps(allForOverlap);
+  }
 
   // Build positioned nodes array from the canonical maps.
   const positionedNodes: PositionedNode[] = [];
@@ -135,8 +143,11 @@ export async function layoutGraph(
     }
   }
 
-  // Normalize coordinates: shift everything so all positions are >= 0.
-  normalizeCoordinates(positionedNodes);
+  // Skip normalization in manual mode so nodes stay exactly where
+  // the user placed them.
+  if (!hasOverrides) {
+    normalizeCoordinates(positionedNodes);
+  }
 
   // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);
