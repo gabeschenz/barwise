@@ -218,7 +218,17 @@ export class DiagramPanel {
     if (this.disposed) return;
     const baseName = path.basename(fileName, ".orm.yaml");
     this.panel.title = `Diagram: ${baseName}`;
-    this.panel.webview.html = buildHtml(svg);
+    this.panel.webview.html = buildHtml(svg, this.buildFocusState());
+  }
+
+  private buildFocusState(): FocusState | undefined {
+    if (!this.focusEntityId || !this.model) return undefined;
+    const ot = this.model.getObjectType(this.focusEntityId);
+    return {
+      entityId: this.focusEntityId,
+      entityName: ot?.name ?? "Entity",
+      hopCount: this.hopCount ?? 1,
+    };
   }
 
   /**
@@ -236,7 +246,7 @@ export class DiagramPanel {
         hopCount: this.hopCount,
       });
       this.currentLayout = result.layout;
-      this.panel.webview.html = buildHtml(result.svg);
+      this.panel.webview.html = buildHtml(result.svg, this.buildFocusState());
     } catch {
       // Silently ignore re-render errors during drag.
     }
@@ -299,7 +309,13 @@ export class DiagramPanel {
   }
 }
 
-function buildHtml(svg: string): string {
+interface FocusState {
+  entityId: string;
+  entityName: string;
+  hopCount: number;
+}
+
+function buildHtml(svg: string, focus?: FocusState): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -693,7 +709,7 @@ function buildHtml(svg: string): string {
       // --- Hop selector ---
       var hopBar = document.getElementById('hopBar');
       var hopLabel = document.getElementById('hopLabel');
-      var focusNodeId = null;
+      var focusNodeId = ${focus ? `'${focus.entityId}'` : "null"};
 
       // Double-click on an entity opens the hop selector.
       // (Single click still highlights; double-click enters focus mode.)
@@ -768,6 +784,13 @@ function buildHtml(svg: string): string {
           vscodeApi.postMessage({ command: 'clearFocus', nodeId: '', x: 0, y: 0 });
         }
       });
+
+      // Initialize hop bar if we're in focus mode (after rerender).
+      if (focusNodeId) {
+        hopLabel.textContent = ${focus ? `'${focus.entityName}:'` : "'Entity:'"};
+        hopBar.classList.add('visible');
+        setActiveHop(${focus?.hopCount ?? 1});
+      }
 
       // Save layout button.
       document.getElementById('saveLayout').addEventListener('click', function() {
