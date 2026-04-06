@@ -1,6 +1,7 @@
 import { parse, stringify } from "yaml";
 import type { Constraint, RingType } from "../model/Constraint.js";
 import type { Definition } from "../model/Definition.js";
+import type { DiagramLayout } from "../model/DiagramLayout.js";
 import type { FactType } from "../model/FactType.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type { ConceptualDataTypeName, ObjectType } from "../model/ObjectType.js";
@@ -15,6 +16,12 @@ import { type SchemaValidationResult, SchemaValidator } from "./SchemaValidator.
  * and is used as the intermediate representation between YAML text and
  * the in-memory OrmModel.
  */
+interface OrmYamlDiagramLayout {
+  name: string;
+  positions?: Record<string, { x: number; y: number }>;
+  orientations?: Record<string, "horizontal" | "vertical">;
+}
+
 interface OrmYamlDocument {
   orm_version: string;
   model: {
@@ -26,6 +33,7 @@ interface OrmYamlDocument {
     objectified_fact_types?: OrmYamlObjectifiedFactType[];
     populations?: OrmYamlPopulation[];
     definitions?: OrmYamlDefinition[];
+    diagrams?: OrmYamlDiagramLayout[];
   };
 }
 
@@ -211,6 +219,13 @@ export class OrmYamlSerializer {
       doc.model.definitions = definitions.map((d) => this.serializeDefinition(d));
     }
 
+    const diagrams = model.diagramLayouts;
+    if (diagrams.length > 0) {
+      doc.model.diagrams = diagrams.map((dl) =>
+        this.serializeDiagramLayout(dl, model)
+      );
+    }
+
     return doc;
   }
 
@@ -393,6 +408,27 @@ export class OrmYamlSerializer {
     return result;
   }
 
+  private serializeDiagramLayout(
+    dl: DiagramLayout,
+    _model: OrmModel,
+  ): OrmYamlDiagramLayout {
+    const result: OrmYamlDiagramLayout = { name: dl.name };
+    if (Object.keys(dl.positions).length > 0) {
+      const positions: Record<string, { x: number; y: number }> = {};
+      for (const [name, pos] of Object.entries(dl.positions)) {
+        positions[name] = {
+          x: Math.round(pos.x),
+          y: Math.round(pos.y),
+        };
+      }
+      result.positions = positions;
+    }
+    if (Object.keys(dl.orientations).length > 0) {
+      result.orientations = { ...dl.orientations };
+    }
+    return result;
+  }
+
   // -- Internal: document -> model --
 
   private fromDocument(doc: OrmYamlDocument): OrmModel {
@@ -484,6 +520,15 @@ export class OrmYamlSerializer {
         term: defDoc.term,
         definition: defDoc.definition,
         context: defDoc.context,
+      });
+    }
+
+    // Add diagram layouts.
+    for (const dlDoc of doc.model.diagrams ?? []) {
+      model.addDiagramLayout({
+        name: dlDoc.name,
+        positions: dlDoc.positions ?? {},
+        orientations: dlDoc.orientations ?? {},
       });
     }
 

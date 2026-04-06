@@ -36,6 +36,30 @@
   ],
   "main": "./dist/client/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "barwise-explorer",
+          "title": "Barwise ORM",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "barwise-explorer": [
+        {
+          "id": "barwise.modelTree",
+          "name": "Model Browser",
+          "when": "workspaceContains:**/*.orm.yaml"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "barwise.modelTree",
+        "contents": "No ORM model loaded.\n\nOpen an .orm.yaml file to see the model structure.\n[Open File](command:vscode.openFolder)"
+      }
+    ],
     "commands": [
       {
         "command": "barwise.newProject",

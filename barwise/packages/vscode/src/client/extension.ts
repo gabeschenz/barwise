@@ -15,6 +15,7 @@ import { ValidateModelCommand } from "../commands/ValidateModelCommand.js";
 import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
 import { registerMcpServerProvider } from "../mcp/McpServerProvider.js";
 import { registerLanguageModelTools } from "../mcp/ToolRegistration.js";
+import { ModelTreeProvider } from "../sidebar/ModelTreeProvider.js";
 
 let client: LanguageClient;
 
@@ -76,6 +77,35 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     registerMcpServerProvider(context),
   );
+
+  // Register the sidebar model browser tree view.
+  const modelTree = new ModelTreeProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("barwise.modelTree", modelTree),
+  );
+
+  // Refresh the tree when the active editor changes to an .orm.yaml file.
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor?.document.fileName.endsWith(".orm.yaml")) {
+        modelTree.refresh(editor.document);
+      }
+    }),
+  );
+
+  // Refresh the tree when an .orm.yaml document is saved.
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument((doc) => {
+      if (doc.fileName.endsWith(".orm.yaml")) {
+        modelTree.refresh(doc);
+      }
+    }),
+  );
+
+  // Seed with the active editor if it's already an .orm.yaml file.
+  if (vscode.window.activeTextEditor?.document.fileName.endsWith(".orm.yaml")) {
+    modelTree.refresh(vscode.window.activeTextEditor.document);
+  }
 
   // Register Language Model Tools (vscode.lm.registerTool) so that
   // Copilot Chat and other AI features can invoke barwise tools

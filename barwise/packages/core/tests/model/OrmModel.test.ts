@@ -343,4 +343,84 @@ describe("OrmModel", () => {
       expect(model.elementCount).toBe(4);
     });
   });
+
+  describe("diagram layouts", () => {
+    it("starts with no diagram layouts", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(model.diagramLayouts).toHaveLength(0);
+    });
+
+    it("adds and retrieves a diagram layout", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addDiagramLayout({
+        name: "Default",
+        positions: { Customer: { x: 100, y: 200 } },
+        orientations: {},
+      });
+
+      expect(model.diagramLayouts).toHaveLength(1);
+      const layout = model.getDiagramLayout("Default");
+      expect(layout).toBeDefined();
+      expect(layout!.positions.Customer).toEqual({ x: 100, y: 200 });
+    });
+
+    it("rejects duplicate layout names", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} });
+
+      expect(() =>
+        model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} }),
+      ).toThrow(/already exists/);
+    });
+
+    it("rejects empty layout names", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() =>
+        model.addDiagramLayout({ name: "", positions: {}, orientations: {} }),
+      ).toThrow(/non-empty/);
+    });
+
+    it("updates an existing layout", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addDiagramLayout({
+        name: "Default",
+        positions: { Customer: { x: 100, y: 200 } },
+        orientations: {},
+      });
+      model.updateDiagramLayout({
+        name: "Default",
+        positions: { Customer: { x: 300, y: 400 } },
+        orientations: { "Customer places Order": "vertical" },
+      });
+
+      const layout = model.getDiagramLayout("Default")!;
+      expect(layout.positions.Customer).toEqual({ x: 300, y: 400 });
+      expect(layout.orientations["Customer places Order"]).toBe("vertical");
+    });
+
+    it("throws when updating a nonexistent layout", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() =>
+        model.updateDiagramLayout({ name: "Missing", positions: {}, orientations: {} }),
+      ).toThrow(/not found/);
+    });
+
+    it("removes a layout", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} });
+      model.removeDiagramLayout("Default");
+      expect(model.diagramLayouts).toHaveLength(0);
+    });
+
+    it("throws when removing a nonexistent layout", () => {
+      const model = new OrmModel({ name: "Test" });
+      expect(() => model.removeDiagramLayout("Missing")).toThrow(/not found/);
+    });
+
+    it("counts diagram layouts in elementCount", () => {
+      const model = new OrmModel({ name: "Test" });
+      model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} });
+      expect(model.elementCount).toBe(1);
+    });
+  });
 });

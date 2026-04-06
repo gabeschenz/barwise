@@ -1,5 +1,6 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
-import type { OrmModel } from "@barwise/core";
+import { OrmYamlSerializer, type DiagramLayout, type OrmModel } from "@barwise/core";
 import {
   generateDiagram,
   type OrientationOverrides,
@@ -7,6 +8,8 @@ import {
   type PositionedGraph,
 } from "@barwise/diagram";
 import * as vscode from "vscode";
+
+const saveSerializer = new OrmYamlSerializer();
 
 /**
  * Manages the ORM diagram webview panel.
@@ -21,9 +24,11 @@ export class DiagramPanel {
   private readonly panel: vscode.WebviewPanel;
   private disposed = false;
   private model: OrmModel | undefined;
+  private filePath: string | undefined;
   private currentLayout: PositionedGraph | undefined;
   private positionOverrides: Record<string, { x: number; y: number }> = {};
   private orientationOverrides: Record<string, "horizontal" | "vertical"> = {};
+  private hasUnsavedChanges = false;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -33,6 +38,7 @@ export class DiagramPanel {
   ) {
     this.panel = panel;
     this.model = model;
+    this.filePath = fileName;
     this.update(svg, fileName);
 
     this.panel.onDidDispose(() => {
@@ -43,47 +49,20 @@ export class DiagramPanel {
     this.panel.webview.onDidReceiveMessage(
       (message: { command: string; nodeId: string; x: number; y: number }) => {
         if (message.command === "nodeMoved" && this.model) {
-          // On first drag, pin all entities at their current positions
-          // so only the dragged entity moves.
-          if (
-            Object.keys(this.positionOverrides).length === 0 &&
-            this.currentLayout
-          ) {
-            for (const node of this.currentLayout.nodes) {
-              if (node.kind === "object_type") {
-                this.positionOverrides[node.id] = {
-                  x: node.x,
-                  y: node.y,
-                };
-              }
-            }
-          }
+          this.pinAllEntitiesIfNeeded();
 
           this.positionOverrides[message.nodeId] = {
             x: message.x,
             y: message.y,
           };
+          this.hasUnsavedChanges = true;
           void this.rerender();
         } else if (message.command === "toggleOrientation" && this.model) {
-          // Pin all entities on first interaction (same as drag).
-          if (
-            Object.keys(this.positionOverrides).length === 0 &&
-            this.currentLayout
-          ) {
-            for (const node of this.currentLayout.nodes) {
-              if (node.kind === "object_type") {
-                this.positionOverrides[node.id] = {
-                  x: node.x,
-                  y: node.y,
-                };
-              }
-            }
-          }
+          this.pinAllEntitiesIfNeeded();
 
           // Toggle orientation for the clicked fact type.
           const ftId = message.nodeId;
           const current = this.orientationOverrides[ftId];
-          // Find the current orientation from the layout.
           const ftNode = this.currentLayout?.nodes.find(
             (n): n is import("@barwise/diagram").PositionedFactTypeNode =>
               n.id === ftId && n.kind === "fact_type",
@@ -92,10 +71,33 @@ export class DiagramPanel {
           const effectiveCurrent = current ?? layoutOrientation;
           this.orientationOverrides[ftId] =
             effectiveCurrent === "horizontal" ? "vertical" : "horizontal";
+          this.hasUnsavedChanges = true;
           void this.rerender();
+        } else if (message.command === "saveLayout") {
+          void this.saveLayout();
         }
       },
     );
+  }
+
+  /**
+   * On first interaction, pin all entities at their current layout positions
+   * so only the interacted element changes.
+   */
+  private pinAllEntitiesIfNeeded(): void {
+    if (
+      Object.keys(this.positionOverrides).length === 0 &&
+      this.currentLayout
+    ) {
+      for (const node of this.currentLayout.nodes) {
+        if (node.kind === "object_type") {
+          this.positionOverrides[node.id] = {
+            x: node.x,
+            y: node.y,
+          };
+        }
+      }
+    }
   }
 
   /**
@@ -107,17 +109,17 @@ export class DiagramPanel {
     fileName: string,
     model?: OrmModel,
     layout?: PositionedGraph,
+    savedLayout?: DiagramLayout,
   ): void {
     const column = vscode.ViewColumn.Beside;
 
     if (DiagramPanel.currentPanel) {
       DiagramPanel.currentPanel.panel.reveal(column);
       DiagramPanel.currentPanel.model = model;
+      DiagramPanel.currentPanel.filePath = fileName;
       DiagramPanel.currentPanel.currentLayout = layout;
-      // Reset overrides when a new model is loaded.
       if (model) {
-        DiagramPanel.currentPanel.positionOverrides = {};
-        DiagramPanel.currentPanel.orientationOverrides = {};
+        DiagramPanel.currentPanel.seedOverridesFromSavedLayout(model, savedLayout);
       }
       DiagramPanel.currentPanel.update(svg, fileName);
       return;
@@ -134,8 +136,43 @@ export class DiagramPanel {
       },
     );
 
-    DiagramPanel.currentPanel = new DiagramPanel(panel, svg, fileName, model);
-    DiagramPanel.currentPanel.currentLayout = layout;
+    const dp = new DiagramPanel(panel, svg, fileName, model);
+    dp.currentLayout = layout;
+    if (model) {
+      dp.seedOverridesFromSavedLayout(model, savedLayout);
+    }
+    DiagramPanel.currentPanel = dp;
+  }
+
+  /**
+   * Seed position/orientation overrides from a saved DiagramLayout so that
+   * subsequent drags only move the dragged entity (all others are pinned).
+   */
+  private seedOverridesFromSavedLayout(
+    model: OrmModel,
+    saved?: DiagramLayout,
+  ): void {
+    this.positionOverrides = {};
+    this.orientationOverrides = {};
+    this.hasUnsavedChanges = false;
+
+    if (!saved) return;
+
+    // Convert name-keyed positions to id-keyed overrides.
+    for (const [name, pos] of Object.entries(saved.positions)) {
+      const ot = model.getObjectTypeByName(name);
+      if (ot) {
+        this.positionOverrides[ot.id] = { x: pos.x, y: pos.y };
+      }
+    }
+
+    // Convert name-keyed orientations to id-keyed overrides.
+    for (const [name, ori] of Object.entries(saved.orientations)) {
+      const ft = model.getFactTypeByName(name);
+      if (ft) {
+        this.orientationOverrides[ft.id] = ori;
+      }
+    }
   }
 
   /**
@@ -164,6 +201,62 @@ export class DiagramPanel {
       this.panel.webview.html = buildHtml(result.svg);
     } catch {
       // Silently ignore re-render errors during drag.
+    }
+  }
+
+  /**
+   * Save the current diagram layout (positions + orientations) back to the
+   * .orm.yaml file's `diagrams` section.
+   */
+  private async saveLayout(): Promise<void> {
+    if (!this.model || !this.filePath || !this.currentLayout) return;
+
+    // Build name-keyed positions from current id-keyed overrides.
+    const positions: Record<string, { x: number; y: number }> = {};
+    for (const node of this.currentLayout.nodes) {
+      if (node.kind === "object_type") {
+        const ot = this.model.getObjectType(node.id);
+        if (ot) {
+          positions[ot.name] = {
+            x: Math.round(node.x),
+            y: Math.round(node.y),
+          };
+        }
+      }
+    }
+
+    // Build name-keyed orientations from current id-keyed overrides.
+    const orientations: Record<string, "horizontal" | "vertical"> = {};
+    for (const [ftId, ori] of Object.entries(this.orientationOverrides)) {
+      const ft = this.model.getFactType(ftId);
+      if (ft) {
+        orientations[ft.name] = ori;
+      }
+    }
+
+    const layoutName = "Default";
+    const layout: DiagramLayout = { name: layoutName, positions, orientations };
+
+    // Re-read the file to get the latest content, then update the model.
+    try {
+      const fileContent = fs.readFileSync(this.filePath, "utf-8");
+      const freshModel = saveSerializer.deserialize(fileContent);
+
+      const existing = freshModel.getDiagramLayout(layoutName);
+      if (existing) {
+        freshModel.updateDiagramLayout(layout);
+      } else {
+        freshModel.addDiagramLayout(layout);
+      }
+
+      const yaml = saveSerializer.serialize(freshModel);
+      fs.writeFileSync(this.filePath, yaml, "utf-8");
+      this.hasUnsavedChanges = false;
+      vscode.window.showInformationMessage("Diagram layout saved.");
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to save diagram layout: ${(err as Error).message}`,
+      );
     }
   }
 }
@@ -225,6 +318,7 @@ function buildHtml(svg: string): string {
     </div>
   </div>
   <div id="controls">
+    <button id="saveLayout" title="Save positions to .orm.yaml">Save</button>
     <button id="zoomIn" title="Zoom in">+</button>
     <button id="zoomOut" title="Zoom out">-</button>
     <button id="resetView" title="Reset view">Fit</button>
@@ -426,6 +520,13 @@ function buildHtml(svg: string): string {
           panY = 0;
         }
         applyTransform();
+      });
+
+      // Save layout button.
+      document.getElementById('saveLayout').addEventListener('click', function() {
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'saveLayout', nodeId: '', x: 0, y: 0 });
+        }
       });
 
       // Auto-fit on initial load.

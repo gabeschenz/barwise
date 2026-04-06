@@ -1,4 +1,5 @@
 import type { Definition } from "./Definition.js";
+import type { DiagramLayout } from "./DiagramLayout.js";
 import { FactType, type FactTypeConfig } from "./FactType.js";
 import { ObjectifiedFactType, type ObjectifiedFactTypeConfig } from "./ObjectifiedFactType.js";
 import { ObjectType, type ObjectTypeConfig } from "./ObjectType.js";
@@ -31,6 +32,7 @@ export class OrmModel {
   private readonly _objectifiedFactTypes: Map<string, ObjectifiedFactType> = new Map();
   private readonly _populations: Map<string, Population> = new Map();
   private readonly _definitions: Definition[] = [];
+  private readonly _diagramLayouts: DiagramLayout[] = [];
 
   constructor(config: OrmModelConfig) {
     if (!config.name || config.name.trim().length === 0) {
@@ -459,6 +461,49 @@ export class OrmModel {
     this._definitions.push(definition);
   }
 
+  // ---- Diagram Layouts ----
+
+  /** All persisted diagram layouts. */
+  get diagramLayouts(): readonly DiagramLayout[] {
+    return [...this._diagramLayouts];
+  }
+
+  /** Look up a diagram layout by name. */
+  getDiagramLayout(name: string): DiagramLayout | undefined {
+    return this._diagramLayouts.find((d) => d.name === name);
+  }
+
+  /** Add a diagram layout. @throws If a layout with the same name already exists. */
+  addDiagramLayout(layout: DiagramLayout): void {
+    if (!layout.name || layout.name.trim().length === 0) {
+      throw new Error("Diagram layout name must be a non-empty string.");
+    }
+    if (this._diagramLayouts.some((d) => d.name === layout.name)) {
+      throw new Error(
+        `Diagram layout "${layout.name}" already exists in model "${this._name}".`,
+      );
+    }
+    this._diagramLayouts.push(layout);
+  }
+
+  /** Replace an existing diagram layout (matched by name). */
+  updateDiagramLayout(layout: DiagramLayout): void {
+    const idx = this._diagramLayouts.findIndex((d) => d.name === layout.name);
+    if (idx === -1) {
+      throw new Error(`Diagram layout "${layout.name}" not found.`);
+    }
+    this._diagramLayouts[idx] = layout;
+  }
+
+  /** Remove a diagram layout by name. */
+  removeDiagramLayout(name: string): void {
+    const idx = this._diagramLayouts.findIndex((d) => d.name === name);
+    if (idx === -1) {
+      throw new Error(`Diagram layout "${name}" not found.`);
+    }
+    this._diagramLayouts.splice(idx, 1);
+  }
+
   // ---- Queries ----
 
   /** Get all fact types that a given object type participates in. */
@@ -475,6 +520,7 @@ export class OrmModel {
       + this._objectifiedFactTypes.size
       + this._populations.size
       + this._definitions.length
+      + this._diagramLayouts.length
     );
   }
 }
