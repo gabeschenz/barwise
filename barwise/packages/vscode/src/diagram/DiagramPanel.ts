@@ -176,6 +176,29 @@ export class DiagramPanel {
   }
 
   /**
+   * Highlight an element and its connections in the diagram.
+   * Called from the sidebar tree view or other commands.
+   */
+  static highlightElement(elementId: string, kind: string): void {
+    if (!DiagramPanel.currentPanel || DiagramPanel.currentPanel.disposed) return;
+    void DiagramPanel.currentPanel.panel.webview.postMessage({
+      command: "highlight",
+      elementId,
+      kind,
+    });
+  }
+
+  /**
+   * Clear any active highlighting in the diagram.
+   */
+  static clearHighlight(): void {
+    if (!DiagramPanel.currentPanel || DiagramPanel.currentPanel.disposed) return;
+    void DiagramPanel.currentPanel.panel.webview.postMessage({
+      command: "clearHighlight",
+    });
+  }
+
+  /**
    * Update the diagram content.
    */
   update(svg: string, fileName: string): void {
@@ -309,6 +332,20 @@ function buildHtml(svg: string): string {
     }
     g[data-kind="object_type"] { cursor: move; }
     g[data-kind="fact_type"] { cursor: pointer; }
+
+    /* Highlight system: when .highlighting is on the SVG, dim everything
+       then un-dim elements with .highlighted */
+    svg.highlighting g[data-id],
+    svg.highlighting path[data-kind="edge"],
+    svg.highlighting path[data-kind="subtype"],
+    svg.highlighting path[data-kind="constraint-edge"] {
+      opacity: 0.15;
+      transition: opacity 0.2s;
+    }
+    svg.highlighting .highlighted {
+      opacity: 1 !important;
+      transition: opacity 0.2s;
+    }
   </style>
 </head>
 <body>
@@ -520,6 +557,110 @@ function buildHtml(svg: string): string {
           panY = 0;
         }
         applyTransform();
+      });
+
+      // --- Highlight system ---
+      // Receives messages from the extension host to highlight elements.
+      function clearHighlight() {
+        var svg = diagram.querySelector('svg');
+        if (!svg) return;
+        svg.classList.remove('highlighting');
+        var highlighted = svg.querySelectorAll('.highlighted');
+        for (var i = 0; i < highlighted.length; i++) {
+          highlighted[i].classList.remove('highlighted');
+        }
+      }
+
+      function highlightElement(elementId, kind) {
+        var svg = diagram.querySelector('svg');
+        if (!svg) return;
+
+        clearHighlight();
+        svg.classList.add('highlighting');
+
+        // Highlight the element itself.
+        var el = svg.querySelector('[data-id="' + elementId + '"]');
+        if (el) el.classList.add('highlighted');
+
+        if (kind === 'entity_type' || kind === 'value_type') {
+          // Highlight edges connected to this entity.
+          var edges = svg.querySelectorAll('path[data-source="' + elementId + '"]');
+          for (var i = 0; i < edges.length; i++) {
+            edges[i].classList.add('highlighted');
+            // Also highlight the connected node on the other end.
+            var targetId = edges[i].getAttribute('data-target');
+            if (targetId) {
+              var target = svg.querySelector('[data-id="' + targetId + '"]');
+              if (target) target.classList.add('highlighted');
+            }
+          }
+          // Also check edges where this entity is the target (subtype edges).
+          var targetEdges = svg.querySelectorAll('path[data-target="' + elementId + '"]');
+          for (var j = 0; j < targetEdges.length; j++) {
+            targetEdges[j].classList.add('highlighted');
+            var srcId = targetEdges[j].getAttribute('data-source');
+            if (srcId) {
+              var src = svg.querySelector('[data-id="' + srcId + '"]');
+              if (src) src.classList.add('highlighted');
+            }
+          }
+        } else if (kind === 'fact_type') {
+          // Highlight edges connected to this fact type.
+          var ftEdges = svg.querySelectorAll('path[data-target="' + elementId + '"]');
+          for (var k = 0; k < ftEdges.length; k++) {
+            ftEdges[k].classList.add('highlighted');
+            var srcNodeId = ftEdges[k].getAttribute('data-source');
+            if (srcNodeId) {
+              var srcNode = svg.querySelector('[data-id="' + srcNodeId + '"]');
+              if (srcNode) srcNode.classList.add('highlighted');
+            }
+          }
+        } else if (kind === 'subtype_fact') {
+          // Highlight both entities in the subtype relationship.
+          var subEdges = svg.querySelectorAll(
+            'path[data-kind="subtype"][data-source="' + elementId + '"],'
+            + 'path[data-kind="subtype"][data-target="' + elementId + '"]'
+          );
+          for (var m = 0; m < subEdges.length; m++) {
+            subEdges[m].classList.add('highlighted');
+            var s = subEdges[m].getAttribute('data-source');
+            var t = subEdges[m].getAttribute('data-target');
+            if (s) { var sn = svg.querySelector('[data-id="' + s + '"]'); if (sn) sn.classList.add('highlighted'); }
+            if (t) { var tn = svg.querySelector('[data-id="' + t + '"]'); if (tn) tn.classList.add('highlighted'); }
+          }
+        }
+      }
+
+      // Listen for messages from the extension host.
+      window.addEventListener('message', function(e) {
+        var msg = e.data;
+        if (msg.command === 'highlight') {
+          highlightElement(msg.elementId, msg.kind);
+        } else if (msg.command === 'clearHighlight') {
+          clearHighlight();
+        }
+      });
+
+      // Click on diagram background clears highlight.
+      viewport.addEventListener('click', function(e) {
+        if (!findNodeGroup(e.target) && !findFactTypeGroup(e.target)) {
+          clearHighlight();
+        }
+      });
+
+      // Single-click on an entity in the diagram highlights its connections.
+      viewport.addEventListener('click', function(e) {
+        var nodeGroup = findNodeGroup(e.target);
+        if (nodeGroup) {
+          var nid = nodeGroup.getAttribute('data-id');
+          if (nid) highlightElement(nid, 'entity_type');
+          return;
+        }
+        var ftGroup = findFactTypeGroup(e.target);
+        if (ftGroup) {
+          var fid = ftGroup.getAttribute('data-id');
+          if (fid) highlightElement(fid, 'fact_type');
+        }
       });
 
       // Save layout button.

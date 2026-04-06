@@ -89,8 +89,34 @@
         "command": "barwise.export",
         "title": "Export...",
         "category": "Barwise"
+      },
+      {
+        "command": "barwise.highlightInDiagram",
+        "title": "Highlight in Diagram",
+        "category": "Barwise",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "barwise.copyElementName",
+        "title": "Copy Name",
+        "category": "Barwise",
+        "icon": "$(copy)"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "barwise.highlightInDiagram",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type|fact_type|subtype_fact/",
+          "group": "navigation"
+        },
+        {
+          "command": "barwise.copyElementName",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type|fact_type|subtype_fact/",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Barwise ORM",
       "properties": {

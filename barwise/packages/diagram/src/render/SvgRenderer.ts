@@ -395,7 +395,9 @@ function renderEdge(edge: PositionedEdge): string {
   const d = buildPathData(edge.points);
   const parts: string[] = [];
   parts.push(
-    `<path d="${d}" fill="none" `
+    `<path data-kind="edge" data-source="${esc(edge.sourceNodeId)}" `
+    + `data-target="${esc(edge.targetNodeId)}" `
+    + `d="${d}" fill="none" `
     + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
   );
 
@@ -458,7 +460,10 @@ function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
 
   const d = buildPathData(edge.points);
   return (
-    `<path data-kind="subtype" d="${d}" fill="none" `
+    `<path data-kind="subtype" `
+    + `data-source="${esc(edge.subtypeNodeId)}" `
+    + `data-target="${esc(edge.supertypeNodeId)}" `
+    + `d="${d}" fill="none" `
     + `stroke="${theme.COLOR_SUBTYPE}" `
     + `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" `
     + `marker-end="url(#subtype-arrow)"/>`

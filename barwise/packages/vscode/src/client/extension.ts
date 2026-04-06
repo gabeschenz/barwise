@@ -13,6 +13,7 @@ import { NewProjectCommand } from "../commands/NewProjectCommand.js";
 import { ShowDiagramCommand } from "../commands/ShowDiagramCommand.js";
 import { ValidateModelCommand } from "../commands/ValidateModelCommand.js";
 import { VerbalizeCommand } from "../commands/VerbalizeCommand.js";
+import { DiagramPanel } from "../diagram/DiagramPanel.js";
 import { registerMcpServerProvider } from "../mcp/McpServerProvider.js";
 import { registerLanguageModelTools } from "../mcp/ToolRegistration.js";
 import { ModelTreeProvider } from "../sidebar/ModelTreeProvider.js";
@@ -74,6 +75,24 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       "barwise.export",
       () => new ExportCommand().execute(),
+    ),
+    vscode.commands.registerCommand(
+      "barwise.highlightInDiagram",
+      (elementId: string, kind: string) => {
+        DiagramPanel.highlightElement(elementId, kind);
+      },
+    ),
+    vscode.commands.registerCommand(
+      "barwise.copyElementName",
+      (treeItem: vscode.TreeItem) => {
+        const name = typeof treeItem?.label === "string"
+          ? treeItem.label
+          : treeItem?.label?.label;
+        if (name) {
+          void vscode.env.clipboard.writeText(name);
+          vscode.window.showInformationMessage(`Copied: ${name}`);
+        }
+      },
     ),
     registerMcpServerProvider(context),
   );

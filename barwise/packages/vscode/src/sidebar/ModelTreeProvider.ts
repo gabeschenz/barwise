@@ -111,6 +111,17 @@ export class ModelTreeProvider
       }
     }
 
+    // Clicking an element with an ID highlights it in the diagram.
+    if (element.id && element.kind !== "category") {
+      item.command = {
+        command: "barwise.highlightInDiagram",
+        title: "Highlight in Diagram",
+        arguments: [element.id, element.kind],
+      };
+      // Store the label for the copy command via context value.
+      item.tooltip = element.label;
+    }
+
     return item;
   }
 
