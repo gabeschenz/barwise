@@ -41,7 +41,7 @@
         {
           "id": "barwise-explorer",
           "title": "Barwise ORM",
-          "icon": "media/icon.svg"
+          "icon": "media/sidebar-icon.svg"
         }
       ]
     },
