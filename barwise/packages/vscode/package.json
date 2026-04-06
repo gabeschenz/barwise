@@ -49,8 +49,7 @@
       "barwise-explorer": [
         {
           "id": "barwise.modelTree",
-          "name": "Model Browser",
-          "when": "workspaceContains:**/*.orm.yaml"
+          "name": "Model Browser"
         }
       ]
     },
