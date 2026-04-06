@@ -189,16 +189,16 @@ export class DiagramPanel {
   }
 
   /**
-   * Highlight an element and its connections in the diagram.
-   * Called from the sidebar tree view or other commands.
+   * Focus on an element in the diagram: filter to its 1-hop neighborhood
+   * and show the hop selector toolbar.
    */
-  static highlightElement(elementId: string, kind: string): void {
-    if (!DiagramPanel.currentPanel || DiagramPanel.currentPanel.disposed) return;
-    void DiagramPanel.currentPanel.panel.webview.postMessage({
-      command: "highlight",
-      elementId,
-      kind,
-    });
+  static highlightElement(elementId: string, _kind: string): void {
+    const panel = DiagramPanel.currentPanel;
+    if (!panel || panel.disposed || !panel.model) return;
+    panel.focusEntityId = elementId;
+    panel.hopCount = 1;
+    panel.positionOverrides = {};
+    void panel.rerender();
   }
 
   /**
