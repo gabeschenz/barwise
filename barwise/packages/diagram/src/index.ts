@@ -13,6 +13,7 @@ export type {
   SubtypeEdge,
 } from "./graph/GraphTypes.js";
 export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
+export { computeNeighborhood, type Neighborhood } from "./graph/NeighborhoodFilter.js";
 
 // Layout types and engine.
 export { layoutGraph, type OrientationOverrides, type PositionOverrides } from "./layout/ElkLayoutEngine.js";

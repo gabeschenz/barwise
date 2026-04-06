@@ -34,6 +34,15 @@ export interface ModelToGraphOptions {
    * array and the SVG renderer can add visual markers.
    */
   readonly annotations?: ReadonlyMap<string, readonly string[]>;
+  /**
+   * When set, only include elements whose IDs are in these sets.
+   * Used for N-hop neighborhood filtering.
+   */
+  readonly includeFilter?: {
+    readonly objectTypeIds: ReadonlySet<string>;
+    readonly factTypeIds: ReadonlySet<string>;
+    readonly subtypeFactIds: ReadonlySet<string>;
+  };
 }
 
 /**
@@ -49,6 +58,7 @@ export function modelToGraph(
   options?: ModelToGraphOptions,
 ): OrmGraph {
   const annotationMap = options?.annotations;
+  const filter = options?.includeFilter;
   const nodes: (ObjectTypeNode | FactTypeNode | ConstraintNode)[] = [];
   const edges: GraphEdge[] = [];
   const constraintEdges: ConstraintEdge[] = [];
@@ -93,9 +103,10 @@ export function modelToGraph(
     }
   }
 
-  // Create object type nodes (skip absorbed value types).
+  // Create object type nodes (skip absorbed value types and filtered-out types).
   for (const ot of model.objectTypes) {
     if (absorbedValueTypeIds.has(ot.id)) continue;
+    if (filter && !filter.objectTypeIds.has(ot.id)) continue;
     const otAnnotations = annotationMap?.get(ot.id);
     nodes.push({
       kind: "object_type",
@@ -117,9 +128,10 @@ export function modelToGraph(
     }
   }
 
-  // Create fact type nodes and edges (skip absorbed identification facts).
+  // Create fact type nodes and edges (skip absorbed and filtered-out facts).
   for (const ft of model.factTypes) {
     if (absorbedFactTypeIds.has(ft.id)) continue;
+    if (filter && !filter.factTypeIds.has(ft.id)) continue;
     // Determine which roles have single-role internal uniqueness.
     const singleRoleUniqueIds = new Set<string>();
     let hasSpanning = false;
@@ -277,8 +289,9 @@ export function modelToGraph(
     }
   }
 
-  // Create subtype edges.
+  // Create subtype edges (skip filtered-out subtypes).
   for (const sf of model.subtypeFacts) {
+    if (filter && !filter.subtypeFactIds.has(sf.id)) continue;
     subtypeEdges.push({
       subtypeNodeId: sf.subtypeId,
       supertypeNodeId: sf.supertypeId,

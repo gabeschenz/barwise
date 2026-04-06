@@ -29,6 +29,8 @@ export class DiagramPanel {
   private positionOverrides: Record<string, { x: number; y: number }> = {};
   private orientationOverrides: Record<string, "horizontal" | "vertical"> = {};
   private hasUnsavedChanges = false;
+  private focusEntityId: string | undefined;
+  private hopCount: number | undefined;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -75,6 +77,17 @@ export class DiagramPanel {
           void this.rerender();
         } else if (message.command === "saveLayout") {
           void this.saveLayout();
+        } else if (message.command === "focusEntity") {
+          this.focusEntityId = message.nodeId;
+          this.hopCount = message.x; // x field reused for hop count
+          // Clear position overrides so the subset gets a fresh layout.
+          this.positionOverrides = {};
+          void this.rerender();
+        } else if (message.command === "clearFocus") {
+          this.focusEntityId = undefined;
+          this.hopCount = undefined;
+          this.positionOverrides = {};
+          void this.rerender();
         }
       },
     );
@@ -219,6 +232,8 @@ export class DiagramPanel {
       const result = await generateDiagram(this.model, {
         positionOverrides: posOverrides,
         orientationOverrides: oriOverrides,
+        focusEntityId: this.focusEntityId,
+        hopCount: this.hopCount,
       });
       this.currentLayout = result.layout;
       this.panel.webview.html = buildHtml(result.svg);
@@ -318,7 +333,7 @@ function buildHtml(svg: string): string {
       gap: 6px;
       z-index: 10;
     }
-    #controls button {
+    #controls button, #hopBar button {
       background: var(--vscode-button-background, #0078d4);
       color: var(--vscode-button-foreground, #fff);
       border: none;
@@ -327,8 +342,29 @@ function buildHtml(svg: string): string {
       font-size: 13px;
       border-radius: 3px;
     }
-    #controls button:hover {
+    #controls button:hover, #hopBar button:hover {
       background: var(--vscode-button-hoverBackground, #106ebe);
+    }
+    #hopBar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 4px;
+      align-items: center;
+      z-index: 10;
+      background: var(--vscode-editor-background, #fff);
+      padding: 6px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 13px;
+      color: var(--vscode-foreground, #333);
+    }
+    #hopBar.visible { display: flex; }
+    #hopBar button.active {
+      background: var(--vscode-button-hoverBackground, #106ebe);
+      outline: 2px solid var(--vscode-focusBorder, #007fd4);
     }
     g[data-kind="object_type"] { cursor: move; }
     g[data-kind="fact_type"] { cursor: pointer; }
@@ -353,6 +389,14 @@ function buildHtml(svg: string): string {
     <div id="diagram">
       ${svg}
     </div>
+  </div>
+  <div id="hopBar">
+    <span id="hopLabel">Focus:</span>
+    <button class="hop-btn" data-hops="1">1 hop</button>
+    <button class="hop-btn" data-hops="2">2 hops</button>
+    <button class="hop-btn" data-hops="3">3 hops</button>
+    <button class="hop-btn" data-hops="0">All</button>
+    <button id="clearFocus" title="Show full model">Clear</button>
   </div>
   <div id="controls">
     <button id="saveLayout" title="Save positions to .orm.yaml">Save</button>
@@ -506,23 +550,6 @@ function buildHtml(svg: string): string {
         viewport.classList.remove('node-dragging');
       });
 
-      // Double-click on a fact type to toggle its orientation.
-      viewport.addEventListener('dblclick', function(e) {
-        var ftGroup = findFactTypeGroup(e.target);
-        if (ftGroup && vscodeApi) {
-          e.preventDefault();
-          e.stopPropagation();
-          var ftId = ftGroup.getAttribute('data-id');
-          if (ftId) {
-            vscodeApi.postMessage({
-              command: 'toggleOrientation',
-              nodeId: ftId,
-              x: 0,
-              y: 0
-            });
-          }
-        }
-      });
 
       // Zoom controls.
       document.getElementById('zoomIn').addEventListener('click', function() {
@@ -660,6 +687,85 @@ function buildHtml(svg: string): string {
         if (ftGroup) {
           var fid = ftGroup.getAttribute('data-id');
           if (fid) highlightElement(fid, 'fact_type');
+        }
+      });
+
+      // --- Hop selector ---
+      var hopBar = document.getElementById('hopBar');
+      var hopLabel = document.getElementById('hopLabel');
+      var focusNodeId = null;
+
+      // Double-click on an entity opens the hop selector.
+      // (Single click still highlights; double-click enters focus mode.)
+      viewport.addEventListener('dblclick', function(e) {
+        var nodeGroup = findNodeGroup(e.target);
+        if (nodeGroup && vscodeApi) {
+          e.preventDefault();
+          e.stopPropagation();
+          focusNodeId = nodeGroup.getAttribute('data-id');
+          var nameEl = nodeGroup.querySelector('text');
+          var name = nameEl ? nameEl.textContent : 'Entity';
+          hopLabel.textContent = name + ':';
+          hopBar.classList.add('visible');
+          // Default to 1 hop.
+          setActiveHop(1);
+          vscodeApi.postMessage({
+            command: 'focusEntity',
+            nodeId: focusNodeId,
+            x: 1, // hop count
+            y: 0
+          });
+          return;
+        }
+        // Double-click on fact type toggles orientation (existing behavior).
+        var ftGroup = findFactTypeGroup(e.target);
+        if (ftGroup && vscodeApi) {
+          var ftId = ftGroup.getAttribute('data-id');
+          if (ftId) {
+            vscodeApi.postMessage({
+              command: 'toggleOrientation',
+              nodeId: ftId,
+              x: 0,
+              y: 0
+            });
+          }
+        }
+      });
+
+      function setActiveHop(hops) {
+        var btns = hopBar.querySelectorAll('.hop-btn');
+        for (var i = 0; i < btns.length; i++) {
+          var btnHops = parseInt(btns[i].getAttribute('data-hops'));
+          if (btnHops === hops) {
+            btns[i].classList.add('active');
+          } else {
+            btns[i].classList.remove('active');
+          }
+        }
+      }
+
+      // Hop buttons.
+      var hopBtns = document.querySelectorAll('.hop-btn');
+      for (var i = 0; i < hopBtns.length; i++) {
+        hopBtns[i].addEventListener('click', function() {
+          if (!focusNodeId || !vscodeApi) return;
+          var hops = parseInt(this.getAttribute('data-hops'));
+          setActiveHop(hops);
+          vscodeApi.postMessage({
+            command: 'focusEntity',
+            nodeId: focusNodeId,
+            x: hops === 0 ? 999 : hops, // 0 means "all" -> use large number
+            y: 0
+          });
+        });
+      }
+
+      // Clear focus.
+      document.getElementById('clearFocus').addEventListener('click', function() {
+        focusNodeId = null;
+        hopBar.classList.remove('visible');
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'clearFocus', nodeId: '', x: 0, y: 0 });
         }
       });
 
