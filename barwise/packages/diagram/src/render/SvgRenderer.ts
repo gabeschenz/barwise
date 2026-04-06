@@ -12,12 +12,20 @@ import type {
 import * as theme from "./theme.js";
 
 /**
+ * Options for SVG rendering.
+ */
+export interface RenderOptions {
+  /** Node IDs that should be rendered as ghost (preview) nodes. */
+  readonly ghostNodeIds?: ReadonlySet<string>;
+}
+
+/**
  * Render a positioned ORM graph as an SVG string.
  *
  * The output is a complete, self-contained SVG document that can be
  * embedded directly in an HTML page or saved as a file.
  */
-export function renderSvg(graph: PositionedGraph): string {
+export function renderSvg(graph: PositionedGraph, options?: RenderOptions): string {
   const padding = 20;
   const svgWidth = graph.width + padding * 2;
   const svgHeight = graph.height + padding * 2;
@@ -40,9 +48,11 @@ export function renderSvg(graph: PositionedGraph): string {
     parts.push(renderSubtypeArrowDef());
   }
 
+  const ghostIds = options?.ghostNodeIds;
+
   // Render role edges first (behind nodes).
   for (const edge of graph.edges) {
-    parts.push(renderEdge(edge));
+    parts.push(renderEdge(edge, ghostIds));
   }
 
   // Render constraint edges (dashed lines, behind nodes).
@@ -52,15 +62,15 @@ export function renderSvg(graph: PositionedGraph): string {
 
   // Render subtype edges (behind nodes, on top of role edges).
   for (const se of graph.subtypeEdges) {
-    parts.push(renderSubtypeEdge(se));
+    parts.push(renderSubtypeEdge(se, ghostIds));
   }
 
   // Render nodes.
   for (const node of graph.nodes) {
     if (node.kind === "object_type") {
-      parts.push(renderObjectType(node));
+      parts.push(renderObjectType(node, ghostIds));
     } else if (node.kind === "fact_type") {
-      parts.push(renderFactType(node));
+      parts.push(renderFactType(node, ghostIds));
     } else {
       parts.push(renderConstraintNode(node));
     }
@@ -70,8 +80,9 @@ export function renderSvg(graph: PositionedGraph): string {
   return parts.join("\n");
 }
 
-function renderObjectType(node: PositionedObjectTypeNode): string {
+function renderObjectType(node: PositionedObjectTypeNode, ghostIds?: ReadonlySet<string>): string {
   const isEntity = node.objectTypeKind === "entity";
+  const isGhost = ghostIds?.has(node.id) ?? false;
   const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const fill = isEntity ? theme.COLOR_ENTITY_FILL : theme.COLOR_VALUE_FILL;
   const stroke = hasAnnotations
@@ -88,7 +99,8 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   const cy = node.y + node.height / 2;
 
   const parts: string[] = [];
-  parts.push(`<g data-id="${esc(node.id)}" data-kind="object_type">`);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
+  parts.push(`<g data-id="${esc(node.id)}" data-kind="object_type"${ghostAttr}>`);
 
   // Add hover title with annotation messages.
   if (hasAnnotations) {
@@ -173,10 +185,12 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   return parts.join("\n");
 }
 
-function renderFactType(node: PositionedFactTypeNode): string {
+function renderFactType(node: PositionedFactTypeNode, ghostIds?: ReadonlySet<string>): string {
+  const isGhost = ghostIds?.has(node.id) ?? false;
   const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const parts: string[] = [];
-  parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type">`);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
+  parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type"${ghostAttr}>`);
 
   // Add hover title with annotation messages.
   if (hasAnnotations) {
@@ -389,14 +403,16 @@ function renderRoleBox(
   return parts.join("\n");
 }
 
-function renderEdge(edge: PositionedEdge): string {
+function renderEdge(edge: PositionedEdge, ghostIds?: ReadonlySet<string>): string {
   if (edge.points.length < 2) return "";
 
+  const isGhost = ghostIds?.has(edge.sourceNodeId) || ghostIds?.has(edge.targetNodeId);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
   const d = buildPathData(edge.points);
   const parts: string[] = [];
   parts.push(
     `<path data-kind="edge" data-source="${esc(edge.sourceNodeId)}" `
-    + `data-target="${esc(edge.targetNodeId)}" `
+    + `data-target="${esc(edge.targetNodeId)}"${ghostAttr} `
     + `d="${d}" fill="none" `
     + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
   );
@@ -455,14 +471,16 @@ function renderSubtypeArrowDef(): string {
   );
 }
 
-function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
+function renderSubtypeEdge(edge: PositionedSubtypeEdge, ghostIds?: ReadonlySet<string>): string {
   if (edge.points.length < 2) return "";
 
+  const isGhost = ghostIds?.has(edge.subtypeNodeId) || ghostIds?.has(edge.supertypeNodeId);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
   const d = buildPathData(edge.points);
   return (
     `<path data-kind="subtype" `
     + `data-source="${esc(edge.subtypeNodeId)}" `
-    + `data-target="${esc(edge.supertypeNodeId)}" `
+    + `data-target="${esc(edge.supertypeNodeId)}"${ghostAttr} `
     + `d="${d}" fill="none" `
     + `stroke="${theme.COLOR_SUBTYPE}" `
     + `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" `

@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { OrmYamlSerializer, type DiagramLayout, type OrmModel } from "@barwise/core";
 import {
+  computeNeighborhood,
   generateDiagram,
   type OrientationOverrides,
   type PositionOverrides,
@@ -37,6 +38,7 @@ export class DiagramPanel {
     subtypeFactIds: Set<string>;
   } | undefined;
   private activeViewName: string | undefined;
+  private ghostObjectTypeIds = new Set<string>();
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -88,6 +90,7 @@ export class DiagramPanel {
           this.hopCount = message.x;
           this.activeViewFilter = undefined;
           this.activeViewName = undefined;
+          this.ghostObjectTypeIds.clear();
           this.positionOverrides = {};
           void this.rerender();
         } else if (message.command === "saveView") {
@@ -97,7 +100,22 @@ export class DiagramPanel {
           this.hopCount = undefined;
           this.activeViewFilter = undefined;
           this.activeViewName = undefined;
+          this.ghostObjectTypeIds.clear();
           this.positionOverrides = {};
+          void this.rerender();
+        } else if (message.command === "showNeighbors" && this.model) {
+          const neighborhood = computeNeighborhood(this.model, message.nodeId, 1);
+          const viewIds = this.activeViewFilter?.objectTypeIds ?? new Set<string>();
+          for (const otId of neighborhood.objectTypeIds) {
+            if (!viewIds.has(otId) && otId !== message.nodeId) {
+              this.ghostObjectTypeIds.add(otId);
+            }
+          }
+          void this.rerender();
+        } else if (message.command === "addGhostToView" && this.model) {
+          void this.addGhostToView(message.nodeId);
+        } else if (message.command === "clearGhosts") {
+          this.ghostObjectTypeIds.clear();
           void this.rerender();
         }
       },
@@ -282,7 +300,10 @@ export class DiagramPanel {
     if (this.disposed) return;
     const baseName = path.basename(fileName, ".orm.yaml");
     this.panel.title = `Diagram: ${baseName}`;
-    this.panel.webview.html = buildHtml(svg, this.buildFocusState());
+    const viewState = this.activeViewName
+      ? { viewName: this.activeViewName, hasGhosts: this.ghostObjectTypeIds.size > 0 }
+      : undefined;
+    this.panel.webview.html = buildHtml(svg, this.buildFocusState(), viewState);
   }
 
   private buildFocusState(): FocusState | undefined {
@@ -303,15 +324,49 @@ export class DiagramPanel {
     try {
       const posOverrides: PositionOverrides = this.positionOverrides;
       const oriOverrides: OrientationOverrides = this.orientationOverrides;
+
+      // Expand include filter with ghost entities.
+      let includeFilter = this.activeViewFilter;
+      if (this.activeViewFilter && this.ghostObjectTypeIds.size > 0) {
+        const expandedOtIds = new Set(this.activeViewFilter.objectTypeIds);
+        for (const id of this.ghostObjectTypeIds) expandedOtIds.add(id);
+
+        const expandedFtIds = new Set(this.activeViewFilter.factTypeIds);
+        for (const ft of this.model.factTypes) {
+          const allPlayersIncluded = ft.roles.every((r) =>
+            expandedOtIds.has(r.playerId),
+          );
+          if (allPlayersIncluded) expandedFtIds.add(ft.id);
+        }
+
+        const expandedStIds = new Set(this.activeViewFilter.subtypeFactIds);
+        for (const sf of this.model.subtypeFacts) {
+          if (expandedOtIds.has(sf.subtypeId) && expandedOtIds.has(sf.supertypeId)) {
+            expandedStIds.add(sf.id);
+          }
+        }
+
+        includeFilter = {
+          objectTypeIds: expandedOtIds,
+          factTypeIds: expandedFtIds,
+          subtypeFactIds: expandedStIds,
+        };
+      }
+
+      const ghostRenderIds = this.computeGhostRenderIds();
       const result = await generateDiagram(this.model, {
         positionOverrides: posOverrides,
         orientationOverrides: oriOverrides,
         focusEntityId: this.focusEntityId,
         hopCount: this.hopCount,
-        includeFilter: this.activeViewFilter,
+        includeFilter,
+        ghostNodeIds: ghostRenderIds,
       });
       this.currentLayout = result.layout;
-      this.panel.webview.html = buildHtml(result.svg, this.buildFocusState());
+      const viewState = this.activeViewName
+        ? { viewName: this.activeViewName, hasGhosts: this.ghostObjectTypeIds.size > 0 }
+        : undefined;
+      this.panel.webview.html = buildHtml(result.svg, this.buildFocusState(), viewState);
     } catch {
       // Silently ignore re-render errors during drag.
     }
@@ -445,6 +500,79 @@ export class DiagramPanel {
       );
     }
   }
+
+  /**
+   * Move a ghost entity into the active view permanently and persist.
+   */
+  private async addGhostToView(entityId: string): Promise<void> {
+    if (!this.model || !this.filePath || !this.activeViewFilter || !this.activeViewName) return;
+
+    const ot = this.model.getObjectType(entityId);
+    if (!ot) return;
+
+    // Move from ghost set to view filter.
+    this.ghostObjectTypeIds.delete(entityId);
+    this.activeViewFilter.objectTypeIds.add(entityId);
+
+    // Recompute fact types for the expanded view.
+    for (const ft of this.model.factTypes) {
+      const allPlayersIncluded = ft.roles.every((r) =>
+        this.activeViewFilter!.objectTypeIds.has(r.playerId),
+      );
+      if (allPlayersIncluded) this.activeViewFilter.factTypeIds.add(ft.id);
+    }
+
+    // Recompute subtype facts.
+    for (const sf of this.model.subtypeFacts) {
+      if (
+        this.activeViewFilter.objectTypeIds.has(sf.subtypeId) &&
+        this.activeViewFilter.objectTypeIds.has(sf.supertypeId)
+      ) {
+        this.activeViewFilter.subtypeFactIds.add(sf.id);
+      }
+    }
+
+    // Persist to file: add element name to the saved view.
+    try {
+      const fileContent = fs.readFileSync(this.filePath, "utf-8");
+      const freshModel = saveSerializer.deserialize(fileContent);
+      const layout = freshModel.getDiagramLayout(this.activeViewName);
+      if (layout) {
+        const elements = layout.elements ? [...layout.elements] : [];
+        if (!elements.includes(ot.name)) {
+          elements.push(ot.name);
+        }
+        freshModel.updateDiagramLayout({ ...layout, elements });
+        const yaml = saveSerializer.serialize(freshModel);
+        fs.writeFileSync(this.filePath, yaml, "utf-8");
+      }
+    } catch {
+      // Non-critical: view works in memory even if save fails.
+    }
+
+    vscode.window.showInformationMessage(
+      `Added "${ot.name}" to "${this.activeViewName}".`,
+    );
+    void this.rerender();
+  }
+
+  /**
+   * Compute the set of ghost node IDs for rendering, including both
+   * ghost object types and fact types that connect to them.
+   */
+  private computeGhostRenderIds(): Set<string> | undefined {
+    if (this.ghostObjectTypeIds.size === 0) return undefined;
+    if (!this.model) return undefined;
+
+    const ghostRenderIds = new Set(this.ghostObjectTypeIds);
+    // Mark fact types with any ghost player as ghost too.
+    for (const ft of this.model.factTypes) {
+      if (ft.roles.some((r) => this.ghostObjectTypeIds.has(r.playerId))) {
+        ghostRenderIds.add(ft.id);
+      }
+    }
+    return ghostRenderIds;
+  }
 }
 
 interface FocusState {
@@ -453,7 +581,12 @@ interface FocusState {
   hopCount: number;
 }
 
-function buildHtml(svg: string, focus?: FocusState): string {
+interface ViewState {
+  viewName: string;
+  hasGhosts: boolean;
+}
+
+function buildHtml(svg: string, focus?: FocusState, view?: ViewState): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -536,6 +669,61 @@ function buildHtml(svg: string, focus?: FocusState): string {
       opacity: 1 !important;
       transition: opacity 0.2s;
     }
+
+    /* Ghost node styling: preview entities shown via "Show Neighbors" */
+    g[data-ghost="true"] {
+      opacity: 0.45;
+    }
+    g[data-ghost="true"][data-kind="object_type"] rect {
+      stroke-dasharray: 6,3 !important;
+    }
+    g[data-ghost="true"][data-kind="object_type"] { cursor: pointer; }
+    path[data-ghost="true"] {
+      opacity: 0.35;
+    }
+
+    /* Custom right-click context menu */
+    #ctxMenu {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      background: var(--vscode-menu-background, #fff);
+      color: var(--vscode-menu-foreground, #333);
+      border: 1px solid var(--vscode-menu-border, #ccc);
+      border-radius: 4px;
+      padding: 4px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      min-width: 160px;
+      font-size: 13px;
+    }
+    #ctxMenu.visible { display: block; }
+    .ctx-item {
+      padding: 6px 16px;
+      cursor: pointer;
+    }
+    .ctx-item:hover {
+      background: var(--vscode-menu-selectionBackground, #0078d4);
+      color: var(--vscode-menu-selectionForeground, #fff);
+    }
+
+    /* View bar: shows when a saved view is loaded */
+    #viewBar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 4px;
+      align-items: center;
+      z-index: 10;
+      background: var(--vscode-editor-background, #fff);
+      padding: 6px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 13px;
+      color: var(--vscode-foreground, #333);
+    }
+    #viewBar.visible { display: flex; }
   </style>
 </head>
 <body>
@@ -552,6 +740,15 @@ function buildHtml(svg: string, focus?: FocusState): string {
     <button class="hop-btn" data-hops="0">All</button>
     <button id="saveView" title="Save this view">Save View</button>
     <button id="clearFocus" title="Show full model">Clear</button>
+  </div>
+  <div id="viewBar">
+    <span id="viewLabel">View:</span>
+    <button id="clearGhosts" style="display:none" title="Remove preview neighbors">Clear Preview</button>
+    <button id="clearView" title="Show full model">Clear View</button>
+  </div>
+  <div id="ctxMenu">
+    <div class="ctx-item" id="ctxShowNeighbors">Show Neighbors</div>
+    <div class="ctx-item" id="ctxAddToView">Add to View</div>
   </div>
   <div id="controls">
     <button id="saveLayout" title="Save positions to .orm.yaml">Save</button>
@@ -830,11 +1027,17 @@ function buildHtml(svg: string, focus?: FocusState): string {
         }
       });
 
-      // Single-click on an entity in the diagram highlights its connections.
+      // Single-click on an entity in the diagram highlights its connections,
+      // or if it's a ghost node, adds it to the active view.
       viewport.addEventListener('click', function(e) {
         var nodeGroup = findNodeGroup(e.target);
         if (nodeGroup) {
           var nid = nodeGroup.getAttribute('data-id');
+          if (nid && nodeGroup.getAttribute('data-ghost') === 'true' && vscodeApi) {
+            // Click ghost node -> add to view.
+            vscodeApi.postMessage({ command: 'addGhostToView', nodeId: nid, x: 0, y: 0 });
+            return;
+          }
           if (nid) highlightElement(nid, 'entity_type');
           return;
         }
@@ -936,6 +1139,76 @@ function buildHtml(svg: string, focus?: FocusState): string {
         hopBar.classList.add('visible');
         setActiveHop(${focus?.hopCount ?? 1});
       }
+
+      // --- Context menu for "Show Neighbors" ---
+      var ctxMenu = document.getElementById('ctxMenu');
+      var ctxShowNeighbors = document.getElementById('ctxShowNeighbors');
+      var ctxAddToView = document.getElementById('ctxAddToView');
+      var ctxTargetId = null;
+
+      function hideCtxMenu() {
+        ctxMenu.classList.remove('visible');
+        ctxTargetId = null;
+      }
+
+      viewport.addEventListener('contextmenu', function(e) {
+        var nodeGroup = findNodeGroup(e.target);
+        if (!nodeGroup || !vscodeApi) { hideCtxMenu(); return; }
+
+        e.preventDefault();
+        ctxTargetId = nodeGroup.getAttribute('data-id');
+        var isGhost = nodeGroup.getAttribute('data-ghost') === 'true';
+
+        // Show appropriate menu items.
+        ctxShowNeighbors.style.display = isGhost ? 'none' : 'block';
+        ctxAddToView.style.display = isGhost ? 'block' : 'none';
+
+        ctxMenu.style.left = e.clientX + 'px';
+        ctxMenu.style.top = e.clientY + 'px';
+        ctxMenu.classList.add('visible');
+      });
+
+      ctxShowNeighbors.addEventListener('click', function() {
+        if (ctxTargetId && vscodeApi) {
+          vscodeApi.postMessage({ command: 'showNeighbors', nodeId: ctxTargetId, x: 0, y: 0 });
+        }
+        hideCtxMenu();
+      });
+
+      ctxAddToView.addEventListener('click', function() {
+        if (ctxTargetId && vscodeApi) {
+          vscodeApi.postMessage({ command: 'addGhostToView', nodeId: ctxTargetId, x: 0, y: 0 });
+        }
+        hideCtxMenu();
+      });
+
+      // Hide context menu on click elsewhere.
+      document.addEventListener('click', function() { hideCtxMenu(); });
+
+      // --- View bar ---
+      var viewBar = document.getElementById('viewBar');
+      var viewLabel = document.getElementById('viewLabel');
+      var clearGhostsBtn = document.getElementById('clearGhosts');
+      var hasView = ${view ? "true" : "false"};
+
+      if (hasView) {
+        viewLabel.textContent = ${view ? `'View: ${view.viewName}'` : "'View:'"};
+        viewBar.classList.add('visible');
+        clearGhostsBtn.style.display = ${view?.hasGhosts ? "'inline-block'" : "'none'"};
+      }
+
+      clearGhostsBtn.addEventListener('click', function() {
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'clearGhosts', nodeId: '', x: 0, y: 0 });
+        }
+      });
+
+      document.getElementById('clearView').addEventListener('click', function() {
+        viewBar.classList.remove('visible');
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'clearFocus', nodeId: '', x: 0, y: 0 });
+        }
+      });
 
       // Save layout button.
       document.getElementById('saveLayout').addEventListener('click', function() {

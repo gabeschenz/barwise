@@ -101,6 +101,12 @@
         "title": "Copy Name",
         "category": "Barwise",
         "icon": "$(copy)"
+      },
+      {
+        "command": "barwise.addToView",
+        "title": "Add to View...",
+        "category": "Barwise",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -111,9 +117,14 @@
           "group": "navigation"
         },
         {
+          "command": "barwise.addToView",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type/",
+          "group": "navigation"
+        },
+        {
           "command": "barwise.copyElementName",
           "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type|fact_type|subtype_fact/",
-          "group": "navigation"
+          "group": "2_copy"
         }
       ]
     },

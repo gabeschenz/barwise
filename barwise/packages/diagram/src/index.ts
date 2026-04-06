@@ -33,7 +33,7 @@ export type {
 } from "./layout/LayoutTypes.js";
 
 // SVG rendering.
-export { renderSvg } from "./render/SvgRenderer.js";
+export { renderSvg, type RenderOptions } from "./render/SvgRenderer.js";
 
 // Theme constants.
 export * as theme from "./render/theme.js";

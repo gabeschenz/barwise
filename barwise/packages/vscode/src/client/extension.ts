@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import {
@@ -6,6 +7,7 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node.js";
+import { OrmYamlSerializer } from "@barwise/core";
 import { registerChatParticipant } from "../chat/ChatParticipant.js";
 import { ExportCommand } from "../commands/ExportCommand.js";
 import { ImportCommand } from "../commands/ImportCommand.js";
@@ -101,6 +103,92 @@ export function activate(context: vscode.ExtensionContext): void {
       "barwise.loadView",
       (viewName: string) => {
         DiagramPanel.loadView(viewName);
+      },
+    ),
+    vscode.commands.registerCommand(
+      "barwise.addToView",
+      async (first: unknown, second?: unknown) => {
+        // Resolve element name from click or context menu args.
+        let elementName: string | undefined;
+        if (typeof first === "string") {
+          // From item.command args: (elementId, kind)
+          // We need the name, not the ID. Look it up from the active editor model.
+        } else if (first && typeof first === "object") {
+          elementName = (first as { label?: string }).label;
+        }
+
+        // Read model from active editor.
+        const editor = vscode.window.activeTextEditor;
+        const filePath = editor?.document.fileName;
+        if (!filePath?.endsWith(".orm.yaml")) {
+          vscode.window.showWarningMessage("Open an .orm.yaml file first.");
+          return;
+        }
+
+        const serializer = new OrmYamlSerializer();
+        let model;
+        try {
+          model = serializer.deserialize(fs.readFileSync(filePath, "utf-8"));
+        } catch {
+          vscode.window.showErrorMessage("Failed to parse model.");
+          return;
+        }
+
+        // If we got an ID instead of a name, resolve it.
+        if (!elementName && typeof first === "string") {
+          const ot = model.getObjectType(first);
+          elementName = ot?.name;
+        }
+        if (!elementName) return;
+
+        // Get existing views that have element subsets.
+        const views = model.diagramLayouts.filter(
+          (dl) => dl.elements && dl.elements.length > 0,
+        );
+
+        if (views.length === 0) {
+          vscode.window.showInformationMessage(
+            "No saved views yet. Use the hop toolbar's Save View button to create one.",
+          );
+          return;
+        }
+
+        // Show QuickPick with view names.
+        const picked = await vscode.window.showQuickPick(
+          views.map((v) => ({
+            label: v.name,
+            description: `${v.elements!.length} elements`,
+            detail: v.elements!.includes(elementName!)
+              ? "(already included)"
+              : undefined,
+          })),
+          { placeHolder: `Add "${elementName}" to which view?` },
+        );
+        if (!picked) return;
+
+        // Add element to the view.
+        const view = model.getDiagramLayout(picked.label);
+        if (!view) return;
+
+        const currentElements = view.elements ? [...view.elements] : [];
+        if (currentElements.includes(elementName)) {
+          vscode.window.showInformationMessage(
+            `"${elementName}" is already in "${view.name}".`,
+          );
+          return;
+        }
+        currentElements.push(elementName);
+
+        model.updateDiagramLayout({
+          ...view,
+          elements: currentElements,
+        });
+
+        const yaml = serializer.serialize(model);
+        fs.writeFileSync(filePath, yaml, "utf-8");
+        vscode.window.showInformationMessage(
+          `Added "${elementName}" to "${view.name}".`,
+        );
       },
     ),
     vscode.commands.registerCommand(

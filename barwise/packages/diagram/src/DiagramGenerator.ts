@@ -4,7 +4,7 @@ import { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js"
 import { computeNeighborhood } from "./graph/NeighborhoodFilter.js";
 import { layoutGraph, type OrientationOverrides, type PositionOverrides } from "./layout/ElkLayoutEngine.js";
 import type { PositionedGraph } from "./layout/LayoutTypes.js";
-import { renderSvg } from "./render/SvgRenderer.js";
+import { renderSvg, type RenderOptions } from "./render/SvgRenderer.js";
 
 /**
  * The result of diagram generation, containing both the SVG output
@@ -31,6 +31,8 @@ export interface DiagramOptions extends ModelToGraphOptions {
   readonly focusEntityId?: string;
   /** Number of hops from the focus entity (1, 2, 3, ...). Requires focusEntityId. */
   readonly hopCount?: number;
+  /** Node IDs to render as ghost (preview) nodes in the SVG. */
+  readonly ghostNodeIds?: ReadonlySet<string>;
 }
 
 /**
@@ -56,6 +58,9 @@ export async function generateDiagram(
 
   const graph = modelToGraph(model, graphOptions);
   const layout = await layoutGraph(graph, options?.positionOverrides, options?.orientationOverrides);
-  const svg = renderSvg(layout);
+  const renderOpts: RenderOptions | undefined = options?.ghostNodeIds
+    ? { ghostNodeIds: options.ghostNodeIds }
+    : undefined;
+  const svg = renderSvg(layout, renderOpts);
   return { svg, layout, graph };
 }
