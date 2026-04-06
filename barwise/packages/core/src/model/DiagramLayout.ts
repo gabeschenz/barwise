@@ -9,6 +9,12 @@ export interface DiagramLayout {
   /** Display name for this diagram view. */
   readonly name: string;
   /**
+   * Object type names included in this view. When present, only these
+   * elements (and fact types connecting them) are shown. When absent
+   * or empty, all elements are shown.
+   */
+  readonly elements?: readonly string[];
+  /**
    * Entity type positions, keyed by object type name.
    * Values are {x, y} in integer pixels.
    */

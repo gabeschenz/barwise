@@ -18,6 +18,7 @@ import { type SchemaValidationResult, SchemaValidator } from "./SchemaValidator.
  */
 interface OrmYamlDiagramLayout {
   name: string;
+  elements?: string[];
   positions?: Record<string, { x: number; y: number }>;
   orientations?: Record<string, "horizontal" | "vertical">;
 }
@@ -413,6 +414,9 @@ export class OrmYamlSerializer {
     _model: OrmModel,
   ): OrmYamlDiagramLayout {
     const result: OrmYamlDiagramLayout = { name: dl.name };
+    if (dl.elements && dl.elements.length > 0) {
+      result.elements = [...dl.elements];
+    }
     if (Object.keys(dl.positions).length > 0) {
       const positions: Record<string, { x: number; y: number }> = {};
       for (const [name, pos] of Object.entries(dl.positions)) {
@@ -527,6 +531,7 @@ export class OrmYamlSerializer {
     for (const dlDoc of doc.model.diagrams ?? []) {
       model.addDiagramLayout({
         name: dlDoc.name,
+        elements: dlDoc.elements,
         positions: dlDoc.positions ?? {},
         orientations: dlDoc.orientations ?? {},
       });

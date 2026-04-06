@@ -118,8 +118,16 @@ export class ModelTreeProvider
         title: "Highlight in Diagram",
         arguments: [element.id, element.kind],
       };
-      // Store the label for the copy command via context value.
       item.tooltip = element.label;
+    }
+
+    // Clicking a diagram layout loads that view.
+    if (element.kind === "diagram_layout") {
+      item.command = {
+        command: "barwise.loadView",
+        title: "Load View",
+        arguments: [element.label],
+      };
     }
 
     return item;
@@ -186,11 +194,17 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Diagrams",
       iconId: "layout",
-      children: model.diagramLayouts.map((dl) => ({
-        kind: "diagram_layout" as const,
-        label: dl.name,
-        description: `${Object.keys(dl.positions).length} positions`,
-      })),
+      children: model.diagramLayouts.map((dl) => {
+        const elCount = dl.elements?.length;
+        const desc = elCount
+          ? `${elCount} elements`
+          : `${Object.keys(dl.positions).length} positions`;
+        return {
+          kind: "diagram_layout" as const,
+          label: dl.name,
+          description: desc,
+        };
+      }),
     });
   }
 

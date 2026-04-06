@@ -581,6 +581,11 @@
           "minLength": 1,
           "description": "Display name for this diagram view."
         },
+        "elements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Object type names included in this view. When absent, all elements are shown."
+        },
         "positions": {
           "type": "object",
           "description": "Entity type positions keyed by element name. Values are {x, y} in integer pixels, screen coordinates (0,0 top-left, x right, y down).",

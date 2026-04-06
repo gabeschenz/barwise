@@ -31,6 +31,12 @@ export class DiagramPanel {
   private hasUnsavedChanges = false;
   private focusEntityId: string | undefined;
   private hopCount: number | undefined;
+  private activeViewFilter: {
+    objectTypeIds: Set<string>;
+    factTypeIds: Set<string>;
+    subtypeFactIds: Set<string>;
+  } | undefined;
+  private activeViewName: string | undefined;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -79,13 +85,18 @@ export class DiagramPanel {
           void this.saveLayout();
         } else if (message.command === "focusEntity") {
           this.focusEntityId = message.nodeId;
-          this.hopCount = message.x; // x field reused for hop count
-          // Clear position overrides so the subset gets a fresh layout.
+          this.hopCount = message.x;
+          this.activeViewFilter = undefined;
+          this.activeViewName = undefined;
           this.positionOverrides = {};
           void this.rerender();
+        } else if (message.command === "saveView") {
+          void this.saveView();
         } else if (message.command === "clearFocus") {
           this.focusEntityId = undefined;
           this.hopCount = undefined;
+          this.activeViewFilter = undefined;
+          this.activeViewName = undefined;
           this.positionOverrides = {};
           void this.rerender();
         }
@@ -202,6 +213,59 @@ export class DiagramPanel {
   }
 
   /**
+   * Load a saved diagram view by name. Reads the view's element subset
+   * from the model and re-renders with that filter.
+   */
+  static loadView(viewName: string): void {
+    const panel = DiagramPanel.currentPanel;
+    if (!panel || panel.disposed || !panel.model) return;
+    const layout = panel.model.getDiagramLayout(viewName);
+    if (!layout) return;
+
+    if (layout.elements && layout.elements.length > 0) {
+      // Build an include filter from the element names.
+      const objectTypeIds = new Set<string>();
+      const factTypeIds = new Set<string>();
+      const subtypeFactIds = new Set<string>();
+
+      for (const name of layout.elements) {
+        const ot = panel.model.getObjectTypeByName(name);
+        if (ot) objectTypeIds.add(ot.id);
+      }
+
+      // Auto-include fact types connecting included entities.
+      for (const ft of panel.model.factTypes) {
+        const allPlayersIncluded = ft.roles.every((r) =>
+          objectTypeIds.has(r.playerId),
+        );
+        if (allPlayersIncluded) factTypeIds.add(ft.id);
+      }
+
+      // Auto-include subtype facts between included entities.
+      for (const sf of panel.model.subtypeFacts) {
+        if (objectTypeIds.has(sf.subtypeId) && objectTypeIds.has(sf.supertypeId)) {
+          subtypeFactIds.add(sf.id);
+        }
+      }
+
+      panel.activeViewFilter = { objectTypeIds, factTypeIds, subtypeFactIds };
+      panel.activeViewName = viewName;
+    } else {
+      panel.activeViewFilter = undefined;
+      panel.activeViewName = viewName;
+    }
+
+    // Seed positions/orientations from the saved layout.
+    panel.seedOverridesFromSavedLayout(panel.model, layout);
+
+    // Clear focus mode.
+    panel.focusEntityId = undefined;
+    panel.hopCount = undefined;
+
+    void panel.rerender();
+  }
+
+  /**
    * Clear any active highlighting in the diagram.
    */
   static clearHighlight(): void {
@@ -244,6 +308,7 @@ export class DiagramPanel {
         orientationOverrides: oriOverrides,
         focusEntityId: this.focusEntityId,
         hopCount: this.hopCount,
+        includeFilter: this.activeViewFilter,
       });
       this.currentLayout = result.layout;
       this.panel.webview.html = buildHtml(result.svg, this.buildFocusState());
@@ -304,6 +369,79 @@ export class DiagramPanel {
     } catch (err) {
       vscode.window.showErrorMessage(
         `Failed to save diagram layout: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Save the current filtered view as a named diagram view.
+   * Prompts the user for a view name, then saves the visible elements,
+   * positions, and orientations to the .orm.yaml file.
+   */
+  private async saveView(): Promise<void> {
+    if (!this.model || !this.filePath || !this.currentLayout) return;
+
+    // Prompt for view name.
+    const focusEntity = this.focusEntityId
+      ? this.model.getObjectType(this.focusEntityId)
+      : undefined;
+    const defaultName = focusEntity
+      ? `${focusEntity.name} (${this.hopCount ?? 1}-hop)`
+      : "New View";
+
+    const name = await vscode.window.showInputBox({
+      prompt: "Name for this diagram view",
+      value: defaultName,
+    });
+    if (!name) return;
+
+    // Collect visible element names from the current layout.
+    const elements: string[] = [];
+    for (const node of this.currentLayout.nodes) {
+      if (node.kind === "object_type") {
+        const ot = this.model.getObjectType(node.id);
+        if (ot) elements.push(ot.name);
+      }
+    }
+
+    // Collect positions from the current layout.
+    const positions: Record<string, { x: number; y: number }> = {};
+    for (const node of this.currentLayout.nodes) {
+      if (node.kind === "object_type") {
+        const ot = this.model.getObjectType(node.id);
+        if (ot) {
+          positions[ot.name] = {
+            x: Math.round(node.x),
+            y: Math.round(node.y),
+          };
+        }
+      }
+    }
+
+    // Collect orientations.
+    const orientations: Record<string, "horizontal" | "vertical"> = {};
+    for (const [ftId, ori] of Object.entries(this.orientationOverrides)) {
+      const ft = this.model.getFactType(ftId);
+      if (ft) orientations[ft.name] = ori;
+    }
+
+    try {
+      const fileContent = fs.readFileSync(this.filePath, "utf-8");
+      const freshModel = saveSerializer.deserialize(fileContent);
+
+      const existing = freshModel.getDiagramLayout(name);
+      if (existing) {
+        freshModel.updateDiagramLayout({ name, elements, positions, orientations });
+      } else {
+        freshModel.addDiagramLayout({ name, elements, positions, orientations });
+      }
+
+      const yaml = saveSerializer.serialize(freshModel);
+      fs.writeFileSync(this.filePath, yaml, "utf-8");
+      vscode.window.showInformationMessage(`View "${name}" saved.`);
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to save view: ${(err as Error).message}`,
       );
     }
   }
@@ -412,6 +550,7 @@ function buildHtml(svg: string, focus?: FocusState): string {
     <button class="hop-btn" data-hops="2">2 hops</button>
     <button class="hop-btn" data-hops="3">3 hops</button>
     <button class="hop-btn" data-hops="0">All</button>
+    <button id="saveView" title="Save this view">Save View</button>
     <button id="clearFocus" title="Show full model">Clear</button>
   </div>
   <div id="controls">
@@ -777,6 +916,12 @@ function buildHtml(svg: string, focus?: FocusState): string {
       }
 
       // Clear focus.
+      document.getElementById('saveView').addEventListener('click', function() {
+        if (vscodeApi) {
+          vscodeApi.postMessage({ command: 'saveView', nodeId: '', x: 0, y: 0 });
+        }
+      });
+
       document.getElementById('clearFocus').addEventListener('click', function() {
         focusNodeId = null;
         hopBar.classList.remove('visible');

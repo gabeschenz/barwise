@@ -98,6 +98,12 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     ),
     vscode.commands.registerCommand(
+      "barwise.loadView",
+      (viewName: string) => {
+        DiagramPanel.loadView(viewName);
+      },
+    ),
+    vscode.commands.registerCommand(
       "barwise.copyElementName",
       (item: unknown) => {
         // Context menu passes the ModelTreeItem data element.
