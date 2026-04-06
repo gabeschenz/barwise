@@ -39,6 +39,7 @@ export class DiagramPanel {
   } | undefined;
   private activeViewName: string | undefined;
   private ghostObjectTypeIds = new Set<string>();
+  private renderVersion = 0;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -276,9 +277,10 @@ export class DiagramPanel {
     // Seed positions/orientations from the saved layout.
     panel.seedOverridesFromSavedLayout(panel.model, layout);
 
-    // Clear focus mode.
+    // Clear focus and ghost state.
     panel.focusEntityId = undefined;
     panel.hopCount = undefined;
+    panel.ghostObjectTypeIds.clear();
 
     void panel.rerender();
   }
@@ -321,6 +323,7 @@ export class DiagramPanel {
    */
   private async rerender(): Promise<void> {
     if (!this.model || this.disposed) return;
+    const version = ++this.renderVersion;
     try {
       const posOverrides: PositionOverrides = this.positionOverrides;
       const oriOverrides: OrientationOverrides = this.orientationOverrides;
@@ -362,13 +365,19 @@ export class DiagramPanel {
         includeFilter,
         ghostNodeIds: ghostRenderIds,
       });
+
+      // Skip if a newer render was started while we were awaiting.
+      if (version !== this.renderVersion) return;
+
       this.currentLayout = result.layout;
       const viewState = this.activeViewName
         ? { viewName: this.activeViewName, hasGhosts: this.ghostObjectTypeIds.size > 0 }
         : undefined;
       this.panel.webview.html = buildHtml(result.svg, this.buildFocusState(), viewState);
-    } catch {
-      // Silently ignore re-render errors during drag.
+    } catch (err) {
+      if (version === this.renderVersion) {
+        console.error("Diagram rerender failed:", err);
+      }
     }
   }
 
@@ -839,8 +848,9 @@ function buildHtml(svg: string, focus?: FocusState, view?: ViewState): string {
         applyTransform();
       }, { passive: false });
 
-      // Mousedown: check if on a node or viewport.
+      // Mousedown: check if on a node or viewport (left-click only).
       viewport.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return; // Only left-click starts drag/pan.
         var nodeGroup = findNodeGroup(e.target);
 
         if (nodeGroup) {
