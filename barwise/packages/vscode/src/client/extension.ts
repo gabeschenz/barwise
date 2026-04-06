@@ -78,16 +78,30 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand(
       "barwise.highlightInDiagram",
-      (elementId: string, kind: string) => {
-        DiagramPanel.highlightElement(elementId, kind);
+      (first: unknown, second?: unknown) => {
+        // Called two ways:
+        // 1. Tree item click: (elementId: string, kind: string)
+        // 2. Context menu: (ModelTreeItem: {id, kind, label, ...})
+        let elementId: string | undefined;
+        let kind: string | undefined;
+        if (typeof first === "string") {
+          elementId = first;
+          kind = second as string;
+        } else if (first && typeof first === "object") {
+          const item = first as { id?: string; kind?: string };
+          elementId = item.id;
+          kind = item.kind;
+        }
+        if (elementId && kind) {
+          DiagramPanel.highlightElement(elementId, kind);
+        }
       },
     ),
     vscode.commands.registerCommand(
       "barwise.copyElementName",
-      (treeItem: vscode.TreeItem) => {
-        const name = typeof treeItem?.label === "string"
-          ? treeItem.label
-          : treeItem?.label?.label;
+      (item: unknown) => {
+        // Context menu passes the ModelTreeItem data element.
+        const name = (item as { label?: string })?.label;
         if (name) {
           void vscode.env.clipboard.writeText(name);
           vscode.window.showInformationMessage(`Copied: ${name}`);
