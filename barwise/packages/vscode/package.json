@@ -56,7 +56,7 @@
     "viewsWelcome": [
       {
         "view": "barwise.modelTree",
-        "contents": "No ORM model loaded.\n\nOpen an .orm.yaml file to see the model structure.\n[Open File](command:vscode.openFolder)"
+        "contents": "No ORM model loaded.\n\nOpen an .orm.yaml file to see the model structure.\n[Open File](command:workbench.action.files.openFile)"
       }
     ],
     "commands": [
