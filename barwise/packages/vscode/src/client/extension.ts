@@ -202,6 +202,62 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       },
     ),
+    vscode.commands.registerCommand(
+      "barwise.createView",
+      async () => {
+        // Read model from active editor.
+        const editor = vscode.window.activeTextEditor;
+        const filePath = editor?.document.fileName;
+        if (!filePath?.endsWith(".orm.yaml")) {
+          vscode.window.showWarningMessage("Open an .orm.yaml file first.");
+          return;
+        }
+
+        const serializer = new OrmYamlSerializer();
+        let model;
+        try {
+          model = serializer.deserialize(fs.readFileSync(filePath, "utf-8"));
+        } catch {
+          vscode.window.showErrorMessage("Failed to parse model.");
+          return;
+        }
+
+        // Prompt for view name.
+        const name = await vscode.window.showInputBox({
+          prompt: "Name for the new diagram view",
+          placeHolder: "e.g., Core Entities",
+        });
+        if (!name) return;
+
+        // Check for duplicate.
+        if (model.getDiagramLayout(name)) {
+          vscode.window.showWarningMessage(`View "${name}" already exists.`);
+          return;
+        }
+
+        // Show multi-select picker for entity/value types.
+        const items = model.objectTypes.map((ot) => ({
+          label: ot.name,
+          description: ot.kind,
+          picked: false,
+        }));
+
+        const picked = await vscode.window.showQuickPick(items, {
+          canPickMany: true,
+          placeHolder: "Select entities to include in the view",
+        });
+        if (!picked || picked.length === 0) return;
+
+        const elements = picked.map((p) => p.label);
+        model.addDiagramLayout({ name, elements, positions: {}, orientations: {} });
+
+        const yaml = serializer.serialize(model);
+        fs.writeFileSync(filePath, yaml, "utf-8");
+        vscode.window.showInformationMessage(
+          `Created view "${name}" with ${elements.length} elements.`,
+        );
+      },
+    ),
     registerMcpServerProvider(context),
   );
 

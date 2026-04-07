@@ -227,9 +227,33 @@ export class DiagramPanel {
    * Focus on an element in the diagram: filter to its 1-hop neighborhood
    * and show the hop selector toolbar.
    */
-  static highlightElement(elementId: string, _kind: string): void {
+  static highlightElement(elementId: string, kind: string): void {
     const panel = DiagramPanel.currentPanel;
     if (!panel || panel.disposed || !panel.model) return;
+
+    if (kind === "subtype_fact") {
+      // For subtype facts, build a filter showing both entities + the subtype edge.
+      const sf = panel.model.subtypeFacts.find((s) => s.id === elementId);
+      if (!sf) return;
+      const objectTypeIds = new Set([sf.subtypeId, sf.supertypeId]);
+      const factTypeIds = new Set<string>();
+      // Include fact types connecting these two entities.
+      for (const ft of panel.model.factTypes) {
+        if (ft.roles.every((r) => objectTypeIds.has(r.playerId))) {
+          factTypeIds.add(ft.id);
+        }
+      }
+      const subtypeFactIds = new Set([sf.id]);
+      panel.focusEntityId = sf.subtypeId;
+      panel.hopCount = undefined;
+      panel.activeViewFilter = { objectTypeIds, factTypeIds, subtypeFactIds };
+      panel.activeViewName = undefined;
+      panel.ghostObjectTypeIds.clear();
+      panel.positionOverrides = {};
+      void panel.rerender();
+      return;
+    }
+
     panel.focusEntityId = elementId;
     panel.hopCount = 1;
     panel.positionOverrides = {};

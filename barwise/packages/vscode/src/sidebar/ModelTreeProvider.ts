@@ -81,7 +81,10 @@ export class ModelTreeProvider
 
     const item = new vscode.TreeItem(element.label, collapsible);
     item.description = element.description;
-    item.contextValue = element.kind;
+    // Diagrams category gets a distinct contextValue for its context menu.
+    item.contextValue = element.kind === "category" && element.label === "Diagrams"
+      ? "diagrams_category"
+      : element.kind;
 
     if (element.iconId) {
       item.iconPath = new vscode.ThemeIcon(element.iconId);
