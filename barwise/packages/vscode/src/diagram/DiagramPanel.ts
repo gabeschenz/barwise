@@ -206,6 +206,11 @@ export class DiagramPanel {
       const ot = model.getObjectTypeByName(name);
       if (ot) {
         this.positionOverrides[ot.id] = { x: pos.x, y: pos.y };
+      } else {
+        const ft = model.getFactTypeByName(name);
+        if (ft) {
+          this.positionOverrides[ft.id] = { x: pos.x, y: pos.y };
+        }
       }
     }
 
@@ -399,6 +404,15 @@ export class DiagramPanel {
             y: Math.round(node.y),
           };
         }
+      } else if (node.kind === "fact_type" && this.positionOverrides[node.id]) {
+        // Only save manually positioned fact types.
+        const ft = this.model.getFactType(node.id);
+        if (ft) {
+          positions[ft.name] = {
+            x: Math.round(node.x),
+            y: Math.round(node.y),
+          };
+        }
       }
     }
 
@@ -475,6 +489,14 @@ export class DiagramPanel {
         const ot = this.model.getObjectType(node.id);
         if (ot) {
           positions[ot.name] = {
+            x: Math.round(node.x),
+            y: Math.round(node.y),
+          };
+        }
+      } else if (node.kind === "fact_type" && this.positionOverrides[node.id]) {
+        const ft = this.model.getFactType(node.id);
+        if (ft) {
+          positions[ft.name] = {
             x: Math.round(node.x),
             y: Math.round(node.y),
           };
@@ -663,7 +685,7 @@ function buildHtml(svg: string, focus?: FocusState, view?: ViewState): string {
       outline: 2px solid var(--vscode-focusBorder, #007fd4);
     }
     g[data-kind="object_type"] { cursor: move; }
-    g[data-kind="fact_type"] { cursor: pointer; }
+    g[data-kind="fact_type"] { cursor: move; }
 
     /* Highlight system: when .highlighting is on the SVG, dim everything
        then un-dim elements with .highlighted */
@@ -851,7 +873,7 @@ function buildHtml(svg: string, focus?: FocusState, view?: ViewState): string {
       // Mousedown: check if on a node or viewport (left-click only).
       viewport.addEventListener('mousedown', function(e) {
         if (e.button !== 0) return; // Only left-click starts drag/pan.
-        var nodeGroup = findNodeGroup(e.target);
+        var nodeGroup = findNodeGroup(e.target) || findFactTypeGroup(e.target);
 
         if (nodeGroup) {
           // Start node drag.

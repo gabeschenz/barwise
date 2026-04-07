@@ -112,7 +112,7 @@ export async function layoutGraph(
   }
 
   // Pass 2: place fact types between their connected entities.
-  const factTypePositions = placeFactTypes(graph, entityPositions, orientationOverrides);
+  const factTypePositions = placeFactTypes(graph, entityPositions, orientationOverrides, positionOverrides);
 
   // Place constraint nodes near connected roles.
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
@@ -1024,6 +1024,7 @@ function placeFactTypes(
   graph: OrmGraph,
   entityPositions: Map<string, PositionedObjectTypeNode>,
   orientationOverrides?: OrientationOverrides,
+  positionOverrides?: PositionOverrides,
 ): Map<string, PositionedFactTypeNode> {
   const positions = new Map<string, PositionedFactTypeNode>();
 
@@ -1231,8 +1232,10 @@ function placeFactTypes(
       }
     }
 
-    const ftX = cx - ftWidth / 2;
-    const ftY = cy - ftHeight / 2;
+    // Use manual position override if present, otherwise compute from center.
+    const posOverride = positionOverrides?.[ft.id];
+    const ftX = posOverride ? posOverride.x : cx - ftWidth / 2;
+    const ftY = posOverride ? posOverride.y : cy - ftHeight / 2;
 
     positions.set(ft.id, {
       kind: "fact_type",
