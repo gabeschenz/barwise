@@ -224,40 +224,73 @@ export class DiagramPanel {
   }
 
   /**
-   * Focus on an element in the diagram: filter to its 1-hop neighborhood
+   * Focus on an element in the diagram: filter to its neighborhood
    * and show the hop selector toolbar.
    */
   static highlightElement(elementId: string, kind: string): void {
     const panel = DiagramPanel.currentPanel;
     if (!panel || panel.disposed || !panel.model) return;
 
+    // Clear stale view/ghost state.
+    panel.activeViewFilter = undefined;
+    panel.activeViewName = undefined;
+    panel.ghostObjectTypeIds.clear();
+    panel.positionOverrides = {};
+
     if (kind === "subtype_fact") {
-      // For subtype facts, build a filter showing both entities + the subtype edge.
+      // Show both entities + the subtype edge + 1 hop from each.
       const sf = panel.model.subtypeFacts.find((s) => s.id === elementId);
       if (!sf) return;
-      const objectTypeIds = new Set([sf.subtypeId, sf.supertypeId]);
-      const factTypeIds = new Set<string>();
-      // Include fact types connecting these two entities.
-      for (const ft of panel.model.factTypes) {
-        if (ft.roles.every((r) => objectTypeIds.has(r.playerId))) {
-          factTypeIds.add(ft.id);
-        }
-      }
-      const subtypeFactIds = new Set([sf.id]);
+      const seeds = [sf.subtypeId, sf.supertypeId];
+      const filter = DiagramPanel.buildMultiEntityFilter(panel.model, seeds, 1);
       panel.focusEntityId = sf.subtypeId;
-      panel.hopCount = undefined;
-      panel.activeViewFilter = { objectTypeIds, factTypeIds, subtypeFactIds };
-      panel.activeViewName = undefined;
-      panel.ghostObjectTypeIds.clear();
-      panel.positionOverrides = {};
+      panel.hopCount = 1;
+      panel.activeViewFilter = filter;
       void panel.rerender();
       return;
     }
 
+    if (kind === "fact_type") {
+      // Show all players of the fact type + 1 hop from each.
+      const ft = panel.model.getFactType(elementId);
+      if (!ft) return;
+      const seeds = [...new Set(ft.roles.map((r) => r.playerId))];
+      if (seeds.length === 0) return;
+      const filter = DiagramPanel.buildMultiEntityFilter(panel.model, seeds, 1);
+      panel.focusEntityId = seeds[0]!;
+      panel.hopCount = 1;
+      panel.activeViewFilter = filter;
+      void panel.rerender();
+      return;
+    }
+
+    // Entity or value type: standard 1-hop focus.
     panel.focusEntityId = elementId;
     panel.hopCount = 1;
-    panel.positionOverrides = {};
     void panel.rerender();
+  }
+
+  /**
+   * Build an include filter from multiple seed entities, each expanded
+   * by N hops. Returns the union of all neighborhoods.
+   */
+  private static buildMultiEntityFilter(
+    model: OrmModel,
+    seeds: string[],
+    hops: number,
+  ): { objectTypeIds: Set<string>; factTypeIds: Set<string>; subtypeFactIds: Set<string> } {
+    const objectTypeIds = new Set<string>();
+    const factTypeIds = new Set<string>();
+    const subtypeFactIds = new Set<string>();
+
+    for (const seed of seeds) {
+      const n = computeNeighborhood(model, seed, hops);
+      for (const id of n.objectTypeIds) objectTypeIds.add(id);
+      for (const id of n.factTypeIds) factTypeIds.add(id);
+      for (const id of n.subtypeFactIds) subtypeFactIds.add(id);
+    }
+
+    return { objectTypeIds, factTypeIds, subtypeFactIds };
   }
 
   /**
@@ -386,11 +419,15 @@ export class DiagramPanel {
       }
 
       const ghostRenderIds = this.computeGhostRenderIds();
+      // When an explicit includeFilter is set (from multi-entity highlight
+      // or a saved view), don't pass focusEntityId to generateDiagram --
+      // it would override the filter with a single-entity neighborhood.
+      const useFocusForFilter = this.focusEntityId && !includeFilter;
       const result = await generateDiagram(this.model, {
         positionOverrides: posOverrides,
         orientationOverrides: oriOverrides,
-        focusEntityId: this.focusEntityId,
-        hopCount: this.hopCount,
+        focusEntityId: useFocusForFilter ? this.focusEntityId : undefined,
+        hopCount: useFocusForFilter ? this.hopCount : undefined,
         includeFilter,
         ghostNodeIds: ghostRenderIds,
       });
