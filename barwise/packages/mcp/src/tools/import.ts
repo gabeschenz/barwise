@@ -3,11 +3,11 @@
  */
 
 import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
-import { createLlmClient, processTranscript } from "@barwise/llm";
+import { buildExistingModelContext, createLlmClient, processTranscript } from "@barwise/llm";
 import type { ProviderName } from "@barwise/llm";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { readSource } from "../helpers/resolve.js";
+import { readSource, resolveSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
 
@@ -27,6 +27,14 @@ export function registerImportTool(server: McpServer): void {
           .string()
           .default("Extracted Model")
           .describe("Name for the resulting ORM model"),
+        base: z
+          .string()
+          .optional()
+          .describe(
+            "File path or inline YAML of an existing base model. "
+            + "When provided, the LLM is told which types already exist "
+            + "so it can reference them instead of redefining them.",
+          ),
         provider: z
           .enum(["anthropic", "openai", "ollama"])
           .optional()
@@ -39,12 +47,13 @@ export function registerImportTool(server: McpServer): void {
           .describe("LLM model override (e.g. 'gpt-4o', 'claude-sonnet-4-5-20250929')"),
       },
     },
-    async ({ transcript, modelName, provider, model }) => {
+    async ({ transcript, modelName, base, provider, model }) => {
       return executeImport(
         transcript,
         modelName,
         provider as ProviderName | undefined,
         model,
+        base,
       );
     },
   );
@@ -55,6 +64,7 @@ export async function executeImport(
   modelName: string = "Extracted Model",
   provider?: ProviderName,
   model?: string,
+  base?: string,
 ): Promise<{ content: Array<{ type: "text"; text: string; }>; }> {
   const text = readSource(transcript);
 
@@ -63,8 +73,21 @@ export async function executeImport(
     model,
   });
 
+  // Build context from the base model so the LLM knows which types
+  // already exist and can reference them by name.
+  let existingModelContext: string | undefined;
+  if (base) {
+    try {
+      const baseModel = resolveSource(base);
+      existingModelContext = buildExistingModelContext(baseModel);
+    } catch {
+      // Non-critical: proceed without context.
+    }
+  }
+
   const result = await processTranscript(text, client, {
     modelName,
+    existingModelContext,
   });
 
   const yaml = serializer.serialize(result.model);

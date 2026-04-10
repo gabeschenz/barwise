@@ -14,15 +14,18 @@ const serializer = new OrmYamlSerializer();
  * file path (no newlines, ends with .yaml/.yml, or file exists on disk),
  * read and deserialize it. Otherwise, treat it as inline YAML content.
  */
-export function resolveSource(source: string): OrmModel {
+export function resolveSource(
+  source: string,
+  options?: { lenient?: boolean },
+): OrmModel {
   const trimmed = source.trim();
 
   if (isFilePath(trimmed)) {
     const yaml = readFileSync(trimmed, "utf-8");
-    return serializer.deserialize(yaml);
+    return serializer.deserialize(yaml, options);
   }
 
-  return serializer.deserialize(trimmed);
+  return serializer.deserialize(trimmed, options);
 }
 
 /**
@@ -38,7 +41,7 @@ export function readSource(source: string): string {
   return trimmed;
 }
 
-function isFilePath(source: string): boolean {
+export function isFilePath(source: string): boolean {
   // Inline YAML will have newlines; file paths won't.
   if (source.includes("\n")) return false;
 

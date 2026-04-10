@@ -1,20 +1,35 @@
 /**
  * Tests for the merge_models tool.
  */
-import { dirname, resolve } from "node:path";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executeMerge } from "../../src/tools/merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtures = resolve(__dirname, "../fixtures");
 
 describe("merge_models tool", () => {
+  // The merge tool writes the merged YAML back to the base file when the
+  // base is a file path. Tests must use a temp copy as the base so repeated
+  // runs don't mutate the committed fixture.
+  let tempDir: string;
+  let baseCopy: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "barwise-mcp-merge-test-"));
+    baseCopy = join(tempDir, "simple.orm.yaml");
+    copyFileSync(`${fixtures}/simple.orm.yaml`, baseCopy);
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
   it("returns unchanged for identical models", () => {
-    const result = executeMerge(
-      `${fixtures}/simple.orm.yaml`,
-      `${fixtures}/simple.orm.yaml`,
-    );
+    const result = executeMerge(baseCopy, baseCopy);
     const parsed = JSON.parse(result.content[0]!.text);
     expect(parsed.hasChanges).toBe(false);
     expect(parsed.valid).toBe(true);
@@ -22,7 +37,7 @@ describe("merge_models tool", () => {
 
   it("merges additions from incoming model", () => {
     const result = executeMerge(
-      `${fixtures}/simple.orm.yaml`,
+      baseCopy,
       `${fixtures}/simple-modified.orm.yaml`,
     );
     const parsed = JSON.parse(result.content[0]!.text);
@@ -34,7 +49,7 @@ describe("merge_models tool", () => {
 
   it("includes structural diagnostics array", () => {
     const result = executeMerge(
-      `${fixtures}/simple.orm.yaml`,
+      baseCopy,
       `${fixtures}/simple-modified.orm.yaml`,
     );
     const parsed = JSON.parse(result.content[0]!.text);
@@ -44,10 +59,7 @@ describe("merge_models tool", () => {
   });
 
   it("returns content in MCP format", () => {
-    const result = executeMerge(
-      `${fixtures}/simple.orm.yaml`,
-      `${fixtures}/simple.orm.yaml`,
-    );
+    const result = executeMerge(baseCopy, baseCopy);
     expect(result.content).toHaveLength(1);
     expect(result.content[0]!.type).toBe("text");
   });
