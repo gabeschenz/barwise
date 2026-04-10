@@ -157,7 +157,14 @@ export class OrmYamlSerializer {
    * errors (e.g. referential integrity violations) are thrown as
    * DeserializationError.
    */
-  deserialize(yaml: string): OrmModel {
+  /**
+   * @param yaml - The YAML string to deserialize.
+   * @param options - Optional settings.
+   * @param options.lenient - When true, skip role player reference
+   *   validation.  Used for merge fragments that reference types from
+   *   a base model not present in the fragment.
+   */
+  deserialize(yaml: string, options?: { lenient?: boolean }): OrmModel {
     const raw = parse(yaml) as unknown;
 
     const result = this.validator.validateModel(raw);
@@ -171,7 +178,7 @@ export class OrmYamlSerializer {
     }
 
     const doc = raw as OrmYamlDocument;
-    return this.fromDocument(doc);
+    return this.fromDocument(doc, options);
   }
 
   // -- Internal: model -> document --
@@ -435,7 +442,10 @@ export class OrmYamlSerializer {
 
   // -- Internal: document -> model --
 
-  private fromDocument(doc: OrmYamlDocument): OrmModel {
+  private fromDocument(
+    doc: OrmYamlDocument,
+    options?: { lenient?: boolean },
+  ): OrmModel {
     const model = new OrmModel({
       name: doc.model.name,
       domainContext: doc.model.domain_context,
@@ -468,30 +478,36 @@ export class OrmYamlSerializer {
     for (const ftDoc of doc.model.fact_types ?? []) {
       const constraints = (ftDoc.constraints ?? []).map((c) => this.deserializeConstraint(c));
 
-      model.addFactType({
-        id: ftDoc.id,
-        name: ftDoc.name,
-        definition: ftDoc.definition,
-        roles: ftDoc.roles.map((r) => ({
-          id: r.id,
-          name: r.role_name,
-          playerId: r.player,
-        })),
-        readings: ftDoc.readings,
-        constraints,
-      });
+      model.addFactType(
+        {
+          id: ftDoc.id,
+          name: ftDoc.name,
+          definition: ftDoc.definition,
+          roles: ftDoc.roles.map((r) => ({
+            id: r.id,
+            name: r.role_name,
+            playerId: r.player,
+          })),
+          readings: ftDoc.readings,
+          constraints,
+        },
+        { skipPlayerValidation: options?.lenient },
+      );
     }
 
     // Add subtype facts (after object types and fact types).
     for (const sfDoc of doc.model.subtype_facts ?? []) {
-      model.addSubtypeFact({
-        id: sfDoc.id,
-        subtypeId: sfDoc.subtype,
-        supertypeId: sfDoc.supertype,
-        providesIdentification: sfDoc.provides_identification ?? true,
-        isExclusive: sfDoc.is_exclusive ?? false,
-        isExhaustive: sfDoc.is_exhaustive ?? false,
-      });
+      model.addSubtypeFact(
+        {
+          id: sfDoc.id,
+          subtypeId: sfDoc.subtype,
+          supertypeId: sfDoc.supertype,
+          providesIdentification: sfDoc.provides_identification ?? true,
+          isExclusive: sfDoc.is_exclusive ?? false,
+          isExhaustive: sfDoc.is_exhaustive ?? false,
+        },
+        { skipPlayerValidation: options?.lenient },
+      );
     }
 
     // Add objectified fact types (after object types and fact types).

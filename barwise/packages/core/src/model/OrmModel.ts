@@ -156,10 +156,18 @@ export class OrmModel {
 
   /**
    * Add a fact type to the model.
-   * @throws If any role references a nonexistent object type.
+   * @param config - The fact type configuration.
+   * @param options - Optional settings.
+   * @param options.skipPlayerValidation - When true, skip the check that
+   *   all role player IDs exist in the model.  Used when deserializing
+   *   merge fragments that reference types from a base model.
+   * @throws If any role references a nonexistent object type (unless skipPlayerValidation).
    * @throws If a fact type with the same name already exists.
    */
-  addFactType(config: FactTypeConfig): FactType {
+  addFactType(
+    config: FactTypeConfig,
+    options?: { skipPlayerValidation?: boolean },
+  ): FactType {
     const existing = this.getFactTypeByName(config.name);
     if (existing) {
       throw new Error(
@@ -168,13 +176,15 @@ export class OrmModel {
     }
 
     // Validate that all role players exist.
-    for (const roleConfig of config.roles) {
-      if (!this._objectTypes.has(roleConfig.playerId)) {
-        throw new Error(
-          `Role "${roleConfig.name}" in fact type "${config.name}" `
-            + `references object type id "${roleConfig.playerId}" which `
-            + `does not exist in the model.`,
-        );
+    if (!options?.skipPlayerValidation) {
+      for (const roleConfig of config.roles) {
+        if (!this._objectTypes.has(roleConfig.playerId)) {
+          throw new Error(
+            `Role "${roleConfig.name}" in fact type "${config.name}" `
+              + `references object type id "${roleConfig.playerId}" which `
+              + `does not exist in the model.`,
+          );
+        }
       }
     }
 
@@ -219,44 +229,53 @@ export class OrmModel {
 
   /**
    * Add a subtype fact to the model.
-   * @throws If subtype or supertype entity types don't exist.
-   * @throws If either referenced object type is not an entity type.
+   * @param config - The subtype fact configuration.
+   * @param options - Optional settings.
+   * @param options.skipPlayerValidation - When true, skip the check that
+   *   subtype/supertype IDs exist. Used for merge fragments.
+   * @throws If subtype or supertype entity types don't exist (unless skipPlayerValidation).
+   * @throws If either referenced object type is not an entity type (unless skipPlayerValidation).
    * @throws If a duplicate subtype relationship already exists.
    */
-  addSubtypeFact(config: SubtypeFactConfig): SubtypeFact {
-    const subtype = this._objectTypes.get(config.subtypeId);
-    if (!subtype) {
-      throw new Error(
-        `Subtype entity type id "${config.subtypeId}" does not exist in the model.`,
-      );
-    }
-    if (subtype.kind !== "entity") {
-      throw new Error(
-        `Subtype "${subtype.name}" must be an entity type, not a ${subtype.kind} type.`,
-      );
-    }
-
-    const supertype = this._objectTypes.get(config.supertypeId);
-    if (!supertype) {
-      throw new Error(
-        `Supertype entity type id "${config.supertypeId}" does not exist in the model.`,
-      );
-    }
-    if (supertype.kind !== "entity") {
-      throw new Error(
-        `Supertype "${supertype.name}" must be an entity type, not a ${supertype.kind} type.`,
-      );
-    }
-
-    // Check for duplicate subtype relationship.
-    for (const existing of this._subtypeFacts.values()) {
-      if (
-        existing.subtypeId === config.subtypeId
-        && existing.supertypeId === config.supertypeId
-      ) {
+  addSubtypeFact(
+    config: SubtypeFactConfig,
+    options?: { skipPlayerValidation?: boolean },
+  ): SubtypeFact {
+    if (!options?.skipPlayerValidation) {
+      const subtype = this._objectTypes.get(config.subtypeId);
+      if (!subtype) {
         throw new Error(
-          `Subtype relationship from "${subtype.name}" to "${supertype.name}" already exists.`,
+          `Subtype entity type id "${config.subtypeId}" does not exist in the model.`,
         );
+      }
+      if (subtype.kind !== "entity") {
+        throw new Error(
+          `Subtype "${subtype.name}" must be an entity type, not a ${subtype.kind} type.`,
+        );
+      }
+
+      const supertype = this._objectTypes.get(config.supertypeId);
+      if (!supertype) {
+        throw new Error(
+          `Supertype entity type id "${config.supertypeId}" does not exist in the model.`,
+        );
+      }
+      if (supertype.kind !== "entity") {
+        throw new Error(
+          `Supertype "${supertype.name}" must be an entity type, not a ${supertype.kind} type.`,
+        );
+      }
+
+      // Check for duplicate subtype relationship.
+      for (const existing of this._subtypeFacts.values()) {
+        if (
+          existing.subtypeId === config.subtypeId
+          && existing.supertypeId === config.supertypeId
+        ) {
+          throw new Error(
+            `Subtype relationship from "${subtype.name}" to "${supertype.name}" already exists.`,
+          );
+        }
       }
     }
 
