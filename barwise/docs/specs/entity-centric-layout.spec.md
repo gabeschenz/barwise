@@ -12,7 +12,7 @@ in 2D and position fact types *between* their connected entities, on the
 edges. The layout uses space in both dimensions, producing compact,
 readable diagrams.
 
-Reference screenshots (in repo root):
+Reference screenshots (in `barwise/docs/screenshots/`):
 - `ormsolutions-auction.png` -- NORMA binary fact types between entities
 - `ormsolutions-ternary.png` -- NORMA ternary fact type with edges fanning out
 - `boston-unary.png` -- Boston unary fact type as stub off entity
