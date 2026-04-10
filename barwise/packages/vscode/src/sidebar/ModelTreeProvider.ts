@@ -156,7 +156,7 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Entity Types",
       iconId: "symbol-class",
-      children: entities.map((ot) => entityItem(ot)),
+      children: entities.map((ot) => entityItem(ot)).sort((a, b) => a.label.localeCompare(b.label)),
     });
   }
 
@@ -167,7 +167,7 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Value Types",
       iconId: "symbol-field",
-      children: values.map((ot) => valueItem(ot)),
+      children: values.map((ot) => valueItem(ot)).sort((a, b) => a.label.localeCompare(b.label)),
     });
   }
 
@@ -177,7 +177,7 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Fact Types",
       iconId: "symbol-event",
-      children: model.factTypes.map((ft) => factTypeItem(ft, model)),
+      children: model.factTypes.map((ft) => factTypeItem(ft, model)).sort((a, b) => a.label.localeCompare(b.label)),
     });
   }
 
@@ -187,7 +187,7 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Subtype Relationships",
       iconId: "type-hierarchy",
-      children: model.subtypeFacts.map((sf) => subtypeItem(sf, model)),
+      children: model.subtypeFacts.map((sf) => subtypeItem(sf, model)).sort((a, b) => a.label.localeCompare(b.label)),
     });
   }
 
@@ -254,7 +254,7 @@ function factTypeItem(ft: FactType, model: OrmModel): ModelTreeItem {
 function constraintItem(
   c: Constraint,
   ft: FactType,
-  model: OrmModel,
+  _model: OrmModel,
 ): ModelTreeItem {
   if (isInternalUniqueness(c)) {
     const roleNames = c.roleIds

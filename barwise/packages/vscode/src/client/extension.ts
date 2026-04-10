@@ -107,7 +107,7 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand(
       "barwise.addToView",
-      async (first: unknown, second?: unknown) => {
+      async (first: unknown, _second?: unknown) => {
         // Resolve element name from click or context menu args.
         let elementName: string | undefined;
         if (typeof first === "string") {
