@@ -86,12 +86,18 @@ export async function layoutGraph(
   // Pass 1: entity placement with cluster-aware two-level layout.
   const entityPositions = await layoutEntitiesWithClusters(graph);
 
-  // Apply any manual position overrides.
+  // Apply any manual position overrides.  Overrides use center
+  // coordinates so that items sharing the same y visually align
+  // regardless of node height.  Convert to top-left here.
   if (positionOverrides) {
     for (const [nodeId, pos] of Object.entries(positionOverrides)) {
       const existing = entityPositions.get(nodeId);
       if (existing) {
-        entityPositions.set(nodeId, { ...existing, x: pos.x, y: pos.y });
+        entityPositions.set(nodeId, {
+          ...existing,
+          x: pos.x - existing.width / 2,
+          y: pos.y - existing.height / 2,
+        });
       }
     }
   }
@@ -1232,10 +1238,11 @@ function placeFactTypes(
       }
     }
 
-    // Use manual position override if present, otherwise compute from center.
+    // Use manual position override if present, otherwise compute from
+    // entity center.  Overrides are center-based, so convert to top-left.
     const posOverride = positionOverrides?.[ft.id];
-    const ftX = posOverride ? posOverride.x : cx - ftWidth / 2;
-    const ftY = posOverride ? posOverride.y : cy - ftHeight / 2;
+    const ftX = (posOverride?.x ?? cx) - ftWidth / 2;
+    const ftY = (posOverride?.y ?? cy) - ftHeight / 2;
 
     positions.set(ft.id, {
       kind: "fact_type",

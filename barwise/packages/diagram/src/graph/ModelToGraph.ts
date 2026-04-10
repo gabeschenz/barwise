@@ -103,9 +103,36 @@ export function modelToGraph(
     }
   }
 
-  // Create object type nodes (skip absorbed value types and filtered-out types).
+  // Build a lookup from fact type id to objectified entity name, and
+  // collect objectified entity IDs that don't play roles in any other
+  // fact type.  Pure objectifications are already represented by their
+  // fact type node (with the rounded-rectangle envelope) so rendering
+  // them as separate entity nodes produces disconnected "island" nodes.
+  const objectifiedMap = new Map<string, string>();
+  const objectifiedEntityIds = new Set<string>();
+  for (const oft of model.objectifiedFactTypes) {
+    const entityType = model.getObjectType(oft.objectTypeId);
+    if (entityType) {
+      objectifiedMap.set(oft.factTypeId, entityType.name);
+      objectifiedEntityIds.add(oft.objectTypeId);
+    }
+  }
+
+  // Remove objectified entities that also play roles in other fact
+  // types -- they need to stay as visible nodes with edges.
+  for (const ft of model.factTypes) {
+    for (const role of ft.roles) {
+      if (objectifiedEntityIds.has(role.playerId)) {
+        objectifiedEntityIds.delete(role.playerId);
+      }
+    }
+  }
+
+  // Create object type nodes (skip absorbed value types, pure
+  // objectified entities, and filtered-out types).
   for (const ot of model.objectTypes) {
     if (absorbedValueTypeIds.has(ot.id)) continue;
+    if (objectifiedEntityIds.has(ot.id)) continue;
     if (filter && !filter.objectTypeIds.has(ot.id)) continue;
     const otAnnotations = annotationMap?.get(ot.id);
     nodes.push({
@@ -117,15 +144,6 @@ export function modelToGraph(
       aliases: ot.aliases?.length ? ot.aliases : undefined,
       annotations: otAnnotations?.length ? otAnnotations : undefined,
     });
-  }
-
-  // Build a lookup from fact type id to objectified entity name.
-  const objectifiedMap = new Map<string, string>();
-  for (const oft of model.objectifiedFactTypes) {
-    const entityType = model.getObjectType(oft.objectTypeId);
-    if (entityType) {
-      objectifiedMap.set(oft.factTypeId, entityType.name);
-    }
   }
 
   // Create fact type nodes and edges (skip absorbed and filtered-out facts).

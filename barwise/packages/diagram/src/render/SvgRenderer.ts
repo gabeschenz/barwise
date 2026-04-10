@@ -245,28 +245,31 @@ function renderFactType(node: PositionedFactTypeNode, ghostIds?: ReadonlySet<str
     }
   }
 
-  // Fact type name label.
-  if (node.orientation === "vertical") {
-    // Vertical: label to the right of the strip.
-    const labelX = node.x + node.width + 8;
-    const labelY = node.y + node.height / 2;
-    parts.push(
-      `<text x="${labelX}" y="${labelY}" `
-        + `text-anchor="start" dominant-baseline="central" `
-        + `fill="${theme.COLOR_TEXT}" `
-        + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
-        + `${esc(node.name)}</text>`,
-    );
-  } else {
-    // Horizontal: label below the bar.
-    const cx = node.x + node.width / 2;
-    const labelY = node.y + node.height + 14;
-    parts.push(
-      `<text x="${cx}" y="${labelY}" `
-        + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
-        + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
-        + `${esc(node.name)}</text>`,
-    );
+  // Fact type name label (skip for objectified facts -- the entity name
+  // label below already shows the same text).
+  if (!node.isObjectified) {
+    if (node.orientation === "vertical") {
+      // Vertical: label to the right of the strip.
+      const labelX = node.x + node.width + 8;
+      const labelY = node.y + node.height / 2;
+      parts.push(
+        `<text x="${labelX}" y="${labelY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `fill="${theme.COLOR_TEXT}" `
+          + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+          + `${esc(node.name)}</text>`,
+      );
+    } else {
+      // Horizontal: label below the bar.
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      parts.push(
+        `<text x="${cx}" y="${labelY}" `
+          + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
+          + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+          + `${esc(node.name)}</text>`,
+      );
+    }
   }
 
   // Ring constraint label.
