@@ -35,6 +35,9 @@ export type { ConformanceCorrection, ConformanceResult } from "./ExtractionConfo
 // Model parser
 export { parseDraftModel } from "./DraftModelParser.js";
 
+// Model context helper
+export { buildExistingModelContext } from "./ModelContext.js";
+
 // Pipeline orchestrator
 export { parseExtractionFromJson, processTranscript } from "./TranscriptProcessor.js";
 export type { ProcessorOptions } from "./TranscriptProcessor.js";

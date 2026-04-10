@@ -153,10 +153,21 @@ Analyze the transcript carefully and extract:
 
 /**
  * Build the user message containing the transcript.
+ *
+ * @param transcript - The raw transcript text.
+ * @param existingModelContext - Optional summary of types already in
+ *   the base model.  When provided, the LLM avoids redefining them.
  */
-export function buildUserMessage(transcript: string): string {
-  return `Extract an ORM conceptual model from the following business working session transcript. Number each line for source reference tracking.
+export function buildUserMessage(
+  transcript: string,
+  existingModelContext?: string,
+): string {
+  const contextBlock = existingModelContext
+    ? `\n<existing_model>\n${existingModelContext}\n</existing_model>\n\nThe types listed above already exist in the base model. Do NOT include them in your object_types output -- only output genuinely NEW types. When creating new fact types, reference existing types by their exact names as role players. Do NOT create identifier fact types for existing entity types.\n\n`
+    : "";
 
+  return `Extract an ORM conceptual model from the following business working session transcript. Number each line for source reference tracking.
+${contextBlock}
 <transcript>
 ${numberLines(transcript)}
 </transcript>
