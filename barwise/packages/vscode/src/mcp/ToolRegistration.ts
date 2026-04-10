@@ -10,7 +10,7 @@
  */
 
 import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
-import { AnthropicLlmClient, processTranscript, reviewModel } from "@barwise/llm";
+import { AnthropicLlmClient, buildExistingModelContext, processTranscript, reviewModel } from "@barwise/llm";
 import type { LlmClient } from "@barwise/llm";
 import {
   executeDescribeDomain,
@@ -36,26 +36,26 @@ const serializer = new OrmYamlSerializer();
 // ---------------------------------------------------------------------------
 
 interface ValidateInput {
-  source: string;
+  source?: string;
 }
 
 interface VerbalizeInput {
-  source: string;
+  source?: string;
   factType?: string;
 }
 
 interface SchemaInput {
-  source: string;
+  source?: string;
   format?: "ddl" | "json";
 }
 
 interface DiffInput {
-  base: string;
+  base?: string;
   incoming: string;
 }
 
 interface DiagramInput {
-  source: string;
+  source?: string;
 }
 
 interface ImportTranscriptInput {
@@ -64,12 +64,12 @@ interface ImportTranscriptInput {
 }
 
 interface MergeInput {
-  base: string;
+  base?: string;
   incoming: string;
 }
 
 interface ExportModelInput {
-  source: string;
+  source?: string;
   format: string;
   annotate?: boolean;
   includeExamples?: boolean;
@@ -77,7 +77,7 @@ interface ExportModelInput {
 }
 
 interface DescribeDomainInput {
-  source: string;
+  source?: string;
   focus?: string;
   includePopulations?: boolean;
   filePath?: string;
@@ -90,16 +90,16 @@ interface ImportModelInput {
 }
 
 interface ReviewModelInput {
-  source: string;
+  source?: string;
   focus?: string;
 }
 
 interface LineageStatusInput {
-  source: string;
+  source?: string;
 }
 
 interface ImpactAnalysisInput {
-  source: string;
+  source?: string;
   elementId: string;
 }
 
@@ -117,6 +117,37 @@ function toToolResult(
 }
 
 // ---------------------------------------------------------------------------
+// Helper: resolve the active .orm.yaml file path
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the file path of the active editor if it is an .orm.yaml file.
+ * Used as a fallback when tools don't receive an explicit source/base.
+ */
+function getActiveOrmFile(): string | undefined {
+  const editor = vscode.window.activeTextEditor;
+  if (editor?.document.fileName.endsWith(".orm.yaml")) {
+    return editor.document.uri.fsPath;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve a source parameter: use the provided value if non-empty,
+ * otherwise fall back to the active .orm.yaml file. Throws if neither
+ * is available.
+ */
+function resolveSourceParam(source: string | undefined): string {
+  if (source && source.trim().length > 0) return source;
+  const active = getActiveOrmFile();
+  if (active) return active;
+  throw new Error(
+    "No source provided and no .orm.yaml file is open in the editor. "
+    + "Please open an .orm.yaml file or provide a file path.",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // validate_model
 // ---------------------------------------------------------------------------
 
@@ -125,7 +156,8 @@ class ValidateModelTool implements vscode.LanguageModelTool<ValidateInput> {
     options: vscode.LanguageModelToolInvocationOptions<ValidateInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeValidate(options.input.source);
+    const source = resolveSourceParam(options.input.source);
+    const result = executeValidate(source);
     return toToolResult(result);
   }
 
@@ -148,10 +180,8 @@ class VerbalizeModelTool implements vscode.LanguageModelTool<VerbalizeInput> {
     options: vscode.LanguageModelToolInvocationOptions<VerbalizeInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeVerbalize(
-      options.input.source,
-      options.input.factType,
-    );
+    const source = resolveSourceParam(options.input.source);
+    const result = executeVerbalize(source, options.input.factType);
     return toToolResult(result);
   }
 
@@ -174,10 +204,8 @@ class GenerateSchemaTool implements vscode.LanguageModelTool<SchemaInput> {
     options: vscode.LanguageModelToolInvocationOptions<SchemaInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeSchema(
-      options.input.source,
-      options.input.format ?? "ddl",
-    );
+    const source = resolveSourceParam(options.input.source);
+    const result = executeSchema(source, options.input.format ?? "ddl");
     return toToolResult(result);
   }
 
@@ -201,7 +229,8 @@ class DiffModelsTool implements vscode.LanguageModelTool<DiffInput> {
     options: vscode.LanguageModelToolInvocationOptions<DiffInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeDiff(options.input.base, options.input.incoming);
+    const base = resolveSourceParam(options.input.base);
+    const result = executeDiff(base, options.input.incoming);
     return toToolResult(result);
   }
 
@@ -224,7 +253,8 @@ class GenerateDiagramTool implements vscode.LanguageModelTool<DiagramInput> {
     options: vscode.LanguageModelToolInvocationOptions<DiagramInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = await executeDiagram(options.input.source);
+    const source = resolveSourceParam(options.input.source);
+    const result = await executeDiagram(source);
     return toToolResult(result);
   }
 
@@ -258,7 +288,23 @@ class ImportTranscriptTool implements vscode.LanguageModelTool<ImportTranscriptI
     // if the user has configured it.
     const client = await this.resolveClient();
 
-    const result = await processTranscript(transcript, client, { modelName });
+    // If an .orm.yaml file is open, provide its types as context so
+    // the LLM can reference existing entities instead of redefining them.
+    let existingModelContext: string | undefined;
+    const editor = vscode.window.activeTextEditor;
+    if (editor?.document.fileName.endsWith(".orm.yaml")) {
+      try {
+        const model = serializer.deserialize(editor.document.getText());
+        existingModelContext = buildExistingModelContext(model);
+      } catch {
+        // Non-critical: proceed without context if parsing fails.
+      }
+    }
+
+    const result = await processTranscript(transcript, client, {
+      modelName,
+      existingModelContext,
+    });
 
     const yaml = serializer.serialize(result.model);
     const annotated = annotateOrmYaml(yaml, result);
@@ -302,7 +348,8 @@ class MergeModelsTool implements vscode.LanguageModelTool<MergeInput> {
     options: vscode.LanguageModelToolInvocationOptions<MergeInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeMerge(options.input.base, options.input.incoming);
+    const base = resolveSourceParam(options.input.base);
+    const result = executeMerge(base, options.input.incoming);
     return toToolResult(result);
   }
 
@@ -325,7 +372,8 @@ class ExportModelTool implements vscode.LanguageModelTool<ExportModelInput> {
     options: vscode.LanguageModelToolInvocationOptions<ExportModelInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const { source, format, annotate, includeExamples, strict } = options.input;
+    const source = resolveSourceParam(options.input.source);
+    const { format, annotate, includeExamples, strict } = options.input;
     const opts: Record<string, unknown> = {};
     if (annotate !== undefined) opts.annotate = annotate;
     if (includeExamples !== undefined) opts.includeExamples = includeExamples;
@@ -357,7 +405,8 @@ class DescribeDomainTool implements vscode.LanguageModelTool<DescribeDomainInput
     options: vscode.LanguageModelToolInvocationOptions<DescribeDomainInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const { source, focus, includePopulations, filePath } = options.input;
+    const source = resolveSourceParam(options.input.source);
+    const { focus, includePopulations, filePath } = options.input;
     const result = executeDescribeDomain(
       source,
       focus,
@@ -413,7 +462,8 @@ class ReviewModelTool implements vscode.LanguageModelTool<ReviewModelInput> {
     options: vscode.LanguageModelToolInvocationOptions<ReviewModelInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const { source, focus } = options.input;
+    const source = resolveSourceParam(options.input.source);
+    const { focus } = options.input;
     const client = await this.resolveClient();
 
     const model = resolveSource(source);
@@ -489,7 +539,8 @@ class LineageStatusTool implements vscode.LanguageModelTool<LineageStatusInput> 
     options: vscode.LanguageModelToolInvocationOptions<LineageStatusInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeLineageStatus(options.input.source);
+    const source = resolveSourceParam(options.input.source);
+    const result = executeLineageStatus(source);
     return toToolResult(result);
   }
 
@@ -512,10 +563,8 @@ class ImpactAnalysisTool implements vscode.LanguageModelTool<ImpactAnalysisInput
     options: vscode.LanguageModelToolInvocationOptions<ImpactAnalysisInput>,
     _token: vscode.CancellationToken,
   ): Promise<vscode.LanguageModelToolResult> {
-    const result = executeImpactAnalysis(
-      options.input.source,
-      options.input.elementId,
-    );
+    const source = resolveSourceParam(options.input.source);
+    const result = executeImpactAnalysis(source, options.input.elementId);
     return toToolResult(result);
   }
 

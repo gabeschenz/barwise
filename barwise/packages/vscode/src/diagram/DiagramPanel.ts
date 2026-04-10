@@ -40,6 +40,8 @@ export class DiagramPanel {
   private activeViewName: string | undefined;
   private ghostObjectTypeIds = new Set<string>();
   private renderVersion = 0;
+  private docChangeDisposable: vscode.Disposable | undefined;
+  private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   private constructor(
     panel: vscode.WebviewPanel,
@@ -52,8 +54,16 @@ export class DiagramPanel {
     this.filePath = fileName;
     this.update(svg, fileName);
 
+    this.setupDocumentWatcher();
+
     this.panel.onDidDispose(() => {
       this.disposed = true;
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = undefined;
+      }
+      this.docChangeDisposable?.dispose();
+      this.docChangeDisposable = undefined;
       DiagramPanel.currentPanel = undefined;
     });
 
@@ -62,9 +72,14 @@ export class DiagramPanel {
         if (message.command === "nodeMoved" && this.model) {
           this.pinAllEntitiesIfNeeded();
 
+          // Convert top-left (from SVG drag) to center coordinates
+          // so overrides are center-based throughout the pipeline.
+          const draggedNode = this.currentLayout?.nodes.find(
+            (n) => n.id === message.nodeId,
+          );
           this.positionOverrides[message.nodeId] = {
-            x: message.x,
-            y: message.y,
+            x: message.x + (draggedNode?.width ?? 0) / 2,
+            y: message.y + (draggedNode?.height ?? 0) / 2,
           };
           this.hasUnsavedChanges = true;
           void this.rerender();
@@ -124,6 +139,122 @@ export class DiagramPanel {
   }
 
   /**
+   * Watch the backing .orm.yaml document for changes and auto-refresh
+   * the diagram. When the file is edited (either in the editor or by an
+   * external tool that triggers a VS Code reload), the model is re-parsed
+   * and the diagram re-rendered. If a view filter is active, it is
+   * expanded to include any new fact types / entities that touch the
+   * currently displayed submodel.
+   */
+  private setupDocumentWatcher(): void {
+    this.docChangeDisposable = vscode.workspace.onDidChangeTextDocument((e) => {
+      if (this.disposed || !this.filePath) return;
+      if (e.document.uri.fsPath !== this.filePath) return;
+      // Debounce: only refresh once the user pauses typing.
+      if (this.refreshTimer) clearTimeout(this.refreshTimer);
+      this.refreshTimer = setTimeout(() => {
+        this.refreshTimer = undefined;
+        this.refreshFromDocument(e.document.getText());
+      }, 300);
+    });
+  }
+
+  /**
+   * Re-parse the backing document and re-render the diagram. Expands
+   * any active view filter to include new facts / entities that touch
+   * currently displayed entities. Silently ignores parse errors (the
+   * user may still be typing).
+   */
+  private refreshFromDocument(text: string): void {
+    if (this.disposed) return;
+    let newModel: OrmModel;
+    try {
+      newModel = saveSerializer.deserialize(text);
+    } catch {
+      // File is mid-edit; wait for the next change to try again.
+      return;
+    }
+    this.model = newModel;
+    this.cleanStaleFilterIds();
+    this.expandFilterForNewModel();
+    void this.rerender();
+  }
+
+  /**
+   * Remove IDs from the active view filter that no longer exist in the
+   * current model (e.g. an entity was deleted). Also clears focus if
+   * the focused entity no longer exists.
+   */
+  private cleanStaleFilterIds(): void {
+    if (!this.model) return;
+
+    const validOtIds = new Set(this.model.objectTypes.map((ot) => ot.id));
+    const validFtIds = new Set(this.model.factTypes.map((ft) => ft.id));
+    const validSfIds = new Set(this.model.subtypeFacts.map((sf) => sf.id));
+
+    if (this.activeViewFilter) {
+      for (const id of [...this.activeViewFilter.objectTypeIds]) {
+        if (!validOtIds.has(id)) this.activeViewFilter.objectTypeIds.delete(id);
+      }
+      for (const id of [...this.activeViewFilter.factTypeIds]) {
+        if (!validFtIds.has(id)) this.activeViewFilter.factTypeIds.delete(id);
+      }
+      for (const id of [...this.activeViewFilter.subtypeFactIds]) {
+        if (!validSfIds.has(id))
+          this.activeViewFilter.subtypeFactIds.delete(id);
+      }
+    }
+
+    for (const id of [...this.ghostObjectTypeIds]) {
+      if (!validOtIds.has(id)) this.ghostObjectTypeIds.delete(id);
+    }
+
+    if (this.focusEntityId && !validOtIds.has(this.focusEntityId)) {
+      this.focusEntityId = undefined;
+      this.hopCount = undefined;
+    }
+  }
+
+  /**
+   * Expand the active view filter by one hop from currently displayed
+   * entities: any new fact type whose roles touch at least one visible
+   * entity is added, along with its new role players. This keeps the
+   * diagram in sync with "I added a new fact involving an entity that's
+   * already in the view."
+   *
+   * No-op when there is no explicit filter (focus-mode recomputes
+   * neighborhood naturally on rerender).
+   */
+  private expandFilterForNewModel(): void {
+    if (!this.model || !this.activeViewFilter) return;
+    const { objectTypeIds, factTypeIds, subtypeFactIds } = this.activeViewFilter;
+
+    // Snapshot the starting entity set so we do a single-step expansion
+    // (not transitive). The user can use "Show Neighbors" to expand
+    // further.
+    const seedIds = new Set(objectTypeIds);
+
+    for (const ft of this.model.factTypes) {
+      if (factTypeIds.has(ft.id)) continue;
+      if (ft.roles.some((r) => seedIds.has(r.playerId))) {
+        factTypeIds.add(ft.id);
+        for (const r of ft.roles) {
+          objectTypeIds.add(r.playerId);
+        }
+      }
+    }
+
+    for (const sf of this.model.subtypeFacts) {
+      if (subtypeFactIds.has(sf.id)) continue;
+      if (seedIds.has(sf.subtypeId) || seedIds.has(sf.supertypeId)) {
+        subtypeFactIds.add(sf.id);
+        objectTypeIds.add(sf.subtypeId);
+        objectTypeIds.add(sf.supertypeId);
+      }
+    }
+  }
+
+  /**
    * On first interaction, pin all entities at their current layout positions
    * so only the interacted element changes.
    */
@@ -134,9 +265,10 @@ export class DiagramPanel {
     ) {
       for (const node of this.currentLayout.nodes) {
         if (node.kind === "object_type") {
+          // Store center coordinates, consistent with the rest of the pipeline.
           this.positionOverrides[node.id] = {
-            x: node.x,
-            y: node.y,
+            x: node.x + node.width / 2,
+            y: node.y + node.height / 2,
           };
         }
       }
@@ -262,6 +394,24 @@ export class DiagramPanel {
       panel.activeViewFilter = filter;
       void panel.rerender();
       return;
+    }
+
+    // If the entity is a pure objectification (no role-playing), show
+    // its underlying fact type's players + 1 hop instead.
+    const objectification = panel.model.objectificationFor(elementId);
+    if (objectification) {
+      const ft = panel.model.getFactType(objectification.factTypeId);
+      if (ft) {
+        const seeds = [...new Set(ft.roles.map((r) => r.playerId))];
+        if (seeds.length > 0) {
+          const filter = DiagramPanel.buildMultiEntityFilter(panel.model, seeds, 1);
+          panel.focusEntityId = seeds[0]!;
+          panel.hopCount = 1;
+          panel.activeViewFilter = filter;
+          void panel.rerender();
+          return;
+        }
+      }
     }
 
     // Entity or value type: standard 1-hop focus.
@@ -439,7 +589,18 @@ export class DiagramPanel {
       const viewState = this.activeViewName
         ? { viewName: this.activeViewName, hasGhosts: this.ghostObjectTypeIds.size > 0 }
         : undefined;
-      this.panel.webview.html = buildHtml(result.svg, this.buildFocusState(), viewState);
+      // Replace only the SVG content via postMessage so the webview's
+      // pan/zoom state (and the current scroll position within the panel)
+      // is preserved. Replacing panel.webview.html would re-run the
+      // script block, resetting panX/panY/scale and triggering the
+      // auto-fit "Fit" action -- which is what we want to avoid when
+      // rerendering after a node move, filter change, or document edit.
+      void this.panel.webview.postMessage({
+        command: "updateDiagram",
+        svg: result.svg,
+        focus: this.buildFocusState() ?? null,
+        view: viewState ?? null,
+      });
     } catch (err) {
       if (version === this.renderVersion) {
         console.error("Diagram rerender failed:", err);
@@ -454,15 +615,16 @@ export class DiagramPanel {
   private async saveLayout(): Promise<void> {
     if (!this.model || !this.filePath || !this.currentLayout) return;
 
-    // Build name-keyed positions from current id-keyed overrides.
+    // Build name-keyed positions using center coordinates so that
+    // items with the same y value visually align regardless of height.
     const positions: Record<string, { x: number; y: number }> = {};
     for (const node of this.currentLayout.nodes) {
       if (node.kind === "object_type") {
         const ot = this.model.getObjectType(node.id);
         if (ot) {
           positions[ot.name] = {
-            x: Math.round(node.x),
-            y: Math.round(node.y),
+            x: Math.round(node.x + node.width / 2),
+            y: Math.round(node.y + node.height / 2),
           };
         }
       } else if (node.kind === "fact_type" && this.positionOverrides[node.id]) {
@@ -470,8 +632,8 @@ export class DiagramPanel {
         const ft = this.model.getFactType(node.id);
         if (ft) {
           positions[ft.name] = {
-            x: Math.round(node.x),
-            y: Math.round(node.y),
+            x: Math.round(node.x + node.width / 2),
+            y: Math.round(node.y + node.height / 2),
           };
         }
       }
@@ -486,8 +648,18 @@ export class DiagramPanel {
       }
     }
 
-    const layoutName = "Default";
-    const layout: DiagramLayout = { name: layoutName, positions, orientations };
+    // Sort positions and orientations alphabetically for readability.
+    const sortedPositions: Record<string, { x: number; y: number }> = {};
+    for (const key of Object.keys(positions).sort()) {
+      sortedPositions[key] = positions[key]!;
+    }
+    const sortedOrientations: Record<string, "horizontal" | "vertical"> = {};
+    for (const key of Object.keys(orientations).sort()) {
+      sortedOrientations[key] = orientations[key]!;
+    }
+
+    const layoutName = this.activeViewName ?? "Default";
+    const layout: DiagramLayout = { name: layoutName, positions: sortedPositions, orientations: sortedOrientations };
 
     // Re-read the file to get the latest content, then update the model.
     try {
@@ -496,7 +668,8 @@ export class DiagramPanel {
 
       const existing = freshModel.getDiagramLayout(layoutName);
       if (existing) {
-        freshModel.updateDiagramLayout(layout);
+        // Preserve the element list from the existing view.
+        freshModel.updateDiagramLayout({ ...layout, elements: existing.elements });
       } else {
         freshModel.addDiagramLayout(layout);
       }
@@ -543,23 +716,23 @@ export class DiagramPanel {
       }
     }
 
-    // Collect positions from the current layout.
+    // Collect center-based positions from the current layout.
     const positions: Record<string, { x: number; y: number }> = {};
     for (const node of this.currentLayout.nodes) {
       if (node.kind === "object_type") {
         const ot = this.model.getObjectType(node.id);
         if (ot) {
           positions[ot.name] = {
-            x: Math.round(node.x),
-            y: Math.round(node.y),
+            x: Math.round(node.x + node.width / 2),
+            y: Math.round(node.y + node.height / 2),
           };
         }
       } else if (node.kind === "fact_type" && this.positionOverrides[node.id]) {
         const ft = this.model.getFactType(node.id);
         if (ft) {
           positions[ft.name] = {
-            x: Math.round(node.x),
-            y: Math.round(node.y),
+            x: Math.round(node.x + node.width / 2),
+            y: Math.round(node.y + node.height / 2),
           };
         }
       }
@@ -1110,8 +1283,43 @@ function buildHtml(svg: string, focus?: FocusState, view?: ViewState): string {
           highlightElement(msg.elementId, msg.kind);
         } else if (msg.command === 'clearHighlight') {
           clearHighlight();
+        } else if (msg.command === 'updateDiagram') {
+          updateDiagram(msg.svg, msg.focus, msg.view);
         }
       });
+
+      // Replace only the SVG content and update the focus/view bars,
+      // preserving the current pan/zoom transform. Called in response
+      // to rerender from the extension host so the user doesn't lose
+      // their scroll position after moving a node, editing the model,
+      // or changing the filter.
+      function updateDiagram(newSvg, focus, view) {
+        diagram.innerHTML = newSvg;
+        // Clear any drag state that might reference a now-detached node.
+        dragNode = null;
+        dragNodeId = null;
+        viewport.classList.remove('node-dragging');
+
+        // Update focus (hop) bar.
+        if (focus) {
+          focusNodeId = focus.entityId;
+          hopLabel.textContent = focus.entityName + ':';
+          hopBar.classList.add('visible');
+          setActiveHop(focus.hopCount || 1);
+        } else {
+          focusNodeId = null;
+          hopBar.classList.remove('visible');
+        }
+
+        // Update view bar.
+        if (view) {
+          viewLabel.textContent = 'View: ' + view.viewName;
+          viewBar.classList.add('visible');
+          clearGhostsBtn.style.display = view.hasGhosts ? 'inline-block' : 'none';
+        } else {
+          viewBar.classList.remove('visible');
+        }
+      }
 
       // Click on diagram background clears highlight.
       viewport.addEventListener('click', function(e) {
