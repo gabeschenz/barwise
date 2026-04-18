@@ -68,7 +68,7 @@ function buildPositionOverrides(
 ): PositionOverrides | undefined {
   const entries = Object.entries(layout.positions);
   if (entries.length === 0) return undefined;
-  const overrides: Record<string, { x: number; y: number }> = {};
+  const overrides: Record<string, { x: number; y: number; }> = {};
   for (const [name, pos] of entries) {
     const ot = model.getObjectTypeByName(name);
     if (ot) {

@@ -1,13 +1,13 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { OrmYamlSerializer, type DiagramLayout, type OrmModel } from "@barwise/core";
+import { type DiagramLayout, type OrmModel, OrmYamlSerializer } from "@barwise/core";
 import {
   computeNeighborhood,
   generateDiagram,
   type OrientationOverrides,
-  type PositionOverrides,
   type PositionedGraph,
+  type PositionOverrides,
 } from "@barwise/diagram";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
 
 const saveSerializer = new OrmYamlSerializer();
@@ -27,7 +27,7 @@ export class DiagramPanel {
   private model: OrmModel | undefined;
   private filePath: string | undefined;
   private currentLayout: PositionedGraph | undefined;
-  private positionOverrides: Record<string, { x: number; y: number }> = {};
+  private positionOverrides: Record<string, { x: number; y: number; }> = {};
   private orientationOverrides: Record<string, "horizontal" | "vertical"> = {};
   private hasUnsavedChanges = false;
   private focusEntityId: string | undefined;
@@ -68,7 +68,7 @@ export class DiagramPanel {
     });
 
     this.panel.webview.onDidReceiveMessage(
-      (message: { command: string; nodeId: string; x: number; y: number }) => {
+      (message: { command: string; nodeId: string; x: number; y: number; }) => {
         if (message.command === "nodeMoved" && this.model) {
           this.pinAllEntitiesIfNeeded();
 
@@ -95,8 +95,9 @@ export class DiagramPanel {
           );
           const layoutOrientation = ftNode?.orientation ?? "horizontal";
           const effectiveCurrent = current ?? layoutOrientation;
-          this.orientationOverrides[ftId] =
-            effectiveCurrent === "horizontal" ? "vertical" : "horizontal";
+          this.orientationOverrides[ftId] = effectiveCurrent === "horizontal"
+            ? "vertical"
+            : "horizontal";
           this.hasUnsavedChanges = true;
           void this.rerender();
         } else if (message.command === "saveLayout") {
@@ -200,8 +201,9 @@ export class DiagramPanel {
         if (!validFtIds.has(id)) this.activeViewFilter.factTypeIds.delete(id);
       }
       for (const id of [...this.activeViewFilter.subtypeFactIds]) {
-        if (!validSfIds.has(id))
+        if (!validSfIds.has(id)) {
           this.activeViewFilter.subtypeFactIds.delete(id);
+        }
       }
     }
 
@@ -260,8 +262,8 @@ export class DiagramPanel {
    */
   private pinAllEntitiesIfNeeded(): void {
     if (
-      Object.keys(this.positionOverrides).length === 0 &&
-      this.currentLayout
+      Object.keys(this.positionOverrides).length === 0
+      && this.currentLayout
     ) {
       for (const node of this.currentLayout.nodes) {
         if (node.kind === "object_type") {
@@ -428,7 +430,7 @@ export class DiagramPanel {
     model: OrmModel,
     seeds: string[],
     hops: number,
-  ): { objectTypeIds: Set<string>; factTypeIds: Set<string>; subtypeFactIds: Set<string> } {
+  ): { objectTypeIds: Set<string>; factTypeIds: Set<string>; subtypeFactIds: Set<string>; } {
     const objectTypeIds = new Set<string>();
     const factTypeIds = new Set<string>();
     const subtypeFactIds = new Set<string>();
@@ -466,9 +468,7 @@ export class DiagramPanel {
 
       // Auto-include fact types connecting included entities.
       for (const ft of panel.model.factTypes) {
-        const allPlayersIncluded = ft.roles.every((r) =>
-          objectTypeIds.has(r.playerId),
-        );
+        const allPlayersIncluded = ft.roles.every((r) => objectTypeIds.has(r.playerId));
         if (allPlayersIncluded) factTypeIds.add(ft.id);
       }
 
@@ -548,9 +548,7 @@ export class DiagramPanel {
 
         const expandedFtIds = new Set(this.activeViewFilter.factTypeIds);
         for (const ft of this.model.factTypes) {
-          const allPlayersIncluded = ft.roles.every((r) =>
-            expandedOtIds.has(r.playerId),
-          );
+          const allPlayersIncluded = ft.roles.every((r) => expandedOtIds.has(r.playerId));
           if (allPlayersIncluded) expandedFtIds.add(ft.id);
         }
 
@@ -617,7 +615,7 @@ export class DiagramPanel {
 
     // Build name-keyed positions using center coordinates so that
     // items with the same y value visually align regardless of height.
-    const positions: Record<string, { x: number; y: number }> = {};
+    const positions: Record<string, { x: number; y: number; }> = {};
     for (const node of this.currentLayout.nodes) {
       if (node.kind === "object_type") {
         const ot = this.model.getObjectType(node.id);
@@ -649,7 +647,7 @@ export class DiagramPanel {
     }
 
     // Sort positions and orientations alphabetically for readability.
-    const sortedPositions: Record<string, { x: number; y: number }> = {};
+    const sortedPositions: Record<string, { x: number; y: number; }> = {};
     for (const key of Object.keys(positions).sort()) {
       sortedPositions[key] = positions[key]!;
     }
@@ -659,7 +657,11 @@ export class DiagramPanel {
     }
 
     const layoutName = this.activeViewName ?? "Default";
-    const layout: DiagramLayout = { name: layoutName, positions: sortedPositions, orientations: sortedOrientations };
+    const layout: DiagramLayout = {
+      name: layoutName,
+      positions: sortedPositions,
+      orientations: sortedOrientations,
+    };
 
     // Re-read the file to get the latest content, then update the model.
     try {
@@ -717,7 +719,7 @@ export class DiagramPanel {
     }
 
     // Collect center-based positions from the current layout.
-    const positions: Record<string, { x: number; y: number }> = {};
+    const positions: Record<string, { x: number; y: number; }> = {};
     for (const node of this.currentLayout.nodes) {
       if (node.kind === "object_type") {
         const ot = this.model.getObjectType(node.id);
@@ -782,7 +784,7 @@ export class DiagramPanel {
     // Recompute fact types for the expanded view.
     for (const ft of this.model.factTypes) {
       const allPlayersIncluded = ft.roles.every((r) =>
-        this.activeViewFilter!.objectTypeIds.has(r.playerId),
+        this.activeViewFilter!.objectTypeIds.has(r.playerId)
       );
       if (allPlayersIncluded) this.activeViewFilter.factTypeIds.add(ft.id);
     }
@@ -790,8 +792,8 @@ export class DiagramPanel {
     // Recompute subtype facts.
     for (const sf of this.model.subtypeFacts) {
       if (
-        this.activeViewFilter.objectTypeIds.has(sf.subtypeId) &&
-        this.activeViewFilter.objectTypeIds.has(sf.supertypeId)
+        this.activeViewFilter.objectTypeIds.has(sf.subtypeId)
+        && this.activeViewFilter.objectTypeIds.has(sf.supertypeId)
       ) {
         this.activeViewFilter.subtypeFactIds.add(sf.id);
       }

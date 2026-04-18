@@ -16,7 +16,7 @@ const serializer = new OrmYamlSerializer();
  */
 export function resolveSource(
   source: string,
-  options?: { lenient?: boolean },
+  options?: { lenient?: boolean; },
 ): OrmModel {
   const trimmed = source.trim();
 

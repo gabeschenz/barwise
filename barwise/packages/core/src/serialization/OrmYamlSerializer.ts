@@ -19,7 +19,7 @@ import { type SchemaValidationResult, SchemaValidator } from "./SchemaValidator.
 interface OrmYamlDiagramLayout {
   name: string;
   elements?: string[];
-  positions?: Record<string, { x: number; y: number }>;
+  positions?: Record<string, { x: number; y: number; }>;
   orientations?: Record<string, "horizontal" | "vertical">;
 }
 
@@ -164,7 +164,7 @@ export class OrmYamlSerializer {
    *   validation.  Used for merge fragments that reference types from
    *   a base model not present in the fragment.
    */
-  deserialize(yaml: string, options?: { lenient?: boolean }): OrmModel {
+  deserialize(yaml: string, options?: { lenient?: boolean; }): OrmModel {
     const raw = parse(yaml) as unknown;
 
     const result = this.validator.validateModel(raw);
@@ -229,9 +229,7 @@ export class OrmYamlSerializer {
 
     const diagrams = model.diagramLayouts;
     if (diagrams.length > 0) {
-      doc.model.diagrams = diagrams.map((dl) =>
-        this.serializeDiagramLayout(dl, model)
-      );
+      doc.model.diagrams = diagrams.map((dl) => this.serializeDiagramLayout(dl, model));
     }
 
     return doc;
@@ -425,7 +423,7 @@ export class OrmYamlSerializer {
       result.elements = [...dl.elements];
     }
     if (Object.keys(dl.positions).length > 0) {
-      const positions: Record<string, { x: number; y: number }> = {};
+      const positions: Record<string, { x: number; y: number; }> = {};
       for (const [name, pos] of Object.entries(dl.positions)) {
         positions[name] = {
           x: Math.round(pos.x),
@@ -444,7 +442,7 @@ export class OrmYamlSerializer {
 
   private fromDocument(
     doc: OrmYamlDocument,
-    options?: { lenient?: boolean },
+    options?: { lenient?: boolean; },
   ): OrmModel {
     const model = new OrmModel({
       name: doc.model.name,

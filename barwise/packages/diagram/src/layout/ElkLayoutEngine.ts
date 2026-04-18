@@ -58,7 +58,7 @@ function getElk(): ELK {
  * routing around the fixed positions.
  */
 export interface PositionOverrides {
-  readonly [nodeId: string]: { readonly x: number; readonly y: number };
+  readonly [nodeId: string]: { readonly x: number; readonly y: number; };
 }
 
 /**
@@ -118,7 +118,12 @@ export async function layoutGraph(
   }
 
   // Pass 2: place fact types between their connected entities.
-  const factTypePositions = placeFactTypes(graph, entityPositions, orientationOverrides, positionOverrides);
+  const factTypePositions = placeFactTypes(
+    graph,
+    entityPositions,
+    orientationOverrides,
+    positionOverrides,
+  );
 
   // Place constraint nodes near connected roles.
   const constraintPositions = placeConstraintNodes(graph, entityPositions, factTypePositions);
@@ -159,7 +164,11 @@ export async function layoutGraph(
 
   // Route edges (after normalization so edge points are correct).
   const positionedEdges = routeRoleEdges(graph, entityPositions, factTypePositions);
-  const positionedConstraintEdges = routeConstraintEdges(graph, constraintPositions, factTypePositions);
+  const positionedConstraintEdges = routeConstraintEdges(
+    graph,
+    constraintPositions,
+    factTypePositions,
+  );
   const positionedSubtypeEdges = routeSubtypeEdges(graph, entityPositions);
 
   // Compute bounding box (includes origin for viewBox positioning).
@@ -317,8 +326,8 @@ function buildConnectionCounts(graph: OrmGraph): Map<string, number> {
  * name, aliases, and reference mode text width.
  */
 function entityNodeDimensions(
-  node: { name: string; aliases?: readonly string[] },
-): { width: number; height: number } {
+  node: { name: string; aliases?: readonly string[]; },
+): { width: number; height: number; } {
   let labelWidth = Math.max(OT_MIN_WIDTH, node.name.length * 9 + 40);
   const hasAliases = node.aliases !== undefined && node.aliases.length > 0;
   if (hasAliases) {
@@ -415,8 +424,7 @@ export function detectClusters(
       for (const [candidateComm, ki_c] of commEdges) {
         if (candidateComm === currentComm) continue;
         const sigmaC = commDegrees.get(candidateComm) ?? 0;
-        const gain =
-          (ki_c - ki_in) / m - (ki * (sigmaC - (sigmaOwn - ki))) / (2 * m * m);
+        const gain = (ki_c - ki_in) / m - (ki * (sigmaC - (sigmaOwn - ki))) / (2 * m * m);
         if (gain > bestGain) {
           bestGain = gain;
           bestComm = candidateComm;
@@ -570,7 +578,7 @@ async function layoutEntitiesWithClusters(
   }
 
   // Level 2: layout clusters relative to each other.
-  const interClusterEdges: { source: number; target: number }[] = [];
+  const interClusterEdges: { source: number; target: number; }[] = [];
   const seenPairs = new Set<string>();
   for (const [key] of edgeWeights) {
     const parts = key.split("--");
@@ -749,10 +757,12 @@ function adjustBoundaryEntities(
     const cb = clusterMap.get(b);
     if (ca === undefined || cb === undefined || ca === cb) continue;
 
-    for (const [entityId, ownCluster, targetCluster] of [
-      [a, ca, cb],
-      [b, cb, ca],
-    ] as [string, number, number][]) {
+    for (
+      const [entityId, ownCluster, targetCluster] of [
+        [a, ca, cb],
+        [b, cb, ca],
+      ] as [string, number, number][]
+    ) {
       if (nudged.has(entityId)) continue;
       nudged.add(entityId);
 
@@ -803,7 +813,7 @@ interface MutablePosition {
  */
 function placeSubtypesRadially(
   entityPositions: Map<string, PositionedObjectTypeNode>,
-  subtypeEdges: readonly { subtypeNodeId: string; supertypeNodeId: string }[],
+  subtypeEdges: readonly { subtypeNodeId: string; supertypeNodeId: string; }[],
   connectionCounts: Map<string, number>,
 ): void {
   if (subtypeEdges.length === 0) return;
@@ -924,7 +934,7 @@ function alignLeafValueTypes(
   }
 
   // Group leaf value types by their connected (hub) entity.
-  const hubLeaves = new Map<string, { leafId: string; hubId: string }[]>();
+  const hubLeaves = new Map<string, { leafId: string; hubId: string; }[]>();
 
   for (const node of graph.nodes) {
     if (node.kind !== "fact_type") continue;
@@ -1184,8 +1194,8 @@ function placeFactTypes(
         const bcx = posB.x + posB.width / 2;
         const bcy = posB.y + posB.height / 2;
         const shouldSwap = orientation === "horizontal"
-          ? acx > bcx   // role 0's player should be further left
-          : acy > bcy;  // role 0's player should be further up
+          ? acx > bcx // role 0's player should be further left
+          : acy > bcy; // role 0's player should be further up
         if (shouldSwap) {
           orderedRoles = [ft.roles[1]!, ft.roles[0]!];
         }
@@ -1589,7 +1599,7 @@ function roleConnectionPoint(
 function rectBorderIntersection(
   from: Position,
   to: Position,
-  rect: { x: number; y: number; width: number; height: number },
+  rect: { x: number; y: number; width: number; height: number; },
 ): Position {
   const cx = rect.x + rect.width / 2;
   const cy = rect.y + rect.height / 2;
@@ -1690,7 +1700,7 @@ function routeConstraintEdges(
   const edges: PositionedConstraintEdge[] = [];
 
   // Build role lookup.
-  const roleLookup = new Map<string, { ft: PositionedFactTypeNode; role: PositionedRoleBox }>();
+  const roleLookup = new Map<string, { ft: PositionedFactTypeNode; role: PositionedRoleBox; }>();
   for (const ft of factTypePositions.values()) {
     for (const role of ft.roles) {
       roleLookup.set(role.roleId, { ft, role });
@@ -1757,7 +1767,7 @@ function computeBounds(
   nodes: readonly PositionedNode[],
   edges: readonly PositionedEdge[],
   subtypeEdges: readonly PositionedSubtypeEdge[],
-): { originX: number; originY: number; width: number; height: number } {
+): { originX: number; originY: number; width: number; height: number; } {
   const PADDING = 40;
   let minX = Infinity;
   let minY = Infinity;

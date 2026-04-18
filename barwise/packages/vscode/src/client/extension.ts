@@ -1,3 +1,4 @@
+import { OrmYamlSerializer } from "@barwise/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -7,7 +8,6 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node.js";
-import { OrmYamlSerializer } from "@barwise/core";
 import { registerChatParticipant } from "../chat/ChatParticipant.js";
 import { ExportCommand } from "../commands/ExportCommand.js";
 import { ImportCommand } from "../commands/ImportCommand.js";
@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext): void {
           elementId = first;
           kind = second as string;
         } else if (first && typeof first === "object") {
-          const item = first as { id?: string; kind?: string };
+          const item = first as { id?: string; kind?: string; };
           elementId = item.id;
           kind = item.kind;
         }
@@ -114,7 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
           // From item.command args: (elementId, kind)
           // We need the name, not the ID. Look it up from the active editor model.
         } else if (first && typeof first === "object") {
-          elementName = (first as { label?: string }).label;
+          elementName = (first as { label?: string; }).label;
         }
 
         // Read model from active editor.
@@ -195,7 +195,7 @@ export function activate(context: vscode.ExtensionContext): void {
       "barwise.copyElementName",
       (item: unknown) => {
         // Context menu passes the ModelTreeItem data element.
-        const name = (item as { label?: string })?.label;
+        const name = (item as { label?: string; })?.label;
         if (name) {
           void vscode.env.clipboard.writeText(name);
           vscode.window.showInformationMessage(`Copied: ${name}`);

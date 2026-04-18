@@ -2,10 +2,10 @@
  * merge_models tool: merges an incoming model into a base model.
  */
 
-import { writeFileSync } from "node:fs";
 import { diffModels, mergeAndValidate, OrmYamlSerializer } from "@barwise/core";
 import type { Diagnostic } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { writeFileSync } from "node:fs";
 import { z } from "zod";
 import { isFilePath, resolveSource } from "../helpers/resolve.js";
 

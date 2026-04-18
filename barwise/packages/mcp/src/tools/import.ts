@@ -32,8 +32,8 @@ export function registerImportTool(server: McpServer): void {
           .optional()
           .describe(
             "File path or inline YAML of an existing base model. "
-            + "When provided, the LLM is told which types already exist "
-            + "so it can reference them instead of redefining them.",
+              + "When provided, the LLM is told which types already exist "
+              + "so it can reference them instead of redefining them.",
           ),
         provider: z
           .enum(["anthropic", "openai", "ollama"])

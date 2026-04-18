@@ -8,11 +8,12 @@ nodes in separate layers. A model with 12 entity types renders as
 1833x328px -- a strip that is nearly impossible to read.
 
 Real ORM diagrams (NORMA, Boston) place entity types as spatial anchors
-in 2D and position fact types *between* their connected entities, on the
+in 2D and position fact types _between_ their connected entities, on the
 edges. The layout uses space in both dimensions, producing compact,
 readable diagrams.
 
 Reference screenshots (in `barwise/docs/screenshots/`):
+
 - `ormsolutions-auction.png` -- NORMA binary fact types between entities
 - `ormsolutions-ternary.png` -- NORMA ternary fact type with edges fanning out
 - `boston-unary.png` -- Boston unary fact type as stub off entity
@@ -62,6 +63,7 @@ edges from fact types (two entities sharing a fact type get an edge).
 Use ELK `stress` algorithm for 2D placement.
 
 ELK configuration:
+
 ```
 algorithm: "stress"
 stress.desiredEdgeLength: "200"
@@ -72,6 +74,7 @@ stress.iterationLimit: "300"
 ```
 
 Edge weights:
+
 - Binary fact type between two entities: weight 1
 - Multiple fact types between same pair: additive (4 fact types -> weight 4)
 - Ternary fact type: weight 0.5 per entity pair
@@ -96,25 +99,30 @@ at the center of the arc between the subtype arrows.
 For each fact type, position based on arity:
 
 **Unary (1 role):**
+
 - Single role box on a short stub off the entity
 - Placed on the side with the most available space
 - Stub length: ~20px gap from entity border
 
 **Binary (2 roles):**
+
 - Role box strip centered at the midpoint between two entity centers
 - Orientation: if `|dx| >= |dy|` -> horizontal, else -> vertical
 
 **Ternary+ (3+ roles):**
+
 - Role box strip at the centroid of connected entity centers
 - Orientation (horizontal or vertical) chosen based on the bounding box
   of connected entity centers: if wider than tall -> horizontal, else vertical
 - Edges fan out from individual role ports to their connected entities
 
 **Reflexive (both roles same entity):**
+
 - Role box strip adjacent to entity, offset to one side
 - Default vertical, both edges curve back to same entity
 
 **Multiple fact types between same entity pair:**
+
 - Stack perpendicular to the connection axis
 - Gap of `ROLE_BOX_HEIGHT + 8px` between each strip
 - Centered symmetrically around the midpoint
@@ -122,6 +130,7 @@ For each fact type, position based on arity:
 ### Collision Resolution
 
 After initial placement:
+
 1. Build bounding boxes for all nodes (entities + fact types + constraints)
    including space for uniqueness bars, mandatory dots, labels
 2. Sort by x-coordinate, sweep for overlaps
@@ -134,23 +143,27 @@ After initial placement:
 External constraint nodes (exclusion, subset, equality, etc.):
 
 **Simple constraints (roles on one or two fact types between same pair):**
+
 - Position at centroid of connected role boxes
 - Offset ~30px perpendicular to the line connecting first two roles
 - Example: exclusion between "includes mandatory-" and "includes optional-"
   between Service and Offering (intake.png)
 
 **Subtype partition constraints:**
+
 - Centered in the arc/fan between subtype arrows
 - Example: exclusive-or at center of Service's 6-subtype fan (type-hierarchies.png)
 - Example: exclusive-or between GroupItem/SimpleItem arrows (sub-super.png)
 
 **Join constraints (roles across 3+ fact types between different entity pairs):**
-- Position at centroid of the *entity types* involved, not just the role boxes
+
+- Position at centroid of the _entity types_ involved, not just the role boxes
 - Example: subset constraint between ConsignmentAsset/Auction/Channel
   (intake.png) -- constraint sits in the triangle formed by the three entities
 - Dashed lines radiate from constraint node to roles on each connected fact type
 
 **Hub entity spoke constraints (constraints between fact types radiating from one entity):**
+
 - Position near the hub entity, between the connected spokes
 - Example: Classification with 4 fact types to Category/Industry/Make/Model
   (consignment-asset.png) -- subset and exclusive-or constraints sit between
@@ -159,6 +172,7 @@ External constraint nodes (exclusion, subset, equality, etc.):
 ### Edge Routing
 
 Computed after all nodes are positioned:
+
 - **Entity-to-role edges**: straight line from entity border intersection
   to role box center. Border intersection computed by ray-casting from
   entity center through role box center to the entity's bounding shape
@@ -190,6 +204,7 @@ is needed beyond the standard placement algorithm.
 Role box strips support two orientations:
 
 **Horizontal** (current behavior):
+
 - Roles: left-to-right at `x = i * ROLE_BOX_WIDTH, y = 0`
 - Uniqueness bars: above role boxes
 - Mandatory dots: below role boxes
@@ -197,6 +212,7 @@ Role box strips support two orientations:
 - Reading label: below the strip
 
 **Vertical** (new):
+
 - Roles: top-to-bottom at `x = 0, y = i * ROLE_BOX_WIDTH`
 - Uniqueness bars: on left or right side of role boxes
 - Mandatory dots: on the opposite side from uniqueness bars
@@ -210,11 +226,14 @@ The renderer uses this to position constraint markers and labels.
 ## Files Changed
 
 ### `packages/diagram/src/layout/LayoutTypes.ts`
+
 - Add `FactTypeOrientation = "horizontal" | "vertical"` type
 - Add `orientation: FactTypeOrientation` to `PositionedFactTypeNode`
 
 ### `packages/diagram/src/layout/ElkLayoutEngine.ts` (major rewrite)
+
 New internal functions:
+
 - `buildEntityElkGraph(graph)` -- entity-only ELK graph with stress config
 - `extractEntityPositions(graph, laid)` -- read ELK output
 - `enforceSubtypeOrdering(entityPositions, subtypeEdges)` -- post-adjust y
@@ -229,6 +248,7 @@ Remove: `buildElkGraph` (replaced by `buildEntityElkGraph`)
 Keep: `getElk()` singleton pattern
 
 ### `packages/diagram/src/render/SvgRenderer.ts`
+
 - `renderFactType`: add orientation-aware positioning for:
   - Uniqueness bars (side instead of above when vertical)
   - Mandatory dots (side instead of below when vertical)
@@ -238,26 +258,33 @@ Keep: `getElk()` singleton pattern
   `getSpanningBarRect()`, `getLabelPosition()` -- each takes orientation param
 
 ### `packages/diagram/src/render/theme.ts`
+
 Add constants:
+
 - `FACT_TYPE_STACK_GAP = 8` -- gap between stacked fact types
 - `UNARY_STUB_LENGTH = 20` -- gap from entity border to unary role box
 - `FACT_TYPE_COLLISION_PADDING = 4` -- bounding box padding for collision
 
 ### `packages/diagram/src/graph/GraphTypes.ts`
+
 No changes. Orientation is a layout concern, not a graph concern.
 
 ### `packages/diagram/src/graph/ModelToGraph.ts`
+
 No changes. Model-to-graph conversion is unaffected.
 
 ### `packages/diagram/src/DiagramGenerator.ts`
+
 No changes. Pipeline orchestration unchanged.
 
 ### `packages/diagram/src/index.ts`
+
 Export `FactTypeOrientation` type.
 
 ## Test Plan
 
 ### Layout engine tests (`ElkLayoutEngine.test.ts`)
+
 - Binary fact type positioned at midpoint between two entities
 - Vertical orientation when entities are vertically aligned
 - Horizontal orientation when entities are horizontally aligned
@@ -276,6 +303,7 @@ Export `FactTypeOrientation` type.
 - Edge routing: entity border intersection for ellipses (value types)
 
 ### Renderer tests (`SvgRenderer.test.ts`)
+
 - Existing tests updated with `orientation: "horizontal"` field
 - Vertical orientation: role boxes rendered at vertical positions
 - Vertical orientation: uniqueness bars on side
@@ -284,11 +312,13 @@ Export `FactTypeOrientation` type.
 - Vertical orientation: label beside strip
 
 ### Integration tests (`DiagramGenerator.test.ts`)
+
 - Existing tests pass (public API unchanged)
 - New: model with 8+ entities produces `width/height < 3` (not flat strip)
 - New: binary fact type x-coordinate between its two entities
 
 ### ModelToGraph tests (`ModelToGraph.test.ts`)
+
 No changes needed.
 
 ## Future Work (out of scope for this change)

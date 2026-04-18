@@ -18,7 +18,7 @@ export interface DiagramLayout {
    * Entity type positions, keyed by object type name.
    * Values are {x, y} in integer pixels.
    */
-  readonly positions: Readonly<Record<string, { x: number; y: number }>>;
+  readonly positions: Readonly<Record<string, { x: number; y: number; }>>;
   /**
    * Fact type orientation overrides, keyed by fact type name.
    * Only includes fact types where the user explicitly set orientation.

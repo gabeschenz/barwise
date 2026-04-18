@@ -11,7 +11,7 @@ import type { OrmGraph } from "../src/graph/GraphTypes.js";
 let mockLayoutImpl: (graph: Record<string, unknown>) => Promise<Record<string, unknown>>;
 
 const defaultMockLayout = async (graph: Record<string, unknown>) => {
-  const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+  const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
     ?? [];
   return {
     // Spread entities in a grid-like pattern for predictable testing.
@@ -114,7 +114,7 @@ describe("ElkLayoutEngine", () => {
   it("positions binary fact type at midpoint between entities", async () => {
     // Mock: place entities at (0, 100) and (500, 100) - horizontally separated.
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       return {
         children: children.map((c, i) => ({
@@ -145,7 +145,7 @@ describe("ElkLayoutEngine", () => {
 
   it("chooses horizontal orientation when entities are horizontally separated", async () => {
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       return {
         children: children.map((c, i) => ({
@@ -173,7 +173,7 @@ describe("ElkLayoutEngine", () => {
 
   it("chooses vertical orientation when entities are vertically separated", async () => {
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       return {
         children: children.map((c, i) => ({
@@ -243,7 +243,7 @@ describe("ElkLayoutEngine", () => {
   it("places subtypes further from diagram center than supertype", async () => {
     // Mock: place both at same position.
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       return {
         children: children.map((c) => ({
@@ -267,7 +267,11 @@ describe("ElkLayoutEngine", () => {
       edges: [],
       constraintEdges: [],
       subtypeEdges: [
-        { subtypeNodeId: "ot-employee", supertypeNodeId: "ot-person", providesIdentification: true },
+        {
+          subtypeNodeId: "ot-employee",
+          supertypeNodeId: "ot-person",
+          providesIdentification: true,
+        },
       ],
     };
 
@@ -354,7 +358,7 @@ describe("ElkLayoutEngine", () => {
 
   it("stacks multiple fact types between same entity pair", async () => {
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       return {
         children: children.map((c, i) => ({
@@ -379,8 +383,22 @@ describe("ElkLayoutEngine", () => {
           id: "ft-1",
           name: "A has B",
           roles: [
-            { roleId: "r1", roleName: "has", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
-            { roleId: "r2", roleName: "of", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "has",
+              playerId: "ot-a",
+              playerName: "A",
+              hasUniqueness: true,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "of",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
@@ -389,8 +407,22 @@ describe("ElkLayoutEngine", () => {
           id: "ft-2",
           name: "A likes B",
           roles: [
-            { roleId: "r3", roleName: "likes", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
-            { roleId: "r4", roleName: "liked-by", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r3",
+              roleName: "likes",
+              playerId: "ot-a",
+              playerName: "A",
+              hasUniqueness: true,
+              isMandatory: false,
+            },
+            {
+              roleId: "r4",
+              roleName: "liked-by",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
@@ -417,7 +449,7 @@ describe("ElkLayoutEngine", () => {
 
   it("positions ternary fact type at centroid of three entities", async () => {
     mockLayoutImpl = async (graph) => {
-      const children = (graph.children as Array<{ id: string; width: number; height: number }>)
+      const children = (graph.children as Array<{ id: string; width: number; height: number; }>)
         ?? [];
       // Place entities in a triangle.
       const positions = [
@@ -449,9 +481,30 @@ describe("ElkLayoutEngine", () => {
           id: "ft-1",
           name: "A B C",
           roles: [
-            { roleId: "r1", roleName: "r1", playerId: "ot-a", playerName: "A", hasUniqueness: false, isMandatory: false },
-            { roleId: "r2", roleName: "r2", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
-            { roleId: "r3", roleName: "r3", playerId: "ot-c", playerName: "C", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "r1",
+              playerId: "ot-a",
+              playerName: "A",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "r2",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
+            {
+              roleId: "r3",
+              roleName: "r3",
+              playerId: "ot-c",
+              playerName: "C",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },
@@ -493,8 +546,22 @@ describe("ElkLayoutEngine", () => {
           id: "ft-1",
           name: "A has B",
           roles: [
-            { roleId: "r1", roleName: "has", playerId: "ot-a", playerName: "A", hasUniqueness: true, isMandatory: false },
-            { roleId: "r2", roleName: "of", playerId: "ot-b", playerName: "B", hasUniqueness: false, isMandatory: false },
+            {
+              roleId: "r1",
+              roleName: "has",
+              playerId: "ot-a",
+              playerName: "A",
+              hasUniqueness: true,
+              isMandatory: false,
+            },
+            {
+              roleId: "r2",
+              roleName: "of",
+              playerId: "ot-b",
+              playerName: "B",
+              hasUniqueness: false,
+              isMandatory: false,
+            },
           ],
           hasSpanningUniqueness: false,
         },

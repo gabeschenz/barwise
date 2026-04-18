@@ -368,16 +368,15 @@ describe("OrmModel", () => {
       const model = new OrmModel({ name: "Test" });
       model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} });
 
-      expect(() =>
-        model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} }),
-      ).toThrow(/already exists/);
+      expect(() => model.addDiagramLayout({ name: "Default", positions: {}, orientations: {} }))
+        .toThrow(/already exists/);
     });
 
     it("rejects empty layout names", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() =>
-        model.addDiagramLayout({ name: "", positions: {}, orientations: {} }),
-      ).toThrow(/non-empty/);
+      expect(() => model.addDiagramLayout({ name: "", positions: {}, orientations: {} })).toThrow(
+        /non-empty/,
+      );
     });
 
     it("updates an existing layout", () => {
@@ -400,9 +399,8 @@ describe("OrmModel", () => {
 
     it("throws when updating a nonexistent layout", () => {
       const model = new OrmModel({ name: "Test" });
-      expect(() =>
-        model.updateDiagramLayout({ name: "Missing", positions: {}, orientations: {} }),
-      ).toThrow(/not found/);
+      expect(() => model.updateDiagramLayout({ name: "Missing", positions: {}, orientations: {} }))
+        .toThrow(/not found/);
     });
 
     it("removes a layout", () => {

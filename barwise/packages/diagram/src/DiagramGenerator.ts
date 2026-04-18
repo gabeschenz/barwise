@@ -2,9 +2,13 @@ import type { OrmModel } from "@barwise/core";
 import type { OrmGraph } from "./graph/GraphTypes.js";
 import { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
 import { computeNeighborhood } from "./graph/NeighborhoodFilter.js";
-import { layoutGraph, type OrientationOverrides, type PositionOverrides } from "./layout/ElkLayoutEngine.js";
+import {
+  layoutGraph,
+  type OrientationOverrides,
+  type PositionOverrides,
+} from "./layout/ElkLayoutEngine.js";
 import type { PositionedGraph } from "./layout/LayoutTypes.js";
-import { renderSvg, type RenderOptions } from "./render/SvgRenderer.js";
+import { type RenderOptions, renderSvg } from "./render/SvgRenderer.js";
 
 /**
  * The result of diagram generation, containing both the SVG output
@@ -57,7 +61,11 @@ export async function generateDiagram(
   }
 
   const graph = modelToGraph(model, graphOptions);
-  const layout = await layoutGraph(graph, options?.positionOverrides, options?.orientationOverrides);
+  const layout = await layoutGraph(
+    graph,
+    options?.positionOverrides,
+    options?.orientationOverrides,
+  );
   const renderOpts: RenderOptions | undefined = options?.ghostNodeIds
     ? { ghostNodeIds: options.ghostNodeIds }
     : undefined;

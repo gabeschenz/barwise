@@ -16,7 +16,11 @@ export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js"
 export { computeNeighborhood, type Neighborhood } from "./graph/NeighborhoodFilter.js";
 
 // Layout types and engine.
-export { layoutGraph, type OrientationOverrides, type PositionOverrides } from "./layout/ElkLayoutEngine.js";
+export {
+  layoutGraph,
+  type OrientationOverrides,
+  type PositionOverrides,
+} from "./layout/ElkLayoutEngine.js";
 export type {
   Dimensions,
   FactTypeOrientation,
@@ -33,7 +37,7 @@ export type {
 } from "./layout/LayoutTypes.js";
 
 // SVG rendering.
-export { renderSvg, type RenderOptions } from "./render/SvgRenderer.js";
+export { type RenderOptions, renderSvg } from "./render/SvgRenderer.js";
 
 // Theme constants.
 export * as theme from "./render/theme.js";

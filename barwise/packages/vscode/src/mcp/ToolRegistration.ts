@@ -10,7 +10,12 @@
  */
 
 import { annotateOrmYaml, OrmYamlSerializer } from "@barwise/core";
-import { AnthropicLlmClient, buildExistingModelContext, processTranscript, reviewModel } from "@barwise/llm";
+import {
+  AnthropicLlmClient,
+  buildExistingModelContext,
+  processTranscript,
+  reviewModel,
+} from "@barwise/llm";
 import type { LlmClient } from "@barwise/llm";
 import {
   executeDescribeDomain,
@@ -143,7 +148,7 @@ function resolveSourceParam(source: string | undefined): string {
   if (active) return active;
   throw new Error(
     "No source provided and no .orm.yaml file is open in the editor. "
-    + "Please open an .orm.yaml file or provide a file path.",
+      + "Please open an .orm.yaml file or provide a file path.",
   );
 }
 

@@ -166,7 +166,7 @@ export class OrmModel {
    */
   addFactType(
     config: FactTypeConfig,
-    options?: { skipPlayerValidation?: boolean },
+    options?: { skipPlayerValidation?: boolean; },
   ): FactType {
     const existing = this.getFactTypeByName(config.name);
     if (existing) {
@@ -239,7 +239,7 @@ export class OrmModel {
    */
   addSubtypeFact(
     config: SubtypeFactConfig,
-    options?: { skipPlayerValidation?: boolean },
+    options?: { skipPlayerValidation?: boolean; },
   ): SubtypeFact {
     if (!options?.skipPlayerValidation) {
       const subtype = this._objectTypes.get(config.subtypeId);

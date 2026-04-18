@@ -415,9 +415,9 @@ function renderEdge(edge: PositionedEdge, ghostIds?: ReadonlySet<string>): strin
   const parts: string[] = [];
   parts.push(
     `<path data-kind="edge" data-source="${esc(edge.sourceNodeId)}" `
-    + `data-target="${esc(edge.targetNodeId)}"${ghostAttr} `
-    + `d="${d}" fill="none" `
-    + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
+      + `data-target="${esc(edge.targetNodeId)}"${ghostAttr} `
+      + `d="${d}" fill="none" `
+      + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
   );
 
   // Mandatory dot on the line, just outside the role box (fact side).

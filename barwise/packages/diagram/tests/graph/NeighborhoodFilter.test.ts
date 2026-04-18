@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
 import { OrmModel } from "@barwise/core";
+import { describe, expect, it } from "vitest";
 import { computeNeighborhood } from "../../src/graph/NeighborhoodFilter.js";
 
-function buildChainModel(): { model: OrmModel; ids: Record<string, string> } {
+function buildChainModel(): { model: OrmModel; ids: Record<string, string>; } {
   // A -> B -> C -> D (chain of entities connected by binary fact types)
   const model = new OrmModel({ name: "Chain" });
   const a = model.addObjectType({ name: "A", kind: "entity", referenceMode: "id" });

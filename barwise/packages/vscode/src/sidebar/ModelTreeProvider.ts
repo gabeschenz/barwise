@@ -1,21 +1,21 @@
 import {
-  OrmYamlSerializer,
-  type OrmModel,
-  type ObjectType,
-  type FactType,
-  type SubtypeFact,
   type Constraint,
-  isInternalUniqueness,
-  isMandatoryRole,
-  isExternalUniqueness,
+  type FactType,
+  isDisjunctiveMandatory,
+  isEquality,
   isExclusion,
   isExclusiveOr,
-  isSubset,
-  isEquality,
+  isExternalUniqueness,
   isFrequency,
+  isInternalUniqueness,
+  isMandatoryRole,
   isRing,
-  isDisjunctiveMandatory,
+  isSubset,
   isValueConstraint,
+  type ObjectType,
+  type OrmModel,
+  OrmYamlSerializer,
+  type SubtypeFact,
 } from "@barwise/core";
 import * as vscode from "vscode";
 
@@ -44,9 +44,7 @@ interface ModelTreeItem {
  * VS Code TreeDataProvider that parses the active .orm.yaml file and
  * presents the model structure in the sidebar.
  */
-export class ModelTreeProvider
-  implements vscode.TreeDataProvider<ModelTreeItem>
-{
+export class ModelTreeProvider implements vscode.TreeDataProvider<ModelTreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<
     ModelTreeItem | undefined
   >();
@@ -72,12 +70,11 @@ export class ModelTreeProvider
   }
 
   getTreeItem(element: ModelTreeItem): vscode.TreeItem {
-    const collapsible =
-      element.children && element.children.length > 0
-        ? vscode.TreeItemCollapsibleState.Expanded
-        : element.kind === "category"
-          ? vscode.TreeItemCollapsibleState.Collapsed
-          : vscode.TreeItemCollapsibleState.None;
+    const collapsible = element.children && element.children.length > 0
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : element.kind === "category"
+      ? vscode.TreeItemCollapsibleState.Collapsed
+      : vscode.TreeItemCollapsibleState.None;
 
     const item = new vscode.TreeItem(element.label, collapsible);
     item.description = element.description;
@@ -177,7 +174,9 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Fact Types",
       iconId: "symbol-event",
-      children: model.factTypes.map((ft) => factTypeItem(ft, model)).sort((a, b) => a.label.localeCompare(b.label)),
+      children: model.factTypes.map((ft) => factTypeItem(ft, model)).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      ),
     });
   }
 
@@ -187,7 +186,9 @@ function buildTree(model: OrmModel): ModelTreeItem[] {
       kind: "category",
       label: "Subtype Relationships",
       iconId: "type-hierarchy",
-      children: model.subtypeFacts.map((sf) => subtypeItem(sf, model)).sort((a, b) => a.label.localeCompare(b.label)),
+      children: model.subtypeFacts.map((sf) => subtypeItem(sf, model)).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      ),
     });
   }
 
@@ -239,7 +240,7 @@ function factTypeItem(ft: FactType, model: OrmModel): ModelTreeItem {
 
   // Collect constraints as children.
   const constraintChildren: ModelTreeItem[] = ft.constraints.map((c) =>
-    constraintItem(c, ft, model),
+    constraintItem(c, ft, model)
   );
 
   return {
@@ -305,7 +306,7 @@ function constraintItem(
     const more = c.values.length > 3 ? "..." : "";
     return { kind: "constraint", label: `Values: {${vals}${more}}` };
   }
-  return { kind: "constraint", label: `Constraint: ${(c as { type: string }).type}` };
+  return { kind: "constraint", label: `Constraint: ${(c as { type: string; }).type}` };
 }
 
 function subtypeItem(sf: SubtypeFact, model: OrmModel): ModelTreeItem {
