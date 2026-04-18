@@ -22,6 +22,12 @@ import type { LlmClient } from "./LlmClient.js";
 export interface ProcessorOptions {
   /** Name for the resulting model. Defaults to "Extracted Model". */
   readonly modelName?: string;
+  /**
+   * Summary of entity/value/fact types that already exist in the base
+   * model.  When provided, the LLM is instructed to reference these
+   * types by name and avoid redefining them.
+   */
+  readonly existingModelContext?: string;
 }
 
 /**
@@ -42,7 +48,7 @@ export async function processTranscript(
   }
 
   const systemPrompt = buildSystemPrompt();
-  const userMessage = buildUserMessage(transcript);
+  const userMessage = buildUserMessage(transcript, options?.existingModelContext);
   const responseSchema = buildResponseSchema();
 
   const response = await client.complete({

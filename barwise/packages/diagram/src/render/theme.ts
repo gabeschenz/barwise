@@ -65,6 +65,14 @@ export const OBJECTIFICATION_STROKE_WIDTH = 1.5;
 export const FONT_SIZE_ANNOTATION = 9;
 export const COLOR_ANNOTATION = "#8a3ac8";
 
+// -- Layout spacing --
+/** Gap between stacked fact types between the same entity pair. */
+export const FACT_TYPE_STACK_GAP = 8;
+/** Gap between entity border and adjacent unary fact type. */
+export const UNARY_STUB_LENGTH = 20;
+/** Padding around fact type bounding box for collision detection. */
+export const FACT_TYPE_COLLISION_PADDING = 4;
+
 // -- Annotation markers --
 export const COLOR_ANNOTATION_STROKE = "#d97706";
 export const ANNOTATION_DASH = "4,3";

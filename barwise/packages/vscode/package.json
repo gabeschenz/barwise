@@ -36,6 +36,29 @@
   ],
   "main": "./dist/client/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "barwise-explorer",
+          "title": "Barwise ORM",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "barwise-explorer": [
+        {
+          "id": "barwise.modelTree",
+          "name": "Model Browser"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "barwise.modelTree",
+        "contents": "No ORM model loaded.\n\nOpen an .orm.yaml file to see the model structure.\n[Open File](command:workbench.action.files.openFile)"
+      }
+    ],
     "commands": [
       {
         "command": "barwise.newProject",
@@ -66,8 +89,56 @@
         "command": "barwise.export",
         "title": "Export...",
         "category": "Barwise"
+      },
+      {
+        "command": "barwise.highlightInDiagram",
+        "title": "Highlight in Diagram",
+        "category": "Barwise",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "barwise.copyElementName",
+        "title": "Copy Name",
+        "category": "Barwise",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "barwise.addToView",
+        "title": "Add to View...",
+        "category": "Barwise",
+        "icon": "$(add)"
+      },
+      {
+        "command": "barwise.createView",
+        "title": "New View...",
+        "category": "Barwise",
+        "icon": "$(add)"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "barwise.highlightInDiagram",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type|fact_type|subtype_fact/",
+          "group": "navigation"
+        },
+        {
+          "command": "barwise.addToView",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type/",
+          "group": "navigation"
+        },
+        {
+          "command": "barwise.copyElementName",
+          "when": "view == barwise.modelTree && viewItem =~ /entity_type|value_type|fact_type|subtype_fact/",
+          "group": "2_copy"
+        },
+        {
+          "command": "barwise.createView",
+          "when": "view == barwise.modelTree && viewItem == diagrams_category",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Barwise ORM",
       "properties": {
@@ -187,18 +258,15 @@
           "orm",
           "validation"
         ],
-        "modelDescription": "Validate an ORM 2 model from a YAML string or .orm.yaml file path. Returns structured diagnostics including errors and warnings with rule IDs.",
+        "modelDescription": "Validate an ORM 2 model. Returns structured diagnostics including errors and warnings with rule IDs. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -211,22 +279,19 @@
           "orm",
           "verbalization"
         ],
-        "modelDescription": "Generate FORML natural-language readings for fact types and constraints in an ORM 2 model. Produces human-readable sentences describing each fact type and its constraints.",
+        "modelDescription": "Generate FORML natural-language readings for fact types and constraints in an ORM 2 model. Produces human-readable sentences describing each fact type and its constraints. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "factType": {
               "type": "string",
               "description": "Specific fact type name to verbalize. Omit to verbalize all fact types."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -240,13 +305,13 @@
           "schema",
           "ddl"
         ],
-        "modelDescription": "Generate a relational schema from an ORM 2 model. Maps object types and fact types to tables, columns, and keys. Output can be DDL SQL or JSON mapping.",
+        "modelDescription": "Generate a relational schema from an ORM 2 model. Maps object types and fact types to tables, columns, and keys. Output can be DDL SQL or JSON mapping. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "format": {
               "type": "string",
@@ -256,10 +321,7 @@
               ],
               "description": "Output format: 'ddl' for CREATE TABLE SQL statements, 'json' for the relational mapping as JSON. Defaults to 'ddl'."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -272,21 +334,20 @@
           "orm",
           "diff"
         ],
-        "modelDescription": "Compare two ORM 2 models and return the structural deltas. Shows added, removed, and modified elements with breaking-level indicators (safe, caution, breaking).",
+        "modelDescription": "Compare two ORM 2 models and return the structural deltas. Shows added, removed, and modified elements with breaking-level indicators (safe, caution, breaking). If no base is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "base": {
               "type": "string",
-              "description": "File path or inline YAML for the base (original) model"
+              "description": "File path to the base (original) .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "incoming": {
               "type": "string",
-              "description": "File path or inline YAML for the incoming (changed) model"
+              "description": "Inline YAML for the incoming (changed) model"
             }
           },
           "required": [
-            "base",
             "incoming"
           ]
         }
@@ -302,18 +363,15 @@
           "diagram",
           "svg"
         ],
-        "modelDescription": "Generate an SVG diagram from an ORM 2 model. Returns SVG markup showing object types, fact types, constraints, and their relationships.",
+        "modelDescription": "Generate an SVG diagram from an ORM 2 model. Returns SVG markup showing object types, fact types, constraints, and their relationships. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -327,7 +385,7 @@
           "llm",
           "transcript"
         ],
-        "modelDescription": "Process a business domain transcript through LLM extraction to produce a formal ORM 2 model in YAML. Uses the configured LLM provider (Copilot by default, no API key needed).",
+        "modelDescription": "Process a business domain transcript through LLM extraction to produce a formal ORM 2 model in YAML. Uses the configured LLM provider (Copilot by default, no API key needed). If an .orm.yaml file is open in the editor, existing model types are provided as context so the LLM reuses them instead of redefining them.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -355,21 +413,20 @@
           "orm",
           "merge"
         ],
-        "modelDescription": "Merge an incoming ORM model into a base model. Accepts all additions and modifications, rejects removals. Returns the merged model as YAML with validation results.",
+        "modelDescription": "Merge an incoming ORM model into a base model. Accepts all additions and modifications, rejects removals. Returns the merged model as YAML with validation results. If base is a file path, the merged result is written back to disk. If no base is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "base": {
               "type": "string",
-              "description": "File path or inline YAML for the base (original) model"
+              "description": "File path to the base .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "incoming": {
               "type": "string",
-              "description": "File path or inline YAML for the incoming model to merge in"
+              "description": "Inline YAML for the incoming model fragment to merge in"
             }
           },
           "required": [
-            "base",
             "incoming"
           ]
         }
@@ -384,13 +441,13 @@
           "orm",
           "export"
         ],
-        "modelDescription": "Export an ORM 2 model to a specified format (ddl, openapi, dbt, avro). Returns the exported artifact as text.",
+        "modelDescription": "Export an ORM 2 model to a specified format (ddl, openapi, dbt, avro). Returns the exported artifact as text. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "format": {
               "type": "string",
@@ -416,7 +473,6 @@
             }
           },
           "required": [
-            "source",
             "format"
           ]
         }
@@ -431,13 +487,13 @@
           "orm",
           "domain"
         ],
-        "modelDescription": "Query an ORM 2 model for domain context: entity definitions, constraints, relationships, and business rules. Optionally focus on a specific entity, fact type, or constraint type. Can also resolve a generated artifact path back to its source model through lineage.",
+        "modelDescription": "Query an ORM 2 model for domain context: entity definitions, constraints, relationships, and business rules. Optionally focus on a specific entity, fact type, or constraint type. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "focus": {
               "type": "string",
@@ -451,10 +507,7 @@
               "type": "string",
               "description": "Path to a generated artifact (e.g., DDL file). When provided, resolves through lineage to find the source model."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -504,22 +557,19 @@
           "orm",
           "review"
         ],
-        "modelDescription": "LLM-powered semantic review of an ORM model. Provides suggestions about naming, completeness, normalization, constraints, and definitions. Distinct from validation (which checks structural rules) -- review gives subjective modeling advice.",
+        "modelDescription": "LLM-powered semantic review of an ORM model. Provides suggestions about naming, completeness, normalization, constraints, and definitions. Distinct from validation (which checks structural rules) -- review gives subjective modeling advice. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file, or inline YAML content of an ORM model"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "focus": {
               "type": "string",
               "description": "Focus on a specific entity or fact type name. Omit for full review."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -532,18 +582,15 @@
           "orm",
           "lineage"
         ],
-        "modelDescription": "Check staleness of exported artifacts by comparing the current model against the lineage manifest. Returns which artifacts are stale (out of date) vs fresh (up to date).",
+        "modelDescription": "Check staleness of exported artifacts by comparing the current model against the lineage manifest. Returns which artifacts are stale (out of date) vs fresh (up to date). If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file (needed to find the project directory and model)"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             }
-          },
-          "required": [
-            "source"
-          ]
+          }
         }
       },
       {
@@ -556,13 +603,13 @@
           "orm",
           "impact"
         ],
-        "modelDescription": "Analyze the impact of changing a model element. Given an element ID, returns which exported artifacts depend on that element and would need regeneration.",
+        "modelDescription": "Analyze the impact of changing a model element. Given an element ID, returns which exported artifacts depend on that element and would need regeneration. If no source is provided, automatically uses the .orm.yaml file open in the editor.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "source": {
               "type": "string",
-              "description": "File path to an .orm.yaml file (needed to find the project directory)"
+              "description": "File path to an .orm.yaml file. Omit to use the currently open .orm.yaml file."
             },
             "elementId": {
               "type": "string",
@@ -570,7 +617,6 @@
             }
           },
           "required": [
-            "source",
             "elementId"
           ]
         }

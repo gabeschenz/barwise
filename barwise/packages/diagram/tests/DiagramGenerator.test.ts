@@ -336,8 +336,9 @@ describe("DiagramGenerator (end-to-end)", () => {
     expect(result.svg).toContain("Course");
     expect(result.svg).toContain("Enrollment");
 
-    // Should contain the fact type name.
-    expect(result.svg).toContain("Student enrolls in Course");
+    // The objectified entity name label should be visible (not the
+    // fact type reading, which is suppressed for objectified facts).
+    expect(result.svg).toContain("Enrollment");
 
     // Should render the objectification box.
     expect(result.svg).toContain('data-kind="objectification"');
@@ -353,8 +354,11 @@ describe("DiagramGenerator (end-to-end)", () => {
       expect(ftNode.objectifiedEntityName).toBe("Enrollment");
     }
 
-    // Layout should have positioned all nodes (3 OTs + 1 FT = 4).
-    expect(result.layout.nodes).toHaveLength(4);
+    // Layout: 2 OTs (Student, Course) + 1 FT = 3 nodes.
+    // Enrollment is a pure objectified entity (no role-playing) so it is
+    // represented by the fact type's objectification envelope, not a
+    // separate node.
+    expect(result.layout.nodes).toHaveLength(3);
     expect(result.layout.edges).toHaveLength(2);
     expect(result.layout.width).toBeGreaterThan(0);
     expect(result.layout.height).toBeGreaterThan(0);
@@ -380,8 +384,10 @@ describe("DiagramGenerator (end-to-end)", () => {
 
     const result = await generateDiagram(model);
 
-    // 4 OTs + 2 FTs = 6 graph nodes.
-    expect(result.graph.nodes).toHaveLength(6);
+    // 3 OTs (Student, Course, Instructor) + 2 FTs = 5 graph nodes.
+    // Enrollment is a pure objectified entity, represented by the fact
+    // type envelope, not a separate node.
+    expect(result.graph.nodes).toHaveLength(5);
     // 2 roles per FT = 4 edges.
     expect(result.graph.edges).toHaveLength(4);
 
@@ -405,8 +411,9 @@ describe("DiagramGenerator (end-to-end)", () => {
       expect(normalFt.name).toBe("Instructor teaches Course");
     }
 
-    // SVG should contain both fact type names and the objectification indicator.
-    expect(result.svg).toContain("Student enrolls in Course");
+    // SVG should contain the non-objectified fact type name and the
+    // objectified entity name (objectified facts suppress the reading label).
+    expect(result.svg).toContain("Enrollment");
     expect(result.svg).toContain("Instructor teaches Course");
     expect(result.svg).toContain('data-kind="objectification"');
   });

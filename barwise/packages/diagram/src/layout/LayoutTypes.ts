@@ -7,6 +7,8 @@
 
 import type { ConstraintKind, RingTypeLabel } from "../graph/GraphTypes.js";
 
+export type FactTypeOrientation = "horizontal" | "vertical";
+
 export interface Position {
   readonly x: number;
   readonly y: number;
@@ -65,6 +67,8 @@ export interface PositionedFactTypeNode {
   readonly objectifiedEntityName?: string;
   /** Annotation messages for visual markers. */
   readonly annotations?: readonly string[];
+  /** Layout orientation of the role box strip. */
+  readonly orientation: FactTypeOrientation;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -92,6 +96,8 @@ export interface PositionedEdge {
   readonly sourceNodeId: string;
   readonly targetNodeId: string;
   readonly roleId: string;
+  /** Whether the role played by this edge's entity is mandatory. */
+  readonly isMandatory: boolean;
   readonly points: readonly Position[];
 }
 
@@ -120,6 +126,10 @@ export interface PositionedGraph {
   readonly edges: readonly PositionedEdge[];
   readonly constraintEdges: readonly PositionedConstraintEdge[];
   readonly subtypeEdges: readonly PositionedSubtypeEdge[];
+  /** Minimum x coordinate of all content (for viewBox origin). */
+  readonly originX: number;
+  /** Minimum y coordinate of all content (for viewBox origin). */
+  readonly originY: number;
   readonly width: number;
   readonly height: number;
 }

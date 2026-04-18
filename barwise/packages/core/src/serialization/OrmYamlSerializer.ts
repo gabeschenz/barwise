@@ -1,6 +1,7 @@
 import { parse, stringify } from "yaml";
 import type { Constraint, RingType } from "../model/Constraint.js";
 import type { Definition } from "../model/Definition.js";
+import type { DiagramLayout } from "../model/DiagramLayout.js";
 import type { FactType } from "../model/FactType.js";
 import type { ObjectifiedFactType } from "../model/ObjectifiedFactType.js";
 import type { ConceptualDataTypeName, ObjectType } from "../model/ObjectType.js";
@@ -15,6 +16,13 @@ import { type SchemaValidationResult, SchemaValidator } from "./SchemaValidator.
  * and is used as the intermediate representation between YAML text and
  * the in-memory OrmModel.
  */
+interface OrmYamlDiagramLayout {
+  name: string;
+  elements?: string[];
+  positions?: Record<string, { x: number; y: number; }>;
+  orientations?: Record<string, "horizontal" | "vertical">;
+}
+
 interface OrmYamlDocument {
   orm_version: string;
   model: {
@@ -26,6 +34,7 @@ interface OrmYamlDocument {
     objectified_fact_types?: OrmYamlObjectifiedFactType[];
     populations?: OrmYamlPopulation[];
     definitions?: OrmYamlDefinition[];
+    diagrams?: OrmYamlDiagramLayout[];
   };
 }
 
@@ -148,7 +157,14 @@ export class OrmYamlSerializer {
    * errors (e.g. referential integrity violations) are thrown as
    * DeserializationError.
    */
-  deserialize(yaml: string): OrmModel {
+  /**
+   * @param yaml - The YAML string to deserialize.
+   * @param options - Optional settings.
+   * @param options.lenient - When true, skip role player reference
+   *   validation.  Used for merge fragments that reference types from
+   *   a base model not present in the fragment.
+   */
+  deserialize(yaml: string, options?: { lenient?: boolean; }): OrmModel {
     const raw = parse(yaml) as unknown;
 
     const result = this.validator.validateModel(raw);
@@ -162,7 +178,7 @@ export class OrmYamlSerializer {
     }
 
     const doc = raw as OrmYamlDocument;
-    return this.fromDocument(doc);
+    return this.fromDocument(doc, options);
   }
 
   // -- Internal: model -> document --
@@ -209,6 +225,11 @@ export class OrmYamlSerializer {
     const definitions = model.definitions;
     if (definitions.length > 0) {
       doc.model.definitions = definitions.map((d) => this.serializeDefinition(d));
+    }
+
+    const diagrams = model.diagramLayouts;
+    if (diagrams.length > 0) {
+      doc.model.diagrams = diagrams.map((dl) => this.serializeDiagramLayout(dl, model));
     }
 
     return doc;
@@ -393,9 +414,36 @@ export class OrmYamlSerializer {
     return result;
   }
 
+  private serializeDiagramLayout(
+    dl: DiagramLayout,
+    _model: OrmModel,
+  ): OrmYamlDiagramLayout {
+    const result: OrmYamlDiagramLayout = { name: dl.name };
+    if (dl.elements && dl.elements.length > 0) {
+      result.elements = [...dl.elements];
+    }
+    if (Object.keys(dl.positions).length > 0) {
+      const positions: Record<string, { x: number; y: number; }> = {};
+      for (const [name, pos] of Object.entries(dl.positions)) {
+        positions[name] = {
+          x: Math.round(pos.x),
+          y: Math.round(pos.y),
+        };
+      }
+      result.positions = positions;
+    }
+    if (Object.keys(dl.orientations).length > 0) {
+      result.orientations = { ...dl.orientations };
+    }
+    return result;
+  }
+
   // -- Internal: document -> model --
 
-  private fromDocument(doc: OrmYamlDocument): OrmModel {
+  private fromDocument(
+    doc: OrmYamlDocument,
+    options?: { lenient?: boolean; },
+  ): OrmModel {
     const model = new OrmModel({
       name: doc.model.name,
       domainContext: doc.model.domain_context,
@@ -428,30 +476,36 @@ export class OrmYamlSerializer {
     for (const ftDoc of doc.model.fact_types ?? []) {
       const constraints = (ftDoc.constraints ?? []).map((c) => this.deserializeConstraint(c));
 
-      model.addFactType({
-        id: ftDoc.id,
-        name: ftDoc.name,
-        definition: ftDoc.definition,
-        roles: ftDoc.roles.map((r) => ({
-          id: r.id,
-          name: r.role_name,
-          playerId: r.player,
-        })),
-        readings: ftDoc.readings,
-        constraints,
-      });
+      model.addFactType(
+        {
+          id: ftDoc.id,
+          name: ftDoc.name,
+          definition: ftDoc.definition,
+          roles: ftDoc.roles.map((r) => ({
+            id: r.id,
+            name: r.role_name,
+            playerId: r.player,
+          })),
+          readings: ftDoc.readings,
+          constraints,
+        },
+        { skipPlayerValidation: options?.lenient },
+      );
     }
 
     // Add subtype facts (after object types and fact types).
     for (const sfDoc of doc.model.subtype_facts ?? []) {
-      model.addSubtypeFact({
-        id: sfDoc.id,
-        subtypeId: sfDoc.subtype,
-        supertypeId: sfDoc.supertype,
-        providesIdentification: sfDoc.provides_identification ?? true,
-        isExclusive: sfDoc.is_exclusive ?? false,
-        isExhaustive: sfDoc.is_exhaustive ?? false,
-      });
+      model.addSubtypeFact(
+        {
+          id: sfDoc.id,
+          subtypeId: sfDoc.subtype,
+          supertypeId: sfDoc.supertype,
+          providesIdentification: sfDoc.provides_identification ?? true,
+          isExclusive: sfDoc.is_exclusive ?? false,
+          isExhaustive: sfDoc.is_exhaustive ?? false,
+        },
+        { skipPlayerValidation: options?.lenient },
+      );
     }
 
     // Add objectified fact types (after object types and fact types).
@@ -484,6 +538,16 @@ export class OrmYamlSerializer {
         term: defDoc.term,
         definition: defDoc.definition,
         context: defDoc.context,
+      });
+    }
+
+    // Add diagram layouts.
+    for (const dlDoc of doc.model.diagrams ?? []) {
+      model.addDiagramLayout({
+        name: dlDoc.name,
+        elements: dlDoc.elements,
+        positions: dlDoc.positions ?? {},
+        orientations: dlDoc.orientations ?? {},
       });
     }
 

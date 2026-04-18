@@ -5,8 +5,9 @@
 import { diffModels, mergeAndValidate, OrmYamlSerializer } from "@barwise/core";
 import type { Diagnostic } from "@barwise/core";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { writeFileSync } from "node:fs";
 import { z } from "zod";
-import { resolveSource } from "../helpers/resolve.js";
+import { isFilePath, resolveSource } from "../helpers/resolve.js";
 
 const serializer = new OrmYamlSerializer();
 
@@ -38,7 +39,10 @@ export function executeMerge(
   incoming: string,
 ): { content: Array<{ type: "text"; text: string; }>; } {
   const baseModel = resolveSource(base);
-  const incomingModel = resolveSource(incoming);
+  // The incoming fragment may reference types from the base model
+  // without redefining them.  Use lenient mode to skip player
+  // reference validation during deserialization.
+  const incomingModel = resolveSource(incoming, { lenient: true });
 
   // Compute diff and accept additions/modifications, reject removals.
   const diff = diffModels(baseModel, incomingModel);
@@ -84,6 +88,14 @@ export function executeMerge(
     ? serializer.serialize(mergeResult.model)
     : serializer.serialize(baseModel);
 
+  // Write back to the base file when the merge is valid and the base
+  // was specified as a file path.
+  let writtenTo: string | undefined;
+  if (mergeResult.isValid && isFilePath(base.trim())) {
+    writeFileSync(base.trim(), yaml, "utf-8");
+    writtenTo = base.trim();
+  }
+
   // mergeResult.diagnostics contains only structural errors (severity "error").
   // getStructuralErrors filters out warnings intentionally -- a structurally
   // valid merge is safe to write to disk even with completeness warnings.
@@ -91,6 +103,7 @@ export function executeMerge(
     yaml,
     valid: mergeResult.isValid,
     hasChanges: true,
+    writtenTo,
     errorCount: mergeResult.diagnostics.length,
     diagnostics: mergeResult.diagnostics.map((d: Diagnostic) => ({
       severity: d.severity,

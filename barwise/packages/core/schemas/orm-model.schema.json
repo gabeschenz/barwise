@@ -56,6 +56,11 @@
           "type": "array",
           "items": { "$ref": "#/definitions/definition" },
           "description": "Ubiquitous language entries not directly attached to a model element."
+        },
+        "diagrams": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/diagram_layout" },
+          "description": "Persisted diagram layouts with element positions and fact type orientations."
         }
       }
     }
@@ -563,6 +568,44 @@
         "context": {
           "type": "string",
           "description": "The bounded context in which this term applies."
+        }
+      }
+    },
+    "diagram_layout": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name for this diagram view."
+        },
+        "elements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Object type names included in this view. When absent, all elements are shown."
+        },
+        "positions": {
+          "type": "object",
+          "description": "Entity type positions keyed by element name. Values are {x, y} in integer pixels, screen coordinates (0,0 top-left, x right, y down).",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["x", "y"],
+            "additionalProperties": false,
+            "properties": {
+              "x": { "type": "integer", "description": "Horizontal position in pixels." },
+              "y": { "type": "integer", "description": "Vertical position in pixels." }
+            }
+          }
+        },
+        "orientations": {
+          "type": "object",
+          "description": "Fact type orientation overrides keyed by fact type name. Only includes explicitly set orientations.",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["horizontal", "vertical"]
+          }
         }
       }
     }

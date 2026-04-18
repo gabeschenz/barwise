@@ -12,15 +12,25 @@ import type {
 import * as theme from "./theme.js";
 
 /**
+ * Options for SVG rendering.
+ */
+export interface RenderOptions {
+  /** Node IDs that should be rendered as ghost (preview) nodes. */
+  readonly ghostNodeIds?: ReadonlySet<string>;
+}
+
+/**
  * Render a positioned ORM graph as an SVG string.
  *
  * The output is a complete, self-contained SVG document that can be
  * embedded directly in an HTML page or saved as a file.
  */
-export function renderSvg(graph: PositionedGraph): string {
+export function renderSvg(graph: PositionedGraph, options?: RenderOptions): string {
   const padding = 20;
   const svgWidth = graph.width + padding * 2;
   const svgHeight = graph.height + padding * 2;
+  const viewBoxX = graph.originX - padding;
+  const viewBoxY = graph.originY - padding;
 
   const parts: string[] = [];
 
@@ -29,7 +39,7 @@ export function renderSvg(graph: PositionedGraph): string {
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" `
       + `width="${svgWidth}" height="${svgHeight}" `
-      + `viewBox="${-padding} ${-padding} ${svgWidth} ${svgHeight}" `
+      + `viewBox="${viewBoxX} ${viewBoxY} ${svgWidth} ${svgHeight}" `
       + `style="font-family: ${theme.FONT_FAMILY}; background: #fafafa;">`,
   );
 
@@ -38,9 +48,11 @@ export function renderSvg(graph: PositionedGraph): string {
     parts.push(renderSubtypeArrowDef());
   }
 
+  const ghostIds = options?.ghostNodeIds;
+
   // Render role edges first (behind nodes).
   for (const edge of graph.edges) {
-    parts.push(renderEdge(edge));
+    parts.push(renderEdge(edge, ghostIds));
   }
 
   // Render constraint edges (dashed lines, behind nodes).
@@ -50,15 +62,15 @@ export function renderSvg(graph: PositionedGraph): string {
 
   // Render subtype edges (behind nodes, on top of role edges).
   for (const se of graph.subtypeEdges) {
-    parts.push(renderSubtypeEdge(se));
+    parts.push(renderSubtypeEdge(se, ghostIds));
   }
 
   // Render nodes.
   for (const node of graph.nodes) {
     if (node.kind === "object_type") {
-      parts.push(renderObjectType(node));
+      parts.push(renderObjectType(node, ghostIds));
     } else if (node.kind === "fact_type") {
-      parts.push(renderFactType(node));
+      parts.push(renderFactType(node, ghostIds));
     } else {
       parts.push(renderConstraintNode(node));
     }
@@ -68,8 +80,9 @@ export function renderSvg(graph: PositionedGraph): string {
   return parts.join("\n");
 }
 
-function renderObjectType(node: PositionedObjectTypeNode): string {
+function renderObjectType(node: PositionedObjectTypeNode, ghostIds?: ReadonlySet<string>): string {
   const isEntity = node.objectTypeKind === "entity";
+  const isGhost = ghostIds?.has(node.id) ?? false;
   const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const fill = isEntity ? theme.COLOR_ENTITY_FILL : theme.COLOR_VALUE_FILL;
   const stroke = hasAnnotations
@@ -86,7 +99,8 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   const cy = node.y + node.height / 2;
 
   const parts: string[] = [];
-  parts.push(`<g data-id="${esc(node.id)}" data-kind="object_type">`);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
+  parts.push(`<g data-id="${esc(node.id)}" data-kind="object_type"${ghostAttr}>`);
 
   // Add hover title with annotation messages.
   if (hasAnnotations) {
@@ -171,10 +185,12 @@ function renderObjectType(node: PositionedObjectTypeNode): string {
   return parts.join("\n");
 }
 
-function renderFactType(node: PositionedFactTypeNode): string {
+function renderFactType(node: PositionedFactTypeNode, ghostIds?: ReadonlySet<string>): string {
+  const isGhost = ghostIds?.has(node.id) ?? false;
   const hasAnnotations = node.annotations !== undefined && node.annotations.length > 0;
   const parts: string[] = [];
-  parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type">`);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
+  parts.push(`<g data-id="${esc(node.id)}" data-kind="fact_type"${ghostAttr}>`);
 
   // Add hover title with annotation messages.
   if (hasAnnotations) {
@@ -198,53 +214,111 @@ function renderFactType(node: PositionedFactTypeNode): string {
 
   // Render each role box.
   for (const role of node.roles) {
-    parts.push(renderRoleBox(node.x, node.y, role));
+    parts.push(renderRoleBox(node.x, node.y, role, node.orientation));
   }
 
   // Spanning uniqueness: a bar across all role boxes.
   if (node.hasSpanningUniqueness && node.roles.length > 0) {
     const first = node.roles[0]!;
     const last = node.roles[node.roles.length - 1]!;
-    const barX = node.x + first.x + 4;
-    const barWidth = last.x + last.width - first.x - 8;
-    const barY = node.y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
-    parts.push(
-      `<rect x="${barX}" y="${barY}" `
-        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
-        + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
-    );
+
+    if (node.orientation === "vertical") {
+      // Vertical: bar on the left side.
+      const barX = node.x - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      const barY = node.y + first.y + 4;
+      const barHeight = last.y + last.height - first.y - 8;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${theme.UNIQUENESS_BAR_HEIGHT}" height="${barHeight}" `
+          + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      );
+    } else {
+      // Horizontal: bar above.
+      const barX = node.x + first.x + 4;
+      const barWidth = last.x + last.width - first.x - 8;
+      const barY = node.y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+          + `fill="${theme.COLOR_SPANNING}" rx="1"/>`,
+      );
+    }
   }
 
-  // Fact type name label (below the bar).
-  const cx = node.x + node.width / 2;
-  const labelY = node.y + node.height + 14;
-  parts.push(
-    `<text x="${cx}" y="${labelY}" `
-      + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
-      + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
-      + `${esc(node.name)}</text>`,
-  );
+  // Fact type name label (skip for objectified facts -- the entity name
+  // label below already shows the same text).
+  if (!node.isObjectified) {
+    if (node.orientation === "vertical") {
+      // Vertical: label to the right of the strip.
+      const labelX = node.x + node.width + 8;
+      const labelY = node.y + node.height / 2;
+      parts.push(
+        `<text x="${labelX}" y="${labelY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `fill="${theme.COLOR_TEXT}" `
+          + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+          + `${esc(node.name)}</text>`,
+      );
+    } else {
+      // Horizontal: label below the bar.
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      parts.push(
+        `<text x="${cx}" y="${labelY}" `
+          + `text-anchor="middle" fill="${theme.COLOR_TEXT}" `
+          + `font-size="${theme.FONT_SIZE_ROLE}" font-style="italic">`
+          + `${esc(node.name)}</text>`,
+      );
+    }
+  }
 
-  // Ring constraint label (below the fact type name).
+  // Ring constraint label.
   if (node.ringConstraint) {
-    const ringY = labelY + 14;
-    parts.push(
-      `<text x="${cx}" y="${ringY}" `
-        + `text-anchor="middle" `
-        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
-        + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
-    );
+    if (node.orientation === "vertical") {
+      const ringX = node.x + node.width + 8;
+      const ringY = node.y + node.height / 2 + 14;
+      parts.push(
+        `<text x="${ringX}" y="${ringY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+      );
+    } else {
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      const ringY = labelY + 14;
+      parts.push(
+        `<text x="${cx}" y="${ringY}" `
+          + `text-anchor="middle" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(node.ringConstraint.label)}</text>`,
+      );
+    }
   }
 
-  // Objectified entity name label (below all other labels).
+  // Objectified entity name label.
   if (node.isObjectified && node.objectifiedEntityName) {
-    const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
-    parts.push(
-      `<text x="${cx}" y="${objLabelY}" `
-        + `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
-        + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
-        + `${esc(node.objectifiedEntityName)}</text>`,
-    );
+    if (node.orientation === "vertical") {
+      const objX = node.x + node.width + 8;
+      const objY = node.y + node.height / 2 + (node.ringConstraint ? 28 : 14);
+      parts.push(
+        `<text x="${objX}" y="${objY}" `
+          + `text-anchor="start" dominant-baseline="central" `
+          + `fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+          + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
+          + `${esc(node.objectifiedEntityName)}</text>`,
+      );
+    } else {
+      const cx = node.x + node.width / 2;
+      const labelY = node.y + node.height + 14;
+      const objLabelY = node.ringConstraint ? labelY + 28 : labelY + 14;
+      parts.push(
+        `<text x="${cx}" y="${objLabelY}" `
+          + `text-anchor="middle" fill="${theme.COLOR_OBJECTIFICATION_STROKE}" `
+          + `font-size="${theme.FONT_SIZE_LABEL}" font-weight="600">`
+          + `${esc(node.objectifiedEntityName)}</text>`,
+      );
+    }
   }
 
   parts.push("</g>");
@@ -255,6 +329,7 @@ function renderRoleBox(
   parentX: number,
   parentY: number,
   role: PositionedRoleBox,
+  orientation: "horizontal" | "vertical" = "horizontal",
 ): string {
   const x = parentX + role.x;
   const y = parentY + role.y;
@@ -268,55 +343,104 @@ function renderRoleBox(
       + `stroke="${theme.COLOR_ROLE_STROKE}" stroke-width="1"/>`,
   );
 
-  // Single-role uniqueness bar (above the role box).
-  if (role.hasUniqueness) {
-    const barX = x + 4;
-    const barWidth = role.width - 8;
-    const barY = y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
-    parts.push(
-      `<rect x="${barX}" y="${barY}" `
-        + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
-        + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
-    );
-  }
+  if (orientation === "vertical") {
+    // Vertical orientation: uniqueness on left side, mandatory on right.
+    if (role.hasUniqueness) {
+      const barX = x - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      const barY = y + 4;
+      const barHeight = role.height - 8;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${theme.UNIQUENESS_BAR_HEIGHT}" height="${barHeight}" `
+          + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
+      );
+    }
 
-  // Mandatory dot (on the connection side of the role box).
-  if (role.isMandatory) {
-    const dotX = x + role.width / 2;
-    const dotY = y + role.height + theme.MANDATORY_DOT_RADIUS + 2;
-    parts.push(
-      `<circle cx="${dotX}" cy="${dotY}" `
-        + `r="${theme.MANDATORY_DOT_RADIUS}" `
-        + `fill="${theme.COLOR_MANDATORY}"/>`,
-    );
-  }
+    // Mandatory dots are rendered on the edge at the entity border.
 
-  // Frequency label (below the role box, after mandatory dot if present).
-  if (role.frequencyMin !== undefined) {
-    const freqX = x + role.width / 2;
-    const freqY = y + role.height + (role.isMandatory ? 18 : 12);
-    const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
-    const label = role.frequencyMin === role.frequencyMax
-      ? String(role.frequencyMin)
-      : `${role.frequencyMin}..${maxStr}`;
-    parts.push(
-      `<text x="${freqX}" y="${freqY}" text-anchor="middle" `
-        + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
-        + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
-    );
+    if (role.frequencyMin !== undefined) {
+      const freqX = x + role.width + 12;
+      const freqY = y + role.height / 2;
+      const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
+      const label = role.frequencyMin === role.frequencyMax
+        ? String(role.frequencyMin)
+        : `${role.frequencyMin}..${maxStr}`;
+      parts.push(
+        `<text x="${freqX}" y="${freqY}" text-anchor="start" `
+          + `dominant-baseline="central" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
+      );
+    }
+  } else {
+    // Horizontal orientation: uniqueness above, mandatory below.
+    if (role.hasUniqueness) {
+      const barX = x + 4;
+      const barWidth = role.width - 8;
+      const barY = y - theme.UNIQUENESS_BAR_OFFSET - theme.UNIQUENESS_BAR_HEIGHT;
+      parts.push(
+        `<rect x="${barX}" y="${barY}" `
+          + `width="${barWidth}" height="${theme.UNIQUENESS_BAR_HEIGHT}" `
+          + `fill="${theme.COLOR_UNIQUENESS}" rx="1"/>`,
+      );
+    }
+
+    // Mandatory dots are rendered on the edge at the entity border,
+    // not on the role box. See renderEdge().
+
+    if (role.frequencyMin !== undefined) {
+      const freqX = x + role.width / 2;
+      const freqY = y + role.height + 12;
+      const maxStr = role.frequencyMax === "unbounded" ? "*" : String(role.frequencyMax);
+      const label = role.frequencyMin === role.frequencyMax
+        ? String(role.frequencyMin)
+        : `${role.frequencyMin}..${maxStr}`;
+      parts.push(
+        `<text x="${freqX}" y="${freqY}" text-anchor="middle" `
+          + `font-size="${theme.FONT_SIZE_ANNOTATION}" `
+          + `fill="${theme.COLOR_ANNOTATION}">${esc(label)}</text>`,
+      );
+    }
   }
 
   return parts.join("\n");
 }
 
-function renderEdge(edge: PositionedEdge): string {
+function renderEdge(edge: PositionedEdge, ghostIds?: ReadonlySet<string>): string {
   if (edge.points.length < 2) return "";
 
+  const isGhost = ghostIds?.has(edge.sourceNodeId) || ghostIds?.has(edge.targetNodeId);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
   const d = buildPathData(edge.points);
-  return (
-    `<path d="${d}" fill="none" `
-    + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`
+  const parts: string[] = [];
+  parts.push(
+    `<path data-kind="edge" data-source="${esc(edge.sourceNodeId)}" `
+      + `data-target="${esc(edge.targetNodeId)}"${ghostAttr} `
+      + `d="${d}" fill="none" `
+      + `stroke="${theme.COLOR_EDGE}" stroke-width="1.2"/>`,
   );
+
+  // Mandatory dot on the line, just outside the role box (fact side).
+  if (edge.isMandatory) {
+    const rc = edge.points[edge.points.length - 1]!; // role box center
+    const ep = edge.points[0]!; // entity border
+    const dx = ep.x - rc.x;
+    const dy = ep.y - rc.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 1) {
+      // Place dot ~20px from role center along line toward entity
+      // (just past the role box edge).
+      const offset = 20;
+      parts.push(
+        `<circle cx="${rc.x + (dx / dist) * offset}" `
+          + `cy="${rc.y + (dy / dist) * offset}" `
+          + `r="${theme.MANDATORY_DOT_RADIUS}" `
+          + `fill="${theme.COLOR_MANDATORY}"/>`,
+      );
+    }
+  }
+
+  return parts.join("\n");
 }
 
 function buildPathData(points: readonly Position[]): string {
@@ -350,12 +474,17 @@ function renderSubtypeArrowDef(): string {
   );
 }
 
-function renderSubtypeEdge(edge: PositionedSubtypeEdge): string {
+function renderSubtypeEdge(edge: PositionedSubtypeEdge, ghostIds?: ReadonlySet<string>): string {
   if (edge.points.length < 2) return "";
 
+  const isGhost = ghostIds?.has(edge.subtypeNodeId) || ghostIds?.has(edge.supertypeNodeId);
+  const ghostAttr = isGhost ? ` data-ghost="true"` : "";
   const d = buildPathData(edge.points);
   return (
-    `<path data-kind="subtype" d="${d}" fill="none" `
+    `<path data-kind="subtype" `
+    + `data-source="${esc(edge.subtypeNodeId)}" `
+    + `data-target="${esc(edge.supertypeNodeId)}"${ghostAttr} `
+    + `d="${d}" fill="none" `
     + `stroke="${theme.COLOR_SUBTYPE}" `
     + `stroke-width="${theme.SUBTYPE_STROKE_WIDTH}" `
     + `marker-end="url(#subtype-arrow)"/>`

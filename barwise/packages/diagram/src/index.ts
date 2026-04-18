@@ -13,11 +13,17 @@ export type {
   SubtypeEdge,
 } from "./graph/GraphTypes.js";
 export { modelToGraph, type ModelToGraphOptions } from "./graph/ModelToGraph.js";
+export { computeNeighborhood, type Neighborhood } from "./graph/NeighborhoodFilter.js";
 
 // Layout types and engine.
-export { layoutGraph } from "./layout/ElkLayoutEngine.js";
+export {
+  layoutGraph,
+  type OrientationOverrides,
+  type PositionOverrides,
+} from "./layout/ElkLayoutEngine.js";
 export type {
   Dimensions,
+  FactTypeOrientation,
   Position,
   PositionedConstraintEdge,
   PositionedConstraintNode,
@@ -31,7 +37,7 @@ export type {
 } from "./layout/LayoutTypes.js";
 
 // SVG rendering.
-export { renderSvg } from "./render/SvgRenderer.js";
+export { type RenderOptions, renderSvg } from "./render/SvgRenderer.js";
 
 // Theme constants.
 export * as theme from "./render/theme.js";
