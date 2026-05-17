@@ -39,12 +39,12 @@ clear owner. To find them, group object types by the language people
 use around them, not by database tables or by what is technically
 convenient. The auction model splits cleanly into four:
 
-| Context    | Owns                                                          |
-| ---------- | ------------------------------------------------------------- |
-| `catalog`  | Assets, their classification, inspection, and refurbishment   |
-| `auctions` | Auctions, listings, bids, offerings, deals                    |
-| `payments` | Invoices, payments, payouts, refunds, settlements             |
-| `parties`  | Customers, organizations, locations                           |
+| Context    | Owns                                                        |
+| ---------- | ----------------------------------------------------------- |
+| `catalog`  | Assets, their classification, inspection, and refurbishment |
+| `auctions` | Auctions, listings, bids, offerings, deals                  |
+| `payments` | Invoices, payments, payouts, refunds, settlements           |
+| `parties`  | Customers, organizations, locations                         |
 
 Where two contexts both touch a concept -- an auction listing referring
 to a catalog asset, say -- that is a **seam**. Seams are expected; the
@@ -209,11 +209,11 @@ change the pattern to `anticorruption_layer` and record the difference
 as a `semantic_conflict`:
 
 ```yaml
-  semantic_conflicts:
-    - term: Customer
-      source_meaning: "Any lead the sales team tracks."
-      target_meaning: "A party with a payment relationship."
-      resolution: "The warehouse Customer uses the billing definition."
+semantic_conflicts:
+  - term: Customer
+    source_meaning: "Any lead the sales team tracks."
+    target_meaning: "A party with a payment relationship."
+    resolution: "The warehouse Customer uses the billing definition."
 ```
 
 The three patterns -- `shared_kernel`, `published_language`, and

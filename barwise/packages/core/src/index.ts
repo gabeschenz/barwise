@@ -70,6 +70,17 @@ export { SubtypeFact, type SubtypeFactConfig } from "./model/SubtypeFact.js";
 
 // Serialization
 export {
+  ModelSplitError,
+  parseSplitConfig,
+  scaffoldProject,
+  scaffoldSplitConfig,
+  type SplitConfig,
+  type SplitDomainFile,
+  type SplitMappingFile,
+  splitModel,
+  type SplitResult,
+} from "./project/index.js";
+export {
   MappingDeserializationError,
   MappingSerializer,
 } from "./serialization/MappingSerializer.js";
@@ -83,17 +94,6 @@ export {
   ProjectDeserializationError,
   ProjectSerializer,
 } from "./serialization/ProjectSerializer.js";
-export {
-  ModelSplitError,
-  parseSplitConfig,
-  scaffoldProject,
-  scaffoldSplitConfig,
-  type SplitConfig,
-  type SplitDomainFile,
-  type SplitMappingFile,
-  type SplitResult,
-  splitModel,
-} from "./project/index.js";
 export {
   type SchemaError,
   type SchemaValidationResult,

@@ -386,8 +386,7 @@ export function splitModel(modelYaml: string, config: SplitConfig): SplitResult 
         entityMappings: sorted.map((name) => ({
           sourceObjectType: name,
           targetObjectType: name,
-          description:
-            `"${name}" is owned by "${owner}" and referenced by "${shadowCtx}".`,
+          description: `"${name}" is owned by "${owner}" and referenced by "${shadowCtx}".`,
         })),
       });
       mappings.push({

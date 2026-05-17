@@ -42,9 +42,11 @@ export function parseSplitConfig(yamlText: string): SplitConfig {
   }
 
   const domains: Record<string, string[]> = {};
-  for (const [context, names] of Object.entries(
-    domainsRaw as Record<string, unknown>,
-  )) {
+  for (
+    const [context, names] of Object.entries(
+      domainsRaw as Record<string, unknown>,
+    )
+  ) {
     if (names === null || names === undefined) {
       domains[context] = [];
       continue;

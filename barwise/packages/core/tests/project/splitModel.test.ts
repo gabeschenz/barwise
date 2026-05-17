@@ -2,17 +2,17 @@
  * Tests for splitModel: cutting a monolithic .orm.yaml into a
  * multi-domain project with suggested context mappings.
  */
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
+import { ModelSplitError, splitModel } from "../../src/project/splitModel.js";
 import { OrmYamlSerializer } from "../../src/serialization/OrmYamlSerializer.js";
 import { loadProject } from "../../src/serialization/ProjectLoader.js";
-import { ModelSplitError, splitModel } from "../../src/project/splitModel.js";
-import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
 import { projectRules } from "../../src/validation/rules/projectRules.js";
+import { ValidationEngine } from "../../src/validation/ValidationEngine.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../..");
@@ -83,9 +83,9 @@ describe("splitModel", () => {
   }
 
   it("rejects a config with fewer than two domains", () => {
-    expect(() =>
-      splitModel(SHOP_MODEL, { projectName: "P", domains: { only: [] } })
-    ).toThrow(ModelSplitError);
+    expect(() => splitModel(SHOP_MODEL, { projectName: "P", domains: { only: [] } })).toThrow(
+      ModelSplitError,
+    );
   });
 
   it("rejects input that is not a valid ORM model", () => {

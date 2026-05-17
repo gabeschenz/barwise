@@ -10,6 +10,6 @@ export {
   type SplitConfig,
   type SplitDomainFile,
   type SplitMappingFile,
-  type SplitResult,
   splitModel,
+  type SplitResult,
 } from "./splitModel.js";

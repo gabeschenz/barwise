@@ -8,7 +8,7 @@ CLI), barwise-r4f (wire-up audit, partly landed in `orm-project-support.spec.md`
 The core package can model, serialize, load, and validate a multi-domain
 `.orm-project.yaml` (see `orm-project-support.spec.md`). The `barwise
 validate` and `barwise diagram` commands already accept a project
-manifest. What is still missing is the *path into* a project: nothing
+manifest. What is still missing is the _path into_ a project: nothing
 turns a monolithic `.orm.yaml` into a multi-file project, and there is no
 user-facing guide for the workflow. A user with a single large model has
 no ergonomic way to adopt bounded contexts.
@@ -56,7 +56,7 @@ Algorithm:
 
 1. **Parse** the model document. Index object types by id and by name.
 2. **Home each object type.** Start from the explicit `config.domains`
-   assignments. Object types not listed anywhere are *inferred*: across
+   assignments. Object types not listed anywhere are _inferred_: across
    the fact types they participate in, take the most common domain among
    already-homed co-players. Repeat for up to three passes (enough to
    carry a value type -> its entity -> the entity's domain). Anything
@@ -66,7 +66,7 @@ Algorithm:
    are homed by their subtype; objectified fact types follow their fact
    type.
 4. **Build each domain document.** It contains the object types homed
-   there, plus *shadow* copies of any foreign object type referenced by
+   there, plus _shadow_ copies of any foreign object type referenced by
    one of its fact types / subtype facts / objectifications. A shadow
    carries `source_context: <home context>` so the manifest reader knows
    it is owned elsewhere. The model's `domain_context` is set.
@@ -85,18 +85,18 @@ make the config explicit ("flag entities that need manual resolution").
 ### CLI: `packages/cli/src/commands/project.ts`
 
 `barwise project init <name> [--dir <path>]`
-  Writes `<dir>/<name>.orm-project.yaml` and creates `domains/` and
-  `mappings/` directories. Refuses to overwrite an existing manifest.
+Writes `<dir>/<name>.orm-project.yaml` and creates `domains/` and
+`mappings/` directories. Refuses to overwrite an existing manifest.
 
 `barwise project split <source.orm.yaml> --config <config.yaml> [--out <dir>]`
-  Loads the source model, runs `splitModel`, writes the manifest, every
-  domain file under `domains/`, and every mapping under `mappings/`.
-  Prints warnings to stderr. Exit 1 on failure.
+Loads the source model, runs `splitModel`, writes the manifest, every
+domain file under `domains/`, and every mapping under `mappings/`.
+Prints warnings to stderr. Exit 1 on failure.
 
 `barwise project split <source.orm.yaml> --scaffold-config [--domains a,b,c]`
-  Prints a starter config to stdout: every object type in the source
-  listed under the named domains (all under the first, for the user to
-  move). Lets a user produce a config without hand-typing every name.
+Prints a starter config to stdout: every object type in the source
+listed under the named domains (all under the first, for the user to
+move). Lets a user produce a config without hand-typing every name.
 
 ### CLI: `barwise diagram --domain <context>`
 
