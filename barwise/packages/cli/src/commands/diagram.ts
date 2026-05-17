@@ -1,19 +1,23 @@
 /**
  * barwise diagram <file>
  *
- * Generates an SVG diagram from an ORM model.
+ * Generates an SVG diagram from an ORM model. Given an
+ * .orm-project.yaml manifest, generates one SVG per domain.
  */
 
+import { loadProject } from "@barwise/core";
 import { generateDiagram } from "@barwise/diagram";
 import type { Command } from "commander";
-import { loadModel, writeOutput } from "../helpers/io.js";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { isProjectFile, loadModel, writeOutput } from "../helpers/io.js";
 
 export function registerDiagramCommand(program: Command): void {
   program
     .command("diagram")
-    .description("Generate an SVG diagram from an ORM model")
-    .argument("<file>", "Path to .orm.yaml file")
-    .option("--output <file>", "Write SVG to file instead of stdout")
+    .description("Generate an SVG diagram from an ORM model or project")
+    .argument("<file>", "Path to .orm.yaml or .orm-project.yaml file")
+    .option("--output <path>", "Write SVG to file (model) or directory (project)")
     .action(async (file: string, opts: { output?: string; }) => {
       // Print deprecation notice to stderr.
       process.stderr.write(
@@ -21,12 +25,57 @@ export function registerDiagramCommand(program: Command): void {
       );
 
       try {
-        const model = loadModel(file);
-        const result = await generateDiagram(model);
-        writeOutput(result.svg, opts.output);
+        if (isProjectFile(file)) {
+          await diagramProject(file, opts.output);
+        } else {
+          const model = loadModel(file);
+          const result = await generateDiagram(model);
+          writeOutput(result.svg, opts.output);
+        }
       } catch (err) {
         process.stderr.write(`Error: ${(err as Error).message}\n`);
         process.exitCode = 1;
       }
     });
+}
+
+/**
+ * Generate one SVG per domain in a project, written as
+ * `<outputDir>/<context>.svg`. An output directory is required because
+ * a project produces multiple SVGs.
+ */
+async function diagramProject(file: string, outputDir?: string): Promise<void> {
+  if (!outputDir) {
+    process.stderr.write(
+      "Error: diagramming a project requires --output <dir>.\n",
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const { project, problems } = loadProject(file);
+  for (const problem of problems) {
+    process.stderr.write(`Warning: ${problem}\n`);
+  }
+
+  mkdirSync(outputDir, { recursive: true });
+  const written: string[] = [];
+  for (const domain of project.domains) {
+    if (!domain.model) continue;
+    const result = await generateDiagram(domain.model);
+    const outPath = join(outputDir, `${domain.context}.svg`);
+    writeFileSync(outPath, result.svg, "utf-8");
+    written.push(outPath);
+  }
+
+  if (written.length === 0) {
+    process.stderr.write("Error: no domain models could be diagrammed.\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  process.stderr.write(`Wrote ${written.length} diagram(s):\n`);
+  for (const path of written) {
+    process.stderr.write(`  ${path}\n`);
+  }
 }

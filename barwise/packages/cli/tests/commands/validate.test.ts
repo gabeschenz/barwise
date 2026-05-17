@@ -60,3 +60,38 @@ describe("barwise validate", () => {
     expect(resultWithout.exitCode).toBe(0);
   });
 });
+
+describe("barwise validate (project)", () => {
+  const project = `${fixtures}/project/project.orm-project.yaml`;
+
+  it("validates a multi-domain project with 0 errors", async () => {
+    const result = await runCli(["validate", project]);
+    expect(result.stdout).toContain("0 error");
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("outputs JSON for a project with --format json", async () => {
+    const result = await runCli(["validate", project, "--format", "json"]);
+    const parsed = JSON.parse(result.stdout);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("reports an unresolved domain file as an error and exits 1", async () => {
+    const result = await runCli([
+      "validate",
+      `${fixtures}/project/missing-domain.orm-project.yaml`,
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout + result.stderr).toContain("ghost");
+  });
+
+  it("reports an error for a nonexistent project file", async () => {
+    const result = await runCli([
+      "validate",
+      `${fixtures}/project/nope.orm-project.yaml`,
+    ]);
+    expect(result.stderr.toLowerCase()).toContain("not found");
+    expect(result.exitCode).toBe(1);
+  });
+});

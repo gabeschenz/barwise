@@ -32,6 +32,14 @@ export function loadModel(filePath: string): OrmModel {
 }
 
 /**
+ * True if the path names a multi-domain project manifest
+ * (`.orm-project.yaml`) rather than a single-model file.
+ */
+export function isProjectFile(filePath: string): boolean {
+  return filePath.endsWith(".orm-project.yaml");
+}
+
+/**
  * Read a file as a UTF-8 string.
  */
 export function readFile(filePath: string): string {

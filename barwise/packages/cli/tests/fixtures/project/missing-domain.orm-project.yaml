@@ -1,0 +1,8 @@
+project:
+  name: "Project With Missing Domain"
+
+  domains:
+    - path: "./domains/crm.orm.yaml"
+      context: "crm"
+    - path: "./domains/does-not-exist.orm.yaml"
+      context: "ghost"
