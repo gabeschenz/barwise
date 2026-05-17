@@ -1,0 +1,20 @@
+mapping:
+  source_context: auctions
+  target_context: catalog
+  pattern: shared_kernel
+  entity_mappings:
+    - source_object_type: Auction
+      target_object_type: Auction
+      description: '"Auction" is owned by "auctions" and referenced by "catalog".'
+    - source_object_type: Channel
+      target_object_type: Channel
+      description: '"Channel" is owned by "auctions" and referenced by "catalog".'
+    - source_object_type: Listing
+      target_object_type: Listing
+      description: '"Listing" is owned by "auctions" and referenced by "catalog".'
+    - source_object_type: Offering
+      target_object_type: Offering
+      description: '"Offering" is owned by "auctions" and referenced by "catalog".'
+    - source_object_type: Price
+      target_object_type: Price
+      description: '"Price" is owned by "auctions" and referenced by "catalog".'

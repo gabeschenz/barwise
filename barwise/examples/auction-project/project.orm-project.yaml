@@ -1,0 +1,22 @@
+project:
+  name: Auction Semantic Model
+  domains:
+    - path: domains/catalog.orm.yaml
+      context: catalog
+    - path: domains/auctions.orm.yaml
+      context: auctions
+    - path: domains/payments.orm.yaml
+      context: payments
+    - path: domains/parties.orm.yaml
+      context: parties
+  mappings:
+    - path: mappings/auctions-catalog.map.yaml
+    - path: mappings/auctions-payments.map.yaml
+    - path: mappings/auctions-parties.map.yaml
+    - path: mappings/parties-catalog.map.yaml
+    - path: mappings/parties-auctions.map.yaml
+    - path: mappings/parties-payments.map.yaml
+    - path: mappings/catalog-auctions.map.yaml
+    - path: mappings/catalog-parties.map.yaml
+    - path: mappings/payments-auctions.map.yaml
+    - path: mappings/payments-parties.map.yaml

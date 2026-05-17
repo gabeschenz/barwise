@@ -1,0 +1,21 @@
+mapping:
+  source_context: payments
+  target_context: parties
+  pattern: shared_kernel
+  entity_mappings:
+    - source_object_type: ARInvoice
+      target_object_type: ARInvoice
+      description: '"ARInvoice" is owned by "payments" and referenced by "parties".'
+    - source_object_type: Amount
+      target_object_type: Amount
+      description: '"Amount" is owned by "payments" and referenced by "parties".'
+    - source_object_type: Payment
+      target_object_type: Payment
+      description: '"Payment" is owned by "payments" and referenced by "parties".'
+    - source_object_type: Purchase
+      target_object_type: Purchase
+      description: '"Purchase" is owned by "payments" and referenced by "parties".'
+    - source_object_type: SettlementEstimate
+      target_object_type: SettlementEstimate
+      description: '"SettlementEstimate" is owned by "payments" and referenced by
+        "parties".'

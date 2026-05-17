@@ -9,6 +9,27 @@ to try the full Barwise pipeline: import, validate, verbalize, and diagram.
 | `transcripts/university-enrollment.md` | Education  | Students, courses, offerings, semesters, grades, enrollment constraints |
 | `transcripts/clinic-appointments.md`   | Healthcare | Patients, doctors, appointments, time slots, rooms, specialties         |
 
+## Multi-domain project example
+
+`auction-project/` is a worked multi-file project: the monolithic
+[`docs/auction.orm.yaml`](../docs/auction.orm.yaml) model split into
+four bounded contexts (`catalog`, `auctions`, `payments`, `parties`).
+
+- `auction-split.yaml` -- the split config that produced it.
+- `auction-project/` -- the generated project: a `.orm-project.yaml`
+  manifest, four `domains/*.orm.yaml` models, and the `mappings/`
+  between them.
+
+Regenerate it with:
+
+```sh
+barwise project split docs/auction.orm.yaml \
+  --config examples/auction-split.yaml --out examples/auction-project
+```
+
+See [docs/ORM_PROJECT_GUIDE.md](../docs/ORM_PROJECT_GUIDE.md) for the
+full splitting workflow.
+
 ## Walkthrough
 
 This walkthrough uses `university-enrollment.md` but any transcript works.

@@ -29,12 +29,17 @@ Run the validation engine on a model file and report diagnostics.
 barwise validate model.orm.yaml
 barwise validate model.orm.yaml --format json
 barwise validate model.orm.yaml --no-warnings
+barwise validate project.orm-project.yaml
 ```
 
 Options:
 
 - `--format <text|json>` -- output format (default: text)
 - `--no-warnings` -- suppress warnings, show errors only
+
+Given a `.orm-project.yaml` manifest, every domain model is validated
+and the cross-domain project rules are run; diagnostics are prefixed
+with their context. See [ORM_PROJECT_GUIDE.md](ORM_PROJECT_GUIDE.md).
 
 Exit code 1 if there are validation errors.
 
@@ -96,11 +101,18 @@ Generate an SVG diagram from the model.
 ```sh
 barwise diagram university.orm.yaml
 barwise diagram university.orm.yaml --output university.svg
+barwise diagram project.orm-project.yaml --output diagrams/
+barwise diagram project.orm-project.yaml --domain catalog --output catalog.svg
 ```
 
 Options:
 
-- `--output <file>` -- write SVG to file instead of stdout
+- `--output <path>` -- write SVG to a file (model) or directory (project)
+- `--domain <context>` -- for a project, diagram only this one domain
+
+Given a `.orm-project.yaml` manifest, `diagram` writes one SVG per
+domain into the `--output` directory. With `--domain`, it instead
+renders just the named domain as a single SVG.
 
 ### diff
 
@@ -116,6 +128,47 @@ Options:
 
 - `--format <text|json>` -- output format (default: text)
 - `--no-synonyms` -- hide synonym/rename candidates
+
+### project
+
+Scaffold and manage multi-domain projects. A project ties several
+`.orm.yaml` domain models together through a `.orm-project.yaml`
+manifest and `.map.yaml` context mappings. For the full workflow, see
+[ORM_PROJECT_GUIDE.md](ORM_PROJECT_GUIDE.md).
+
+`project init` creates an empty project with the standard layout:
+
+```sh
+barwise project init "Sales Warehouse"
+barwise project init "Sales Warehouse" --dir ./warehouse
+```
+
+`project split` cuts a monolithic model into one file per bounded
+context, plus suggested context mappings for any object type shared
+across a seam:
+
+```sh
+# Generate a starter config listing every object type.
+barwise project split model.orm.yaml --scaffold-config \
+  --domains catalog,auctions,payments,parties > split.yaml
+
+# Edit split.yaml, then run the split.
+barwise project split model.orm.yaml --config split.yaml --out ./project
+```
+
+Options:
+
+- `--config <path>` -- split config YAML (`projectName` and a
+  `domains` map of context to object type names)
+- `--out <dir>` -- directory to write the project into (default: `.`)
+- `--scaffold-config` -- print a starter config instead of splitting
+- `--domains <list>` -- comma-separated contexts (with `--scaffold-config`)
+- `--force` -- overwrite an existing manifest
+
+Object types not listed in the config are given a home by inference
+from the fact types that use them. The split reports every inferred
+home, dropped cross-domain constraint, and generated mapping as a
+warning to review.
 
 ### import transcript
 

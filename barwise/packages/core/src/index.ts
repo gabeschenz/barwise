@@ -84,6 +84,17 @@ export {
   ProjectSerializer,
 } from "./serialization/ProjectSerializer.js";
 export {
+  ModelSplitError,
+  parseSplitConfig,
+  scaffoldProject,
+  scaffoldSplitConfig,
+  type SplitConfig,
+  type SplitDomainFile,
+  type SplitMappingFile,
+  type SplitResult,
+  splitModel,
+} from "./project/index.js";
+export {
   type SchemaError,
   type SchemaValidationResult,
   SchemaValidator,

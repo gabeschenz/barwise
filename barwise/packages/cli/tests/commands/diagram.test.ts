@@ -60,4 +60,26 @@ describe("barwise diagram", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("--output");
   });
+
+  it("diagrams a single named domain with --domain", async () => {
+    const result = await runCli([
+      "diagram",
+      `${fixtures}/project/project.orm-project.yaml`,
+      "--domain",
+      "crm",
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("<svg");
+  });
+
+  it("errors for an unknown --domain", async () => {
+    const result = await runCli([
+      "diagram",
+      `${fixtures}/project/project.orm-project.yaml`,
+      "--domain",
+      "ghost",
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("ghost");
+  });
 });

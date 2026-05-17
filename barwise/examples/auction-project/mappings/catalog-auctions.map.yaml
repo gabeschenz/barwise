@@ -1,0 +1,14 @@
+mapping:
+  source_context: catalog
+  target_context: auctions
+  pattern: shared_kernel
+  entity_mappings:
+    - source_object_type: Asset
+      target_object_type: Asset
+      description: '"Asset" is owned by "catalog" and referenced by "auctions".'
+    - source_object_type: ConsignmentAsset
+      target_object_type: ConsignmentAsset
+      description: '"ConsignmentAsset" is owned by "catalog" and referenced by "auctions".'
+    - source_object_type: Service
+      target_object_type: Service
+      description: '"Service" is owned by "catalog" and referenced by "auctions".'
