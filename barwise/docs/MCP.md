@@ -243,6 +243,21 @@ For additional export formats, use the barwise CLI:
 - `barwise export avro <file>` -- generate Avro schemas (.avsc files)
 - `barwise export openapi <file>` -- generate an OpenAPI 3.0 spec
 
+### Work with a multi-domain project
+
+A model that has grown to span several bounded contexts can be split
+into a multi-file project. The MCP tools operate on single `.orm.yaml`
+models; to scaffold, validate, or diagram a `.orm-project.yaml`
+project, use the barwise CLI:
+
+- `barwise project split <model> --config <config>` -- cut a monolithic
+  model into per-domain files
+- `barwise validate <project>` -- validate every domain plus the
+  cross-domain rules
+- `barwise diagram <project> --domain <context>` -- diagram one domain
+
+See [ORM_PROJECT_GUIDE.md](ORM_PROJECT_GUIDE.md) for the full workflow.
+
 ---
 
 ## Tools Reference

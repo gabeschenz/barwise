@@ -1,0 +1,14 @@
+mapping:
+  source_context: auctions
+  target_context: payments
+  pattern: shared_kernel
+  entity_mappings:
+    - source_object_type: Currency
+      target_object_type: Currency
+      description: '"Currency" is owned by "auctions" and referenced by "payments".'
+    - source_object_type: Term
+      target_object_type: Term
+      description: '"Term" is owned by "auctions" and referenced by "payments".'
+    - source_object_type: WonItem
+      target_object_type: WonItem
+      description: '"WonItem" is owned by "auctions" and referenced by "payments".'

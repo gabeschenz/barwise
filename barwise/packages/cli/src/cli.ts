@@ -12,6 +12,7 @@ import { registerDiffCommand } from "./commands/diff.js";
 import { registerExportCommand } from "./commands/export.js";
 import { registerImportCommand } from "./commands/import.js";
 import { registerLineageCommand } from "./commands/lineage.js";
+import { registerProjectCommand } from "./commands/project.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerSchemaCommand } from "./commands/schema.js";
 import { registerValidateCommand } from "./commands/validate.js";
@@ -25,6 +26,7 @@ export function createProgram(): Command {
     .version("0.1.0");
 
   registerAnalyzeCommand(program);
+  registerProjectCommand(program);
   registerValidateCommand(program);
   registerVerbalizeCommand(program);
   registerDescribeCommand(program);

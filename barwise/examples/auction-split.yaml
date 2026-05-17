@@ -1,0 +1,68 @@
+# Split configuration for docs/auction.orm.yaml.
+#
+# Used by:  barwise project split docs/auction.orm.yaml \
+#             --config examples/auction-split.yaml --out examples/auction-project
+#
+# Each domain lists the *entity* object types it owns. Value types (and
+# any entity not listed here) are given a home by inference from the fact
+# types they participate in -- see docs/ORM_PROJECT_GUIDE.md.
+
+projectName: "Auction Semantic Model"
+
+domains:
+  catalog:
+    - Asset
+    - ConsignmentAsset
+    - SimpleItem
+    - GroupItem
+    - AssetType
+    - Category
+    - Make
+    - Model
+    - Industry
+    - Classification
+    - Inspection
+    - InspectionReport
+    - Checklist
+    - RefurbishmentAndRepair
+    - Transportation
+    - LienSearch
+    - TitleTransfer
+    - Service
+    - Consignment
+
+  auctions:
+    - Auction
+    - Listing
+    - Bid
+    - BidSubmission
+    - Channel
+    - WonItem
+    - Opportunity
+    - Deal
+    - Offering
+    - ExtensionalRule
+    - Term
+    - Agreement
+    - OperationalTask
+    # Month is an unused value type; without a fact type it cannot be
+    # inferred, so it is assigned here explicitly.
+    - Month
+
+  payments:
+    - ARInvoice
+    - APInvoice
+    - Payment
+    - Payout
+    - Refund
+    - SettlementEstimate
+    - PaymentDays
+    - Purchase
+    # BuyerFee is a value type with no fact type, so it cannot be
+    # inferred -- it is assigned here explicitly.
+    - BuyerFee
+
+  parties:
+    - Customer
+    - Organization
+    - Location

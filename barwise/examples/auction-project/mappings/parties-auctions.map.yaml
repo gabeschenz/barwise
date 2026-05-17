@@ -1,0 +1,8 @@
+mapping:
+  source_context: parties
+  target_context: auctions
+  pattern: shared_kernel
+  entity_mappings:
+    - source_object_type: Location
+      target_object_type: Location
+      description: '"Location" is owned by "parties" and referenced by "auctions".'
