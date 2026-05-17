@@ -75,6 +75,11 @@ export {
 } from "./serialization/MappingSerializer.js";
 export { DeserializationError, OrmYamlSerializer } from "./serialization/OrmYamlSerializer.js";
 export {
+  type LoadedProject,
+  loadProject,
+  ProjectLoadError,
+} from "./serialization/ProjectLoader.js";
+export {
   ProjectDeserializationError,
   ProjectSerializer,
 } from "./serialization/ProjectSerializer.js";

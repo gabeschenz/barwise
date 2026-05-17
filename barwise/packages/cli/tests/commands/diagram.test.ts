@@ -38,4 +38,26 @@ describe("barwise diagram", () => {
     const content = readFileSync(outFile, "utf-8");
     expect(content).toContain("<svg");
   });
+
+  it("writes one SVG per domain for a project", async () => {
+    const result = await runCli([
+      "diagram",
+      `${fixtures}/project/project.orm-project.yaml`,
+      "--output",
+      tmpDir,
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(join(tmpDir, "crm.svg"))).toBe(true);
+    expect(existsSync(join(tmpDir, "billing.svg"))).toBe(true);
+    expect(readFileSync(join(tmpDir, "crm.svg"), "utf-8")).toContain("<svg");
+  });
+
+  it("requires --output when diagramming a project", async () => {
+    const result = await runCli([
+      "diagram",
+      `${fixtures}/project/project.orm-project.yaml`,
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("--output");
+  });
 });
