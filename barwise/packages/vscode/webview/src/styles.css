@@ -1,0 +1,332 @@
+/* Diagram webview styles. Chrome uses VS Code theme variables; the
+   diagram canvas keeps the light ORM palette of @barwise/diagram. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: var(--vscode-font-family, "Segoe UI", system-ui, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* -- Top bar ----------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.topbar-title {
+  font-weight: 600;
+}
+
+.topbar-sep {
+  opacity: 0.5;
+}
+
+.topbar-model {
+  color: var(--vscode-descriptionForeground);
+}
+
+.topbar-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.topbar-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
+}
+
+.topbar-tab {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12.5px;
+}
+
+.topbar-tab:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+.topbar-tab.active {
+  background: var(--vscode-toolbar-activeBackground, rgba(128, 128, 128, 0.25));
+  color: var(--vscode-foreground);
+}
+
+.topbar-spacer {
+  min-width: 220px;
+}
+
+/* -- Main row ---------------------------------------------------------- */
+
+.main-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.center {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.inspector {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  overflow: auto;
+}
+
+/* -- Diagram canvas ---------------------------------------------------- */
+
+.diagram-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.diagram-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.diagram-controls button {
+  background: var(--vscode-button-background, #0078d4);
+  color: var(--vscode-button-foreground, #fff);
+  border: none;
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.diagram-controls button:hover {
+  background: var(--vscode-button-hoverBackground, #106ebe);
+}
+
+.diagram-zoomlabel {
+  position: absolute;
+  bottom: 14px;
+  right: 168px;
+  font-size: 11px;
+  color: #555;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.diagram-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diagram-legend-title {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+}
+
+.diagram-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #555;
+}
+
+/* -- Inspector --------------------------------------------------------- */
+
+.inspector-body {
+  padding: 14px;
+}
+
+.inspector-empty {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12.5px;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.inspector-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inspector-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+  color: var(--vscode-descriptionForeground);
+}
+
+.inspector-field {
+  margin-bottom: 12px;
+}
+
+.inspector-field-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 4px;
+}
+
+.inspector-field-value {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.inspector-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.inspector-role-idx {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  width: 12px;
+}
+
+.inspector-role-name {
+  flex: 1;
+  font-style: italic;
+  color: var(--vscode-descriptionForeground);
+}
+
+.inspector-role-player {
+  font-weight: 600;
+}
+
+.inspector-tag {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #fff);
+}
+
+/* -- Bottom strip ------------------------------------------------------ */
+
+.bottomstrip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.bottomstrip-stat strong {
+  color: var(--vscode-foreground);
+}
+
+.bottomstrip-spacer {
+  flex: 1;
+}
+
+.bottomstrip-dirty {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.bottomstrip-file {
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+/* -- Empty / placeholder states --------------------------------------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  color: var(--vscode-descriptionForeground);
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.empty-state-sub {
+  font-size: 12px;
+}
