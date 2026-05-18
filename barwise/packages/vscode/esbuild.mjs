@@ -41,5 +41,24 @@ const mcpBuild = esbuild.build({
   banner: { js: "#!/usr/bin/env node" },
 });
 
-await Promise.all([serverBuild, clientBuild, mcpBuild]);
+// Diagram webview -- a browser-targeted React bundle loaded by
+// DiagramPanel. Unlike the other entry points this runs in the webview
+// sandbox, so it is bundled for the browser with JSX support. React and
+// react-dom are bundled into the artifact. A `.css` import is emitted
+// as a sibling stylesheet (dist/webview/main.css).
+const webviewBuild = esbuild.build({
+  bundle: true,
+  platform: "browser",
+  target: "es2020",
+  format: "esm",
+  sourcemap: true,
+  minify: false,
+  jsx: "automatic",
+  loader: { ".css": "css" },
+  logLevel: "warning",
+  entryPoints: ["webview/src/main.tsx"],
+  outfile: "dist/webview/main.js",
+});
+
+await Promise.all([serverBuild, clientBuild, mcpBuild, webviewBuild]);
 console.log("Build complete.");

@@ -44,7 +44,6 @@ export class ShowDiagramCommand {
       });
       DiagramPanel.createOrShow(
         this.extensionUri,
-        result.svg,
         editor.document.fileName,
         model,
         result.layout,
