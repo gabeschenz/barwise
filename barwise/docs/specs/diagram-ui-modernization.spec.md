@@ -35,9 +35,11 @@ here): `chats/chat1.md`, and a built-out `packages/webview/` /
 `webview-server` / bridge bundle. The loose `.jsx` files above are the sole
 UI reference. If `chat1.md` surfaces later, revisit the design-intent notes.
 
-## Architecture decision (resolved)
+## Architecture decision
 
-**Layout runs host-side; the webview renders a positioned graph.**
+**Layout runs host-side; the webview renders a positioned graph.** _(In
+effect today; the in-webview alternative is under review -- see
+"Reconsidering in-webview layout" below.)_
 
 `@barwise/diagram`'s pipeline is `OrmModel -> OrmGraph -> PositionedGraph ->
 SVG`. The host (extension, Node context) already runs this via
@@ -63,15 +65,44 @@ Consequence: there are two renderers of the same `PositionedGraph` --
 (interactive editor). That split is deliberate. The single shared layout
 engine remains ELK `layoutGraph`.
 
+### Reconsidering in-webview layout
+
+The host-side decision was revisited. Running the full pipeline
+(`@barwise/core` + `@barwise/diagram` + ELK) inside the webview is
+_feasible_: esbuild can target the browser, `elkjs` ships a worker-free
+`elk.bundled.js` that satisfies the webview CSP, and core's `node:`
+imports are confined to its import/lineage modules -- not the metamodel,
+validation, verbalization, or YAML surfaces the webview would need. It
+is also _attractive_: it removes the `postMessage` round-trip on every
+drag / focus / relayout, and it is the natural substrate for a
+self-contained webview app (see the Phase 2 tree decision below).
+
+It is not adopted now. Flipping the substrate is a Phase-0-scale
+re-architecture -- it rewrites the typed protocol, moves `DiagramPanel`'s
+focus / view / ghost machinery into the webview, and pulls a 1.5-2.5 MB
+bundle (core + diagram + ELK + React) through a browser build that must
+tree-shake core's `node:`-touching modules cleanly. Doing that
+mid-Phase-1 would also strand this session's deliverable. The
+affordances built in this phase are deliberately substrate-independent:
+their UI emits semantic intent messages (`focusEntity`, `loadView`,
+`showNeighbors`, ...) and does not care whether the host or the webview
+computes the resulting layout. The decision therefore stays **open** and
+should be made as its own spec'd effort with the owner; the analysis
+above is the starting point.
+
 ### Decisions taken autonomously (confirm or redirect)
 
 - **Rendering**: Option B, host-side layout (above).
 - **Code location**: `packages/vscode/webview/` -- inside the extension
   package, no new monorepo node, no Turborepo wiring. Built to
   `packages/vscode/dist/webview/`.
-- **Tree pane**: deferred to Phase 2. The extension already contributes a
-  native sidebar tree (`barwise.modelTree`). Phase 1 ships the diagram pane
-  only; the tree/sidebar overlap is decided before Phase 2 starts.
+- **Tree pane**: Phase 2 adds a self-contained model tree inside the
+  webview's left pane (the prototype's 3-pane shell) rather than reusing
+  the native `barwise.modelTree` sidebar. This accepts some overlap with
+  the native tree in exchange for a cohesive in-panel UX; it also
+  strengthens the case for in-webview layout (above), since an in-panel
+  tree wants model data in the webview. Phase 1 still ships the diagram
+  pane only.
 - **Tab panels** (Verbalization / Fact Population / YAML / DDL): Phase 3, and
   built as thin views over existing `@barwise/core` calls -- not new logic.
 
@@ -112,7 +143,56 @@ the host and the webview.
   `PositionedGraph` + ghost ids + metadata), `highlight`, `clearHighlight`.
 - **Webview -> host** (`OutboundMessage`): `ready`, `nodeMoved`,
   `toggleOrientation`, `saveLayout`, `selectElement`, `focusEntity`,
-  `clearFocus`, `saveView`, `showNeighbors`, `addGhostToView`, `clearGhosts`.
+  `clearFocus`, `saveView`, `loadView`, `showNeighbors`, `addGhostToView`,
+  `clearGhosts`.
+
+The `DiagramMeta` carried by `setGraph` includes `availableViews` -- the
+names of every layout in the model's `diagrams:` section -- so the
+webview can populate its Views menu without holding the model. `loadView`
+is the protocol counterpart of the host's existing `DiagramPanel.loadView`
+static (previously reachable only from the native tree).
+
+## Phase 1 affordances: focus, named views, ghost neighbors
+
+Phase 0/1 shipped the diagram pane but deferred the interaction
+affordances that the host (`DiagramPanel`) already supports over the
+protocol. This phase adds the webview UI for them. The legacy webview
+exposed these through floating button bars and a right-click context
+menu; the React app does not port that chrome. Instead:
+
+- **Focus / hop neighborhood.** A contextual control in the inspector.
+  When an object type is selected, the inspector shows a _Focus_ control
+  with a 1/2/3-hop selector; choosing a hop count sends
+  `focusEntity { nodeId, hopCount }`. While a focus is active a thin
+  **context bar** appears below the top bar ("Focused on <entity>,
+  <n> hops") with a hop stepper and a _Show full model_ action
+  (`clearFocus`). Focus and named views are mutually exclusive host-side.
+
+- **Named saved views.** A _Views_ menu in the top bar. It lists every
+  named layout (from `meta.availableViews`), plus _Save current view..._
+  (`saveView`; the host prompts for the name) and _Show full model_.
+  Selecting a view sends `loadView { viewName }`. The active view name
+  shows in the menu button and the context bar.
+
+- **Ghost-neighbor preview.** When a named view is active, the inspector
+  offers _Show neighbors_ for a selected in-view entity (`showNeighbors`),
+  rendering the view's adjacent-but-excluded entities as dimmed ghosts.
+  A ghost entity's inspector offers _Add to view_ (`addGhostToView`),
+  promoting it into the saved view. The context bar surfaces a _Clear
+  preview_ action (`clearGhosts`) while ghosts are present. Ghost preview
+  is tied to named views because the host threads ghosts only through the
+  view `includeFilter`; it is not offered in plain focus mode.
+
+- **Command palette.** A Cmd/Ctrl+K overlay is the unified verb surface.
+  It lists context-aware commands -- focus the selection at N hops, show
+  neighbors, add a ghost to the view, open or save a view, clear focus,
+  fit / zoom / save layout, switch tabs -- each filtered by typed text and
+  runnable by keyboard. It is an alternate route to the same verbs, not a
+  new capability.
+
+No host-side filtering logic changes: the webview only adds UI that
+drives the existing protocol, plus the two protocol additions noted
+above.
 
 ## Build
 
@@ -133,23 +213,31 @@ inline styles are set via the DOM API and are not CSP-governed.
   diagram; reach feature parity with today's `DiagramPanel`: pan/zoom/drag,
   orientation toggle, save layout, focus/hop, named views, ghost neighbors,
   highlight, live reload. No regressions.
-- **Phase 2 -- tree + inspector panes** (after the sidebar-overlap decision).
+- **Phase 2 -- tree + inspector panes** (self-contained webview tree; see
+  the Decisions section).
 - **Phase 3 -- tab panels** wired to `@barwise/core`.
 - **Phase 4 -- tweaks (themes, density) + command palette.**
 
-## Phase 0 / Phase 1 status (this PR)
+## Phase 0 / Phase 1 status
 
-Delivered: webview build pipeline; typed protocol; React 3-pane shell (top
-bar, panes, bottom strip) styled with VS Code theme variables; diagram canvas
-rendering the full `PositionedGraph` via React/SVG; pan, zoom, fit,
-drag-to-reposition, orientation flip, save layout, selection + highlight,
-live reload on document change; `DiagramPanel` rewritten as a React-bundle
-host with CSP/nonce.
+Phase 0 and the diagram-pane core landed in the first PR: webview build
+pipeline; typed protocol; React 3-pane shell (top bar, panes, bottom
+strip) styled with VS Code theme variables; diagram canvas rendering the
+full `PositionedGraph` via React/SVG; pan, zoom, fit, drag-to-reposition,
+orientation flip, save layout, selection + highlight, live reload on
+document change; `DiagramPanel` rewritten as a React-bundle host with
+CSP/nonce.
 
-Deferred (tracked as follow-up): focus/hop neighborhood UI, named saved
-views, ghost-neighbor preview, tree + inspector content, tab panels, theming
-and command palette. Host-side support for focus/views/ghosts is retained in
-`DiagramPanel`; the webview UI affordances for them land in later phases.
+This PR completes Phase 1's deferred affordances: focus/hop neighborhood
+(inspector control + context bar), named saved views (top-bar menu),
+ghost-neighbor preview (inspector actions + context bar), and a
+Cmd/Ctrl+K command palette. Host-side support for these already existed
+in `DiagramPanel`; the webview UI now drives it. See "Phase 1
+affordances" above.
+
+Still deferred to later phases: the self-contained left model tree and
+deeper inspector content (Phase 2), the alternate tab panels (Phase 3),
+and theming / density tweaks (Phase 4).
 
 ## Testing
 
