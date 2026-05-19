@@ -37,9 +37,9 @@ UI reference. If `chat1.md` surfaces later, revisit the design-intent notes.
 
 ## Architecture decision
 
-**Layout runs host-side; the webview renders a positioned graph.** _(In
-effect today; the in-webview alternative is under review -- see
-"Reconsidering in-webview layout" below.)_
+**Layout runs host-side; front ends consume a serializable presentation
+contract.** _(Resolved -- see "Resolved: a front-end-agnostic
+presentation contract" below.)_
 
 `@barwise/diagram`'s pipeline is `OrmModel -> OrmGraph -> PositionedGraph ->
 SVG`. The host (extension, Node context) already runs this via
@@ -65,30 +65,33 @@ Consequence: there are two renderers of the same `PositionedGraph` --
 (interactive editor). That split is deliberate. The single shared layout
 engine remains ELK `layoutGraph`.
 
-### Reconsidering in-webview layout
+### Resolved: a front-end-agnostic presentation contract
 
-The host-side decision was revisited. Running the full pipeline
-(`@barwise/core` + `@barwise/diagram` + ELK) inside the webview is
-_feasible_: esbuild can target the browser, `elkjs` ships a worker-free
-`elk.bundled.js` that satisfies the webview CSP, and core's `node:`
-imports are confined to its import/lineage modules -- not the metamodel,
-validation, verbalization, or YAML surfaces the webview would need. It
-is also _attractive_: it removes the `postMessage` round-trip on every
-drag / focus / relayout, and it is the natural substrate for a
-self-contained webview app (see the Phase 2 tree decision below).
+The host-side decision was revisited and **confirmed**, with a
+refinement. The alternative -- running the full pipeline
+(`@barwise/core` + `@barwise/diagram` + ELK) inside the webview -- was
+weighed and rejected: it is feasible (esbuild can target the browser,
+`elkjs` ships a worker-free `elk.bundled.js`, core's `node:` imports are
+confined to its import/lineage modules) but it is a Phase-0-scale
+re-architecture for little gain, pulling a 1.5-2.5 MB bundle through a
+browser build and moving stateful machinery into the sandbox.
 
-It is not adopted now. Flipping the substrate is a Phase-0-scale
-re-architecture -- it rewrites the typed protocol, moves `DiagramPanel`'s
-focus / view / ghost machinery into the webview, and pulls a 1.5-2.5 MB
-bundle (core + diagram + ELK + React) through a browser build that must
-tree-shake core's `node:`-touching modules cleanly. Doing that
-mid-Phase-1 would also strand this session's deliverable. The
-affordances built in this phase are deliberately substrate-independent:
-their UI emits semantic intent messages (`focusEntity`, `loadView`,
-`showNeighbors`, ...) and does not care whether the host or the webview
-computes the resulting layout. The decision therefore stays **open** and
-should be made as its own spec'd effort with the owner; the analysis
-above is the starting point.
+The refinement: treat the layout output not as a webview message
+payload but as a **front-end-agnostic presentation contract** -- a
+serializable representation of "the diagram as positioned information"
+that is produced once, host-side, and delivered to any number of front
+ends. `PositionedGraph` (plus the focus / view / ghost metadata in
+`DiagramMeta`) already _is_ that representation, and two front ends
+already consume it: `renderSvg` (static SVG for CLI / MCP / chat) and
+the React webview (interactive editor). What is missing is that the
+contract is not yet _deliberate_ -- its production and delivery are
+entangled with `DiagramPanel` and the VS Code `postMessage` protocol.
+
+Formalizing and decoupling that contract is specified separately, in
+`diagram-presentation-contract.spec.md`, and executed as its own effort.
+It does not block this phase: the affordances built here are pure
+consumers of the contract -- their UI emits semantic intent and renders
+the positioned graph, indifferent to where layout runs.
 
 ### Decisions taken autonomously (confirm or redirect)
 
@@ -99,10 +102,11 @@ above is the starting point.
 - **Tree pane**: Phase 2 adds a self-contained model tree inside the
   webview's left pane (the prototype's 3-pane shell) rather than reusing
   the native `barwise.modelTree` sidebar. This accepts some overlap with
-  the native tree in exchange for a cohesive in-panel UX; it also
-  strengthens the case for in-webview layout (above), since an in-panel
-  tree wants model data in the webview. Phase 1 still ships the diagram
-  pane only.
+  the native tree in exchange for a cohesive in-panel UX. The in-panel
+  tree needs model structure in the webview, so the presentation
+  contract (see "Resolved" above) must carry a serialized model summary
+  alongside the positioned graph. Phase 1 still ships the diagram pane
+  only.
 - **Tab panels** (Verbalization / Fact Population / YAML / DDL): Phase 3, and
   built as thin views over existing `@barwise/core` calls -- not new logic.
 
