@@ -5,6 +5,8 @@
  */
 
 import { Command } from "commander";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { registerAnalyzeCommand } from "./commands/analyze.js";
 import { registerDescribeCommand } from "./commands/describe.js";
 import { registerDiagramCommand } from "./commands/diagram.js";
@@ -18,12 +20,16 @@ import { registerSchemaCommand } from "./commands/schema.js";
 import { registerValidateCommand } from "./commands/validate.js";
 import { registerVerbalizeCommand } from "./commands/verbalize.js";
 
+const { version } = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"),
+) as { version: string; };
+
 export function createProgram(): Command {
   const program = new Command();
   program
     .name("barwise")
     .description("ORM 2 modeling tool for data engineers and architects")
-    .version("0.1.0");
+    .version(version);
 
   registerAnalyzeCommand(program);
   registerProjectCommand(program);

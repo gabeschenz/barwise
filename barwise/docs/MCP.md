@@ -64,7 +64,7 @@ flowchart LR
 validate it, verbalize to confirm domain semantics, then generate
 artifacts. The MCP server produces DDL, JSON schema mappings, and SVG
 diagrams directly. For dbt, Avro, and OpenAPI output, use the barwise
-CLI (`barwise export dbt|avro|openapi`).
+CLI (`barwise export <file> --format dbt|avro|openapi`).
 
 ---
 
@@ -238,10 +238,12 @@ The `review-model` prompt automates this sequence (see Prompts below).
 
 For additional export formats, use the barwise CLI:
 
-- `barwise export dbt <file>` -- generate a dbt project (schema.yml +
-  model SQL files)
-- `barwise export avro <file>` -- generate Avro schemas (.avsc files)
-- `barwise export openapi <file>` -- generate an OpenAPI 3.0 spec
+- `barwise export <file> --format dbt` -- generate a dbt project
+  (schema.yml + model SQL files)
+- `barwise export <file> --format avro` -- generate Avro schemas
+  (.avsc files)
+- `barwise export <file> --format openapi` -- generate an OpenAPI 3.0
+  spec
 
 ### Work with a multi-domain project
 

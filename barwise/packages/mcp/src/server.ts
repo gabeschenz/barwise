@@ -12,10 +12,17 @@ import { registerPrompts } from "./prompts/index.js";
 import { registerResources } from "./resources/index.js";
 import { registerTools } from "./tools/index.js";
 
+// Reported in the MCP `initialize` handshake as `serverInfo.version`.
+// server.ts is bundled into CJS (its own esbuild bundle and the VS Code
+// extension), where neither `import.meta` nor a runtime package.json
+// read is reliable -- so this is pinned here and kept in sync with
+// package.json by the version-sync test in tests/server.test.ts.
+export const SERVER_VERSION = "1.5.0";
+
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "barwise",
-    version: "0.2.1",
+    version: SERVER_VERSION,
   });
 
   registerTools(server);

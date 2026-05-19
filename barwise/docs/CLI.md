@@ -75,24 +75,31 @@ Options:
 
 ### export
 
-Export a model in various formats.
+Export a model in any registered format. The target format is selected
+with the required `--format` option.
 
 ```sh
-barwise export yaml model.orm.yaml --output normalized.orm.yaml
-barwise export json model.orm.yaml --output model.json
-barwise export dbt model.orm.yaml --output-dir dbt/models
+barwise export model.orm.yaml --format ddl
+barwise export model.orm.yaml --format ddl --output schema.sql
+barwise export model.orm.yaml --format dbt --output dbt_project/
+barwise export model.orm.yaml --format openapi --strict --no-annotate
 ```
 
-Subcommands:
+Formats:
 
-- `yaml` -- re-serialize as .orm.yaml (normalize/reformat)
-- `json` -- serialize as JSON
-- `dbt` -- generate dbt model YAML and SQL files
+- `ddl` -- relational schema as SQL DDL
+- `openapi` -- OpenAPI 3.0 specification
+- `dbt` -- dbt model YAML and SQL files
+- `avro` -- Avro schemas (`.avsc`)
 
 Options:
 
-- `--output <file>` -- write to file (yaml, json)
-- `--output-dir <dir>` -- output directory for dbt files (default: `.`)
+- `--format <name>` -- export format (required)
+- `--output <path>` -- write to a file, or to a directory for
+  multi-file formats like `dbt`; defaults to stdout
+- `--no-annotate` -- exclude TODO/NOTE annotations
+- `--strict` -- fail on validation errors
+- `--no-examples` -- exclude population example data
 
 ### diagram
 
