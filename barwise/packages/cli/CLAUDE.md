@@ -19,7 +19,7 @@ src/
     validate.ts         barwise validate <file>
     verbalize.ts        barwise verbalize <file>
     schema.ts           barwise schema <file>
-    export.ts           barwise export yaml|json|dbt <file>
+    export.ts           barwise export <file> --format <name>
     diagram.ts          barwise diagram <file>
     diff.ts             barwise diff <file1> <file2>
     import.ts           barwise import transcript <file>

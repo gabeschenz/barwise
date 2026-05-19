@@ -1,13 +1,19 @@
 /**
  * Tests for the CLI scaffolding: program creation, version, help.
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { runCli } from "./helpers/run.js";
+
+const { version } = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"),
+) as { version: string; };
 
 describe("CLI scaffolding", () => {
   it("shows version with --version", async () => {
     const result = await runCli(["--version"]);
-    expect(result.stdout).toContain("0.1.0");
+    expect(result.stdout).toContain(version);
   });
 
   it("shows help with --help", async () => {
