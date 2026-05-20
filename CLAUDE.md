@@ -22,6 +22,20 @@ provides the theoretical foundation for fact-based modeling.
   providers slot in via a factory. Prefer narrow primitives that
   compose over wide ones that don't.
 
+- **Determinism in the core.** Validation, verbalization, mapping,
+  diff, and query are pure and deterministic -- same input, same
+  output. Non-determinism (LLM calls, network I/O, clocks) lives in
+  the outer packages (`llm`, `cli`, `mcp`, `vscode`). New
+  capabilities go in `core` only if they can preserve this; if they
+  cannot, they belong one layer out.
+
+- **Explicit over implicit.** Cross-domain references go through
+  declared context mappings; data products declare the domains they
+  compose; every `.orm.yaml` carries a `schemaVersion`; import and
+  export formats register through a named `FormatDescriptor` rather
+  than being auto-discovered. When in doubt, require declaration
+  instead of inference.
+
 - **DRY (secondary).** Remove duplication when it does not
   compromise orthogonality or composability. A small amount of
   parallel code in two packages is preferable to an abstraction
